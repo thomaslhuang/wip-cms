@@ -1,0 +1,94 @@
+#!/bin/bash
+# wip cms for Mac: double-click to start the editor and open it in its own window.
+#
+#   1. finds the wip-cms folder (the one this app sits in, or the last one used)
+#   2. finds Node.js (Homebrew, the installer from nodejs.org, nvm, Volta...)
+#   3. installs or updates its packages when needed (first launch, or after a pull)
+#   4. starts the editor in the background, unless it's already running; if you've pulled
+#      a newer version since it started, it restarts it
+#   5. opens it as an app window (Chrome, Edge or Brave), or in your default browser
+#
+# Anything it prints goes to ~/Library/Logs/wip cms.log. Quit the editor from its ⋯ menu.
+
+PORT="${WIP_PORT:-4321}"
+URL="http://localhost:$PORT"
+SUPPORT="$HOME/Library/Application Support/wip cms"
+LOG="$HOME/Library/Logs/wip cms.log"
+mkdir -p "$SUPPORT" "$(dirname "$LOG")"
+say() { osascript -e "display notification \"$1\" with title \"wip cms\"" >/dev/null 2>&1; }
+alert() { osascript -e "display dialog \"$1\" with title \"wip cms\" buttons {\"OK\"} default button 1 with icon caution" >/dev/null 2>&1; }
+
+# ---------- 1. the wip-cms folder ----------
+APP="$(cd "$(dirname "$0")/../.." && pwd)"
+if [ -f "$APP/../server.js" ]; then
+  ROOT="$(cd "$APP/.." && pwd)"
+elif [ -f "$SUPPORT/folder" ] && [ -f "$(cat "$SUPPORT/folder")/server.js" ]; then
+  ROOT="$(cat "$SUPPORT/folder")"
+else
+  ROOT="$(osascript -e 'POSIX path of (choose folder with prompt "Where is the wip-cms folder? (the one with server.js in it)")' 2>/dev/null)" || exit 0
+  ROOT="${ROOT%/}"
+  [ -f "$ROOT/server.js" ] || { alert "That folder doesn't have wip cms in it (no server.js)."; exit 1; }
+fi
+echo "$ROOT" > "$SUPPORT/folder"
+
+# ---------- 2. Node.js ----------
+find_node() {
+  for n in /opt/homebrew/bin/node /usr/local/bin/node "$HOME/.volta/bin/node" "$HOME/.asdf/shims/node"; do
+    [ -x "$n" ] && { echo "$n"; return; }
+  done
+  # nvm and fnm: the newest installed version
+  for d in "$HOME/.nvm/versions/node" "$HOME/.local/share/fnm/node-versions" "$HOME/Library/Application Support/fnm/node-versions"; do
+    [ -d "$d" ] || continue
+    n="$(ls -td "$d"/*/ 2>/dev/null | head -1)"    # the most recently installed
+    for c in "${n}bin/node" "${n}installation/bin/node"; do [ -x "$c" ] && { echo "$c"; return; }; done
+  done
+  # anything else your Terminal knows about
+  n="$(/bin/zsh -lic 'command -v node' 2>/dev/null | tail -1)"
+  [ -x "$n" ] && echo "$n"
+}
+NODE="$(find_node)"
+if [ -z "$NODE" ]; then
+  if osascript -e 'button returned of (display dialog "wip cms needs Node.js, which isn’t installed yet. Download it from nodejs.org (choose the LTS version), install it, then open wip cms again." with title "wip cms" buttons {"Cancel", "Get Node.js"} default button 2)' 2>/dev/null | grep -q "Get"; then
+    open "https://nodejs.org/en/download"
+  fi
+  exit 1
+fi
+# programs started from Finder get a very short PATH: add Node's folder (and the usual ones)
+export PATH="$(dirname "$NODE"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+cd "$ROOT" || exit 1
+
+# ---------- 3. packages ----------
+if [ ! -d node_modules ] || [ package-lock.json -nt node_modules/.package-lock.json ]; then
+  say "Getting things ready (only after an update)…"
+  if ! npm install --no-audit --no-fund >> "$LOG" 2>&1; then
+    alert "Couldn't install what wip cms needs. Is this Mac online? Details are in ~/Library/Logs/wip cms.log."
+    exit 1
+  fi
+fi
+
+# ---------- 4. the editor ----------
+VERSION="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+RUNNING="$(curl -s --max-time 1 "$URL/api/version" 2>/dev/null)"
+if [ -n "$RUNNING" ] && ! echo "$RUNNING" | grep -q "$VERSION"; then
+  # an older version is running (you've pulled since): restart it
+  curl -s --max-time 2 -X POST "$URL/api/quit" >/dev/null 2>&1
+  sleep 1
+  RUNNING=""
+fi
+if [ -z "$RUNNING" ]; then
+  echo "--- $(date) starting wip cms from $ROOT" >> "$LOG"
+  nohup "$NODE" server.js >> "$LOG" 2>&1 &
+  for i in $(seq 1 60); do
+    curl -s -o /dev/null --max-time 1 "$URL/api/site" && break
+    sleep 0.25
+  done
+fi
+
+# ---------- 5. its window ----------
+for b in "Google Chrome" "Microsoft Edge" "Brave Browser" "Chromium"; do
+  if [ -d "/Applications/$b.app" ] || [ -d "$HOME/Applications/$b.app" ]; then
+    open -na "$b" --args --app="$URL" --new-window
+    exit 0
+  fi
+done
+open "$URL"

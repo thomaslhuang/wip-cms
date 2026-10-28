@@ -24,6 +24,8 @@ const phone = require("./lib/phone");
 const setup = require("./lib/setup");
 
 const PORT = Number(process.env.WIP_PORT) || 4321;
+// the code's git commit when it started (the Mac app restarts the editor when this changes)
+const VERSION = (() => { try { return require("child_process").execFileSync("git", ["rev-parse", "HEAD"], { cwd: __dirname, encoding: "utf8" }).trim(); } catch { return "unknown"; } })();
 // Listens on the local network so your phone can reach the photo-upload page, but from
 // any other device only that page works (see lib/phone.js). The editor is this computer only.
 const HOST = "0.0.0.0";
@@ -70,6 +72,11 @@ const routes = {
 
   // how many files changed since the last commit (the "ready to publish" count)
   "GET /api/changes": () => changes(),
+
+  // stop wip cms (the ⋯ menu's Quit, and the Mac app when it needs to restart a newer version)
+  "POST /api/quit": () => { setTimeout(() => { try { preview.stopPreview(); } catch { /* fine */ } process.exit(0); }, 150); return { ok: true }; },
+  // which version is running, so the Mac app can tell when it needs restarting after an update
+  "GET /api/version": () => ({ version: VERSION }),
 
   // images
   "GET /api/image-folder": (q) => ({ folder: site.rel(site.imageFolderFor(q.file)) }),

@@ -12,7 +12,22 @@ writing, and comes in light and dark.
 
 ## Starting it
 
-You need Node 18 or newer (`node -v` in Terminal to check).
+**Double-click `wip cms.app`** in this folder. That's it: no Terminal.
+
+- It starts the editor in the background and opens it in its own window (an app window in
+  Chrome, Edge or Brave if you have one; otherwise your default browser).
+- The first time, and after you pull an update, it gets things ready for a moment first.
+- Drag it to the Dock to keep it handy. It can also live in Applications: it remembers
+  where this folder is (and asks, if it ever can't find it).
+- **Quit** from the ⋯ menu stops the editor. Closing the window leaves it running quietly
+  in the background, so the next open is instant.
+- It needs Node.js (18 or newer). If it isn't installed, the app says so and opens
+  nodejs.org. Messages go to `~/Library/Logs/wip cms.log`.
+
+The first time, it asks which site to open: give it the site's main folder, the one with
+`.pages.yml` in it. Click the site name (top left) to switch sites later.
+
+**From Terminal instead** (the same thing):
 
 ```sh
 cd ~/path/to/wip-cms
@@ -21,11 +36,7 @@ npm start                           # opens the site you used last
 npm start -- ~/path/to/my-site      # opens a particular site
 ```
 
-Then go to **http://localhost:4321**. The first time, it asks which site to open: give it
-the site's main folder, the one with `.pages.yml` in it. Click the site name (top left)
-to switch sites later.
-
-Stop it with **Ctrl+C** in Terminal.
+Then go to **http://localhost:4321**. Stop it with **Ctrl+C**.
 
 **A new site (for a client, say):** click the site name, paste the new site's folder,
 and press Open. If it isn't set up yet, wip cms asks a few questions instead:
@@ -101,13 +112,15 @@ line, for big reshuffles.)
 
 **Japanese:** ⋯ → Language → 日本語 switches all of wip cms to Japanese (your section and
 field names from .pages.yml too, for the common ones). ⋯ → Dates picks how dates are
-written: October 28, 2026 · 2026年10月28日 · 令和8年10月28日. Translations live in
+written: October 28, 2026 · 2026年10月28日. Translations live in
 `public/js/i18n.js`; anything without one stays in English.
 
-**Themes:** ⋯ → **Themes, colors and fonts…** Pick light and dark themes (Light, Dark,
-Paper, Ayu, Ink), or duplicate one and change its colors, fonts (any font on your Mac,
+**Customize:** ⋯ → **Customize…** has three tabs. **Themes**: match your Mac or pick
+light or dark, and choose a theme for each; duplicate one to make your own. **Colors** and
+**Typography** change the theme you're on: its colors, fonts (any font on your Mac,
 one from Google Fonts, or the built-in Zen Old Mincho and Zen Kaku Gothic New), writing
-size, line spacing, letter spacing and weight, and code colors (ayu dark or ayu light).
+size, weight, line, letter and word spacing, the interface's font and weight, and code
+colors (ayu dark or ayu light), with a preview at the top as you go.
 "Match my Mac" switches between your light and dark theme. Themes are kept in this browser.
 
 **Toolbar**
@@ -173,6 +186,8 @@ site folder). For other sites, everything except the preview still works.
 ## Where things are (for changing it later)
 
 ```
+wip cms.app          the Mac app: double-click to start (Contents/MacOS/wip-cms is the script)
+mac/make-icon.py     draws the app's icon (AppIcon.icns, and the browser tab icons)
 server.js            the switchboard: each web address hands off to a module below
 lib/
   site.js            which site is open; turning paths into files and back

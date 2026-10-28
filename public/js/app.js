@@ -283,16 +283,17 @@ function drawToolbar() {
     ] : []),
     { heading: t("Appearance") },
     ...[["system", tl("Match my Mac")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
-    { label: tl("Themes, colors and fonts…"), run: () => openAppearance() },
+    { label: tl("Customize…"), run: () => openAppearance() },
     "-",
     // the whole app in English or Japanese (reloads to switch)
     { heading: t("Language") },
     ...[["en", "English"], ["ja", "日本語"]].map(([l, label]) => ({ label, checked: lang() === l, run: async () => { if (lang() !== l) { await editor?.flush(); setLang(l); location.reload(); } } })),
     // how dates are written, shown with today's date as the example
     { heading: t("Dates") },
-    ...["western", "japanese", "era"].map((style) => ({ label: fmtDate(new Date(), "long", style), checked: dateStyle() === style, run: () => { setDateStyle(style); drawList(); editor?.redrawMeta?.(); } })),
+    ...["western", "japanese"].map((style) => ({ label: fmtDate(new Date(), "long", style), checked: dateStyle() === style, run: () => { setDateStyle(style); drawList(); editor?.redrawMeta?.(); } })),
     "-",
     { label: tl("Open another site…"), run: () => chooseSite(true) },
+    { label: t("Quit wip cms"), run: quit },
   ]));
   right.push(more);
 
@@ -500,6 +501,16 @@ window.addEventListener("drop", (e) => {
   if (!b) return toast(t("This page has no blocks: drop pictures onto an image field instead."), "error");
   b.addFiles([...e.dataTransfer.files], at);
 });
+
+// ---------- quitting ----------
+// saves, stops the editor (and its preview), and says so; open the Mac app again to restart
+async function quit() {
+  await editor?.flush();
+  try { await api.quit(); } catch { /* it stops before answering, sometimes */ }
+  document.body.append(h("div", { class: "overlay" }, h("div", { class: "dialog" },
+    h("p", { class: "dialog-title" }, t("wip cms has stopped")),
+    h("p", { class: "muted small" }, t("Everything is saved. You can close this window; open wip cms again when you need it.")))));
+}
 
 // ---------- choosing a site ----------
 

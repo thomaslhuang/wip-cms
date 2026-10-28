@@ -16,8 +16,8 @@ export const lang = () => read("wip-lang", "en");
 export function setLang(l) { write("wip-lang", l); document.documentElement.lang = l; }
 document.documentElement.lang = lang();
 
-// western: October 22, 2026 · japanese: 2026年10月22日 · era: 令和8年10月22日
-export const dateStyle = () => read("wip-dates", lang() === "ja" ? "japanese" : "western");
+// western: October 22, 2026 · japanese: 2026年10月22日
+export const dateStyle = () => { const d = read("wip-dates", lang() === "ja" ? "japanese" : "western"); return d === "era" ? "japanese" : d; };
 export const setDateStyle = (s) => write("wip-dates", s);
 
 export function t(text, vars) {
@@ -149,7 +149,7 @@ const JA = {
   // ----- setting up a site -----
   "Set up “{name}”": "「{name}」を設定", "Pages folder (the site generator's input)": "ページのフォルダ（サイトジェネレーターの入力）",
   "Images folder, inside it": "その中の画像フォルダ", "Folders already there: {list}": "既にあるフォルダ：{list}", "Sections": "セクション",
-  "Name in the sidebar": "サイドバーでの名前", "Folder": "フォルダ", "Kind": "種類", "Writing": "書き方", "Template": "テンプレート", "optional": "任意",
+  "Name in the sidebar": "サイドバーでの名前", "Folder": "フォルダ", "Kind": "種類", "Writing": "本文", "Template": "テンプレート", "optional": "任意",
   "Posts": "投稿", "Text": "テキスト", "Blocks": "ブロック", "Add a section": "セクションを追加", "Remove {label}": "「{label}」を削除", "Set up": "設定する",
   "Title, featured image, date, draft, tags": "タイトル、アイキャッチ画像、日付、下書き、タグ", "Title and a short description": "タイトルと短い説明",
   "One piece of writing under the title (Markdown)": "タイトルの下に1つの文章（Markdown）",
@@ -160,6 +160,13 @@ const JA = {
   "Posts get a title, featured image, date, draft switch and tags; pages get a title and a description. “Blocks” lets you mix text, images, carousels and collages, like your own site, but the client site's templates need to be able to show them. “Template” fills in the layout field (for Eleventy, e.g. post.njk).":
     "投稿にはタイトル、アイキャッチ画像、日付、下書きスイッチ、タグが、ページにはタイトルと説明が付きます。「ブロック」ではあなたのサイトのようにテキスト・画像・カルーセル・コラージュを組み合わせられますが、クライアントのサイトのテンプレートが対応している必要があります。「テンプレート」は layout 項目に入ります（Eleventy なら post.njk など）。",
   // ----- appearance -----
+  "Quit wip cms": "wip cms を終了", "wip cms has stopped": "wip cms を終了しました",
+  "Everything is saved. You can close this window; open wip cms again when you need it.": "すべて保存されています。このウィンドウは閉じて大丈夫です。必要な時にまた wip cms を開いてください。",
+  "Customize": "カスタマイズ", "Customize…": "カスタマイズ…", "Themes": "テーマ", "Typography": "文字", "Editing “{name}”": "「{name}」を編集中",
+  "Built-in themes can't be changed. Duplicate one to make it your own.": "内蔵のテーマは変更できません。複製すると自分用に変えられます。",
+  "Duplicate “{name}”": "「{name}」を複製", "copy": "のコピー", "Surfaces": "背景", "Text and accent": "文字とアクセント", "Interface": "画面",
+  "Font": "フォント", "Weight": "太さ", "Size": "大きさ", "Line spacing": "行間", "Letter spacing": "字間", "Word spacing": "語間", "Code": "コード",
+  "From Google Fonts": "Google Fonts から読み込む", "Bold": "太字",
   "Mode": "モード", "Light theme": "ライトテーマ", "Dark theme": "ダークテーマ", "Duplicate": "複製", "Duplicate “{name}” to customize": "「{name}」を複製してカスタマイズ",
   "Delete theme": "テーマを削除", "Built-in themes can't be changed. Duplicate one to make your own: colors, fonts and code colors.": "内蔵のテーマは変更できません。複製すると、色・フォント・コードの色を自由に変えられます。",
   "Name": "名前", "Untitled": "名称未設定", "Used for": "使うモード", "Light mode": "ライトモード", "Dark mode": "ダークモード", "Light or dark": "ライトかダーク",
