@@ -31,5 +31,5 @@ export const api = {
   imageFolder: (file) => call("GET", "/api/image-folder?" + qs({ file })),
   media: (folder) => call("GET", "/api/media?" + qs(folder ? { folder } : {})),
   phoneLink: (folder) => call("GET", "/api/phone-link?" + qs({ folder })),
-  upload: (folder, name, blob) => call("POST", "/api/upload?" + qs({ folder, name }), blob, true),
+  upload: (folder, name, blob, kind) => call("POST", "/api/upload?" + qs(kind ? { folder, name, kind } : { folder, name }), blob, true),
 };

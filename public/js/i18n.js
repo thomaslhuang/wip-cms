@@ -28,11 +28,16 @@ export function t(text, vars) {
 // one / many: t2(n, "{n} image", "{n} images")
 export const t2 = (n, one, many, vars = {}) => t(n === 1 ? one : many, { n, ...vars });
 
-// kind: long (October 22, 2026) · short (Oct 22, 2026) · day (Oct 22) · month (October 2026)
+// kind: weekday (Wed 22 / 22日(水)) · long (October 22, 2026) · short (Oct 22, 2026) · day (Oct 22) · month (October 2026)
 //       monthName (October) · year (2026)
 export function fmtDate(value, kind = "long", style = dateStyle()) {
   const d = value instanceof Date ? value : new Date(String(value).slice(0, 10) + "T12:00:00");
   if (isNaN(d)) return "";
+  // the day within its month, for lists already grouped by month: "Wed 22" / "22日(水)"
+  if (kind === "weekday") {
+    if (style === "western") return d.toLocaleDateString("en-US", { weekday: "short" }) + " " + d.getDate();
+    return `${d.getDate()}日(${d.toLocaleDateString("ja-JP", { weekday: "short" })})`;
+  }
   if (style === "western") {
     const o = { long: { year: "numeric", month: "long", day: "numeric" }, short: { year: "numeric", month: "short", day: "numeric" },
       day: { month: "short", day: "numeric" }, month: { year: "numeric", month: "long" }, monthName: { month: "long" }, year: { year: "numeric" } }[kind];
@@ -105,7 +110,10 @@ const JA = {
   "Line break: a new line in the same paragraph (⇧↩)": "改行：同じ段落のまま次の行へ（⇧↩）", "line break": "改行", "Source": "ソース",
   "Link to (web address):": "リンク先（ウェブアドレス）：",
   // ----- images -----
-  "Remove image": "画像を削除", "Upload from": "アップロード元", "Upload from this computer": "このパソコンからアップロード", "Choose": "選ぶ", "Upload": "アップロード", "Upload from your phone": "スマホからアップロード",
+  "Remove image": "画像を削除", "Upload from": "アップロード元", "Choose from": "選ぶ：", "or upload from": "またはアップロード：", "Only pictures can go here.": "ここには画像だけを追加できます。",
+  "Added {n} file": "{n} 件追加しました", "Added {n} files": "{n} 件追加しました", "Drop to add to this post": "ドロップしてこの投稿に追加",
+  "Pictures become image blocks, videos become video blocks, other files become links.": "画像は画像ブロック、動画は動画ブロック、その他のファイルはリンクになります。",
+  "This page has no blocks: drop pictures onto an image field instead.": "このページにはブロックがありません。画像は画像の項目にドロップしてください。", "Upload from this computer": "このパソコンからアップロード", "Choose": "選ぶ", "Upload": "アップロード", "Upload from your phone": "スマホからアップロード",
   "Move earlier": "前へ", "Move later": "後へ", "From phone": "スマホから", "Refresh": "更新", "Close": "閉じる",
   "Uploaded {n} image": "{n} 枚アップロードしました", "Uploaded {n} images": "{n} 枚アップロードしました", "Copied {url}": "コピーしました：{url}",
   "No images here yet. Upload some, or go up a folder.": "まだ画像がありません。アップロードするか、上のフォルダに戻ってください。",

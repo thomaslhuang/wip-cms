@@ -4,7 +4,10 @@
 //   - click a block to select it: its options (caption position, alt text...) and a
 //     small bar (move up / down, delete) appear; click elsewhere or press Esc to put them away
 //   - hover between two blocks for a + that inserts a block there
+//   - drag a block by its handle (⠿, left of the block) to move it: a copy follows the pointer
+//     and a blue line shows where it will land
 //   - "Rearrange" (toolbar) shrinks every block to one line you can drag
+//   - files dropped onto the post become blocks (app.js asks via root.api.addFiles)
 //   - deleting only asks first when the block has something in it
 //   - "Photos" adds one Image block per picked photo, straight away
 //   - an image with "aside next" on sits beside the image after it, as on the site
@@ -13,7 +16,8 @@
 // The toolbar (app.js) drives it through root.api: insert(), addPhotos(), toggleRearrange().
 import { h, fill, icon, firstWords, confirmBox } from "./util.js";
 import { renderFields } from "./fields.js";
-import { openPicker } from "./media.js";
+import { openPicker, uploadAny } from "./media.js";
+import { ghost, autoScroll } from "./drag.js";
 import { t as tr, t2 } from "./i18n.js";
 
 // options that only show while a block is selected
@@ -159,6 +163,7 @@ export function renderBlocks(field, list, ctx) {
       }
     } else body = h("p", { class: "muted" }, tr("Unknown block type “{type}”", { type: b[key] }));
     const el = h("div", { class: "block block-" + b[key] + (selected === b ? " selected" : "") },
+      h("button", { class: "block-grip", "aria-label": tr("Drag to move"), title: tr("Drag to move"), onpointerdown: (e) => dragBlock(e, b) }, icon("grip")),
       h("div", { class: "block-bar" },
         h("span", { class: "block-type" }, icon(TYPE_ICONS[b[key]] || "text"), labelOf(b)),
         h("button", { class: "icon-btn", "aria-label": tr("Move up"), disabled: i === 0, onclick: () => move(b, -1) }, icon("up")),
@@ -177,6 +182,90 @@ export function renderBlocks(field, list, ctx) {
   }
   const insertLine = (at) => h("div", { class: "insert-line" },
     h("button", { "aria-label": tr("Insert a block here"), title: tr("Insert a block here"), onclick: () => openChooser(at) }, icon("plus")));
+
+  // ----- drag a block by its handle -----
+  // the blocks (and pairs of side-by-side images) as they sit on the page, with their place in the list
+  const units = () => [...listEl.children].filter((c) => c.classList.contains("block") || c.classList.contains("block-pair"))
+    .map((c) => ({ el: c, index: list.indexOf((c.blockRef ? c : c.querySelector(".block")).blockRef) }));
+  // where a block dropped at height y would go, and the line that shows it
+  const dropLine = h("div", { class: "drop-line", hidden: true });
+  function dropIndexAt(y) {
+    const all = units();
+    for (const u of all) {
+      const r = u.el.getBoundingClientRect();
+      if (y < r.top + r.height / 2) return { index: u.index, top: u.el.offsetTop - 11 };
+    }
+    const lastEl = all[all.length - 1]?.el;
+    return { index: list.length, top: lastEl ? lastEl.offsetTop + lastEl.offsetHeight + 11 : 0 };
+  }
+  function showDropAt(y) {
+    const { index, top } = dropIndexAt(y);
+    if (!dropLine.isConnected) listEl.append(dropLine);
+    dropLine.hidden = false;
+    dropLine.style.top = top + "px";
+    return index;
+  }
+  const hideDrop = () => { dropLine.hidden = true; };
+
+  function dragBlock(e, b) {
+    if (e.button > 0) return;
+    e.preventDefault();
+    const x0 = e.clientX, y0 = e.clientY;
+    let dragging = false, copy = null, scroller = null, last = e, target = null;
+    const sources = () => [...listEl.querySelectorAll(".block")].filter((c) => c.blockRef === b);
+    const begin = () => {
+      dragging = true;
+      select(null);
+      copy = ghost(h("div", { class: "block-ghost" }, icon(TYPE_ICONS[b[key]] || "text"), h("b", {}, labelOf(b)), h("span", {}, previewOf(b))), 260, last, { x: 20, y: 18 });
+      sources().forEach((c) => c.classList.add("drag-source"));
+      root.classList.add("block-dragging");
+      scroller = autoScroll([root.closest(".docpane")], () => { target = showDropAt(last.clientY); });
+    };
+    const move = (ev) => {
+      last = ev;
+      if (!dragging) { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 4) return; begin(); }
+      ev.preventDefault();
+      copy.move(ev);
+      scroller.at(ev);
+      target = showDropAt(ev.clientY);
+    };
+    const end = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      if (!dragging) { select(b); return; }
+      copy.remove(); scroller.stop(); hideDrop();
+      root.classList.remove("block-dragging");
+      const from = list.indexOf(b);
+      let to = target ?? from;
+      if (to > from) to--;
+      if (to !== from) { list.splice(from, 1); list.splice(to, 0, b); ctx.changed(); }
+      selected = b;
+      draw();
+    };
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+  }
+
+  // ----- files dropped onto the post -----
+  // pictures become image blocks, videos video blocks (HTML), anything else a link in a text block
+  async function addFiles(files, at = list.length) {
+    const made = [];
+    const imageDef = defs.find((d) => d.name === "image");
+    const textDef = defs.find((d) => d.name === "text");
+    const htmlDef = defs.find((d) => d.name === "html");
+    for (const f of await uploadAny(ctx.imageFolder, files)) {
+      if (f.kind === "image" && imageDef) made.push({ ...newBlock(imageDef), image: f.url });
+      else if (f.kind === "video" && htmlDef) made.push({ ...newBlock(htmlDef), html: `<video src="${f.url}" controls playsinline preload="metadata"></video>` });
+      else if (textDef) made.push({ ...newBlock(textDef), text: `[${f.name.replace(/[[\]]/g, "")}](${f.url})` });
+    }
+    if (!made.length) return;
+    list.splice(at, 0, ...made);
+    selected = made[made.length - 1];
+    ctx.changed();
+    draw();
+  }
 
   // ----- drag to reorder (Rearrange) -----
   function startDrag(e, el) {
@@ -237,6 +326,7 @@ export function renderBlocks(field, list, ctx) {
     addPhotos: () => { const d = defs.find((x) => x.name === "photos" || x.name === "multi-upload"); if (d) choose(d, insertIndex()); },
     hasPhotos: () => defs.some((x) => x.name === "photos" || x.name === "multi-upload"),
     toggleRearrange,
+    showDropAt, hideDrop, addFiles,
     isRearranging: () => rearranging,
     onState: (fn) => listeners.add(fn),
   };

@@ -4,7 +4,8 @@
 // back into obj, then calls ctx.changed() so the Save button lights up.
 // To support a new field type, add a function to EDITORS below.
 import { h, fill, icon, autosize, isPlainObject, toast } from "./util.js";
-import { openPicker, chooseFiles, uploadFiles } from "./media.js";
+import { openPicker, chooseFiles, uploadFiles, kindOf } from "./media.js";
+import { ghost, autoScroll } from "./drag.js";
 import { renderBlocks } from "./blocks.js";
 import { richBox } from "./rich.js";
 import { codeArea } from "./code.js";
@@ -263,16 +264,17 @@ function thumb(url, onRemove, extra = []) {
     h("div", { class: "thumb-tools" }, ...extra, h("button", { class: "icon-btn", title: tr("Remove image"), onclick: onRemove }, icon("trash"))));
 }
 
-// the buttons under an image field: Choose (from the library) | Upload from: Computer, Phone
-//   onPicked(urls) gets the chosen or uploaded /images/... addresses
+// the buttons under an image field:
+//   Choose from [Library]   or upload from [Computer] [Phone]
+// onPicked(urls) gets the chosen or uploaded /images/... addresses
 function imageButtons(ctx, multiple, onPicked) {
   return h("div", { class: "image-buttons" },
+    h("span", { class: "image-buttons-label" }, tr("Choose from")),
     h("button", { class: "btn small", onclick: async () => {
       const picked = await openPicker({ multiple, folder: ctx.imageFolder });
       if (picked && picked.length) onPicked(picked);
-    } }, icon("folder"), tr("Choose")),
-    h("span", { class: "image-buttons-sep", "aria-hidden": "true" }),
-    h("span", { class: "image-buttons-label" }, tr("Upload from")),
+    } }, icon("folder"), tr("Library")),
+    h("span", { class: "image-buttons-label" }, tr("or upload from")),
     h("button", { class: "btn small", title: tr("Upload from this computer"), onclick: () => chooseFiles(multiple, async (files) => {
       try { onPicked(await uploadFiles(ctx.imageFolder, files)); } catch (e) { toast(e.message, "error"); }
     }) }, icon("laptop"), tr("Computer")),
@@ -282,21 +284,39 @@ function imageButtons(ctx, multiple, onPicked) {
     } }, icon("phone"), tr("Phone")));
 }
 
+// pictures dragged in from Finder onto an image field go straight into it
+function acceptDrops(el, ctx, onPicked) {
+  const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+  el.addEventListener("dragover", (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.stopPropagation(); el.classList.add("drop-here"); });
+  el.addEventListener("dragleave", (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove("drop-here"); });
+  el.addEventListener("drop", async (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); e.stopPropagation();
+    el.classList.remove("drop-here");
+    const files = [...e.dataTransfer.files].filter((f) => kindOf(f) === "image");
+    if (!files.length) return toast(tr("Only pictures can go here."), "error");
+    try { onPicked(await uploadFiles(ctx.imageFolder, files)); } catch (err) { toast(err.message, "error"); }
+  });
+}
+
 function imageOne(field, obj, ctx) {
   const box = h("div", { class: "image-one" });
+  const set = (urls) => { obj[field.name] = urls[urls.length - 1]; ctx.changed(); draw(); };
   const draw = () => {
     const url = obj[field.name];
     fill(box,
       url ? thumb(url, () => { delete obj[field.name]; ctx.changed(); draw(); }) : null,
-      url ? null : imageButtons(ctx, false, (urls) => { obj[field.name] = urls[urls.length - 1]; ctx.changed(); draw(); }));
+      url ? null : imageButtons(ctx, false, set));
   };
+  acceptDrops(box, ctx, set);
   draw();
   return box;
 }
 
 // several images (carousel, collage, a project's gallery): drag one to change the order.
-// With a mouse, just drag; on a touch screen, press and hold a moment first (so swiping
-// still scrolls).
+// A copy follows the pointer and a faded placeholder shows where it will land; dragging
+// near the edge of a carousel strip (or the page) scrolls it. With a mouse, just drag; on
+// a touch screen, press and hold a moment first (so swiping still scrolls).
 function imageMany(field, obj, ctx) {
   if (!Array.isArray(obj[field.name])) obj[field.name] = obj[field.name] ? [obj[field.name]] : [];
   const list = obj[field.name];
@@ -314,27 +334,26 @@ function imageMany(field, obj, ctx) {
     }));
     fill(box, strip, imageButtons(ctx, true, (urls) => { list.push(...urls); ctx.changed(); draw(); }));
   };
+  acceptDrops(box, ctx, (urls) => { list.push(...urls); ctx.changed(); draw(); });
 
   function startDrag(e, el) {
     if (e.button > 0 || e.target.closest("button")) return;
     const touch = e.pointerType === "touch";
     const x0 = e.clientX, y0 = e.clientY;
-    let dragging = false, timer = null;
+    let dragging = false, timer = null, copy = null, scroller = null, last = e;
     const begin = () => {
       dragging = true;
-      el.classList.add("dragging");
+      const r = el.getBoundingClientRect();
+      const w = Math.min(r.width, 170);
+      copy = ghost(h("img", { src: el.querySelector("img").src, alt: "" }), w, last, { x: w / 2, y: (w * r.height / r.width) / 2 });
+      el.classList.add("placeholder");
       box.classList.add("reordering");
+      scroller = autoScroll([strip, box.closest(".docpane, .inspector")], () => place(last));
       try { el.setPointerCapture(e.pointerId); } catch { /* fine */ }
     };
     if (touch) timer = setTimeout(begin, 280);
-    const move = (ev) => {
-      if (!dragging) {
-        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
-        if (touch) return end();          // moved before the hold: it's a scroll, not a drag
-        begin();
-      }
-      ev.preventDefault();
-      // the picture under the pointer: go before it (left half) or after it (right half)
+    // the picture under the pointer: go before it (its first half) or after it
+    const place = (ev) => {
       const over = [...strip.children].find((c) => {
         if (c === el) return false;
         const r = c.getBoundingClientRect();
@@ -342,8 +361,21 @@ function imageMany(field, obj, ctx) {
       });
       if (!over) return;
       const r = over.getBoundingClientRect();
-      if (ev.clientX < r.left + r.width / 2) { if (over.previousSibling !== el) strip.insertBefore(el, over); }
+      const before = strip.scrollWidth > strip.clientWidth ? ev.clientX < r.left + r.width / 2 : (ev.clientY < r.top + r.height / 2 && ev.clientX < r.right) || ev.clientX < r.left + r.width / 2;
+      if (before) { if (over.previousSibling !== el) strip.insertBefore(el, over); }
       else if (over.nextSibling !== el) strip.insertBefore(el, over.nextSibling);
+    };
+    const move = (ev) => {
+      last = ev;
+      if (!dragging) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        if (touch) return end();          // moved before the hold: it's a scroll, not a drag
+        begin();
+      }
+      ev.preventDefault();
+      copy.move(ev);
+      scroller.at(ev);
+      place(ev);
     };
     const end = () => {
       clearTimeout(timer);
@@ -351,11 +383,15 @@ function imageMany(field, obj, ctx) {
       window.removeEventListener("pointerup", end);
       window.removeEventListener("pointercancel", end);
       if (!dragging) return;
-      el.classList.remove("dragging");
+      copy.remove();
+      scroller.stop();
+      el.classList.remove("placeholder");
       box.classList.remove("reordering");
       const order = [...strip.children].map((c) => list[Number(c.dataset.index)]);
+      const scrollLeft = strip.scrollLeft;
       if (order.some((u, k) => u !== list[k])) { list.splice(0, list.length, ...order); ctx.changed(); }
       draw();
+      strip.scrollLeft = scrollLeft;
     };
     window.addEventListener("pointermove", move, { passive: false });
     window.addEventListener("pointerup", end);

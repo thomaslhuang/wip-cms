@@ -33,6 +33,7 @@ const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".json": "application/json", ".svg": "image/svg+xml", ".webp": "image/webp", ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".avif": "image/avif", ".woff2": "font/woff2",
+  ".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm", ".mp3": "audio/mpeg", ".pdf": "application/pdf",
 };
 
 // after anything changes a file, keep the preview and tag suggestions in step
@@ -119,7 +120,10 @@ const server = http.createServer(async (req, res) => {
       return send(res, 403, { error: "Only photo uploads are allowed from other devices." });
     }
     if (req.method === "GET" && url.pathname === "/phone") return serveFile(res, path.join(PUBLIC, "phone.html"));
-    if (req.method === "POST" && url.pathname === "/api/upload") return send(res, 200, media.saveUpload(q.folder, q.name, await readBody(req)));
+    if (req.method === "POST" && url.pathname === "/api/upload") {
+      const anyFile = q.kind === "file";
+      return send(res, 200, media.saveUpload(q.folder, q.name, await readBody(req, anyFile ? media.MAX_FILE + 1024 : undefined), anyFile));
+    }
 
     const route = routes[`${req.method} ${url.pathname}`];
     if (route) {

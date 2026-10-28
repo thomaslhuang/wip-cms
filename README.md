@@ -75,6 +75,11 @@ there. Click the date for a date picker, click Draft or Published to switch, and
 "add tag" (Return adds it, suggestions come from tags you've used). The inspector shows
 the same and stays in step.
 
+**Moving blocks:** point at a block and drag the ⠿ handle in the margin to its left. A
+copy follows the pointer and a blue line shows where it will land; dragging near the top
+or bottom of the window scrolls. (Rearrange in the toolbar still shrinks every block to a
+line, for big reshuffles.)
+
 **Writing**
 
 - Text shows its formatting as you write: *italic* looks italic, **bold** looks bold,
@@ -126,12 +131,15 @@ photos and rearrange float at the bottom of the screen.
 
 **Images**
 
-- Under an image field: **Choose** picks from the library; **Upload from Computer** or
-  **Phone** adds new ones.
-- In carousels, collages and galleries, **drag a picture** to change the order (on a touch
-  screen, press and hold first). Carousel pictures show their number, like "2/6", top right.
-- **Images** in the sidebar shows the whole library: drop files on it to upload, use
-  **From phone**, or click an image to copy its address.
+- Under an image field: **Choose from Library**, or upload from **Computer** or **Phone**.
+  You can also drag pictures from Finder straight onto an image field.
+- In carousels, collages and galleries, **drag a picture** to change the order: a copy
+  follows the pointer, a faded spot shows where it will land, and dragging near the end
+  of a carousel strip scrolls it. (On a touch screen, press and hold first.) Carousel
+  pictures show their number, like "2/6", top right.
+- **Drag files from Finder onto a post** to add them where the blue line shows: pictures
+  become image blocks, videos (mp4, mov, webm) become video blocks, and anything else (a
+  PDF, say) becomes a link. Files over 95 MB are refused, because GitHub won't take them.
 - Uploads are converted in the browser to WebP, 1500px on the longest edge. They go
   into the post's own image folder, e.g. `src/images/blog/2026/10/my-post/`.
 - **From phone** shows a QR code. Your phone needs to be on the same Wi-Fi. The phone

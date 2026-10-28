@@ -42,6 +42,26 @@ export async function uploadFiles(folder, files) {
   return urls;
 }
 
+// what a dropped file is: "image", "video" or "file"
+export const kindOf = (file) => /^image\//.test(file.type) || /\.(jpe?g|png|webp|gif|svg|heic|heif|avif)$/i.test(file.name) ? "image"
+  : /^video\//.test(file.type) || /\.(mp4|m4v|mov|webm)$/i.test(file.name) ? "video" : "file";
+
+// upload any mix of files (images are made web-ready first); returns [{ url, name, kind }]
+export async function uploadAny(folder, files) {
+  const out = [];
+  for (const file of files) {
+    const kind = kindOf(file);
+    try {
+      if (kind === "image") {
+        const { blob, name } = await prepareForWeb(file);
+        out.push({ ...(await api.upload(folder, name, blob)), kind });
+      } else out.push({ ...(await api.upload(folder, file.name, file, "file")), kind, name: file.name });
+    } catch (e) { toast(e.message, "error"); }
+  }
+  if (out.length) toast(t2(out.length, "Added {n} file", "Added {n} files"));
+  return out;
+}
+
 // a hidden file input, opened from a button; calls back with the chosen files
 export function chooseFiles(multiple, onFiles) {
   const input = h("input", { type: "file", accept: "image/*", multiple, style: { display: "none" } });

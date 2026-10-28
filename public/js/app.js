@@ -182,7 +182,7 @@ function rowItem(e) {
     e.featuredImage ? h("img", { class: "row-thumb", src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "row-thumb empty" }),
     h("span", { class: "row-text" },
       h("span", { class: "row-title" }, titleOf(e)),
-      h("span", { class: "row-sub" }, e.date ? fmtDate(e.date, "day") : "", draftBadge(e)),
+      h("span", { class: "row-sub" }, e.date ? fmtDate(e.date, "weekday") : "", draftBadge(e)),
       e.excerpt ? h("span", { class: "row-excerpt" }, e.excerpt) : null));
 }
 // the grid: square pictures edge to edge; the title shows when you point at one
@@ -195,7 +195,7 @@ function tileItem(e) {
 function textItem(e) {
   return h("a", { class: "text-item" + isActive(e), href: "#/edit/" + e.file },
     h("span", { class: "text-title" }, titleOf(e)), draftBadge(e),
-    h("span", { class: "text-date" }, e.date ? fmtDate(e.date, "day") : ""));
+    h("span", { class: "text-date" }, e.date ? fmtDate(e.date, "weekday") : ""));
 }
 
 // drag the list's right edge to make it wider (handy for the grid)
@@ -461,6 +461,45 @@ async function go() {
   document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · wip cms`;
 }
 async function reopen() { editor?.destroy(); editor = null; await go(); }
+
+// ---------- files dragged in from Finder ----------
+// Anywhere on a post: pictures become image blocks, videos video blocks, other files links,
+// dropped where the blue line shows. Image fields and the image library take their own drops.
+// (Files are never opened by the browser itself, which would leave wip cms.)
+let dropHint = null, dragDepth = 0;
+const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+function clearFileDrag() {
+  dragDepth = 0;
+  dropHint?.remove(); dropHint = null;
+  app.classList.remove("file-over");
+  editor?.blocks?.hideDrop();
+}
+window.addEventListener("dragenter", (e) => {
+  if (!hasFiles(e)) return;
+  dragDepth++;
+  if (!dropHint && editor?.blocks) {
+    dropHint = h("div", { class: "file-drop-hint" }, h("b", {}, t("Drop to add to this post")), t("Pictures become image blocks, videos become video blocks, other files become links."));
+    document.body.append(dropHint);
+    app.classList.add("file-over");
+  }
+});
+window.addEventListener("dragleave", (e) => { if (hasFiles(e) && --dragDepth <= 0) clearFileDrag(); });
+window.addEventListener("dragover", (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  if (editor?.blocks && docpane.contains(e.target)) editor.blocks.showDropAt(e.clientY);
+});
+window.addEventListener("drop", (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  const b = editor?.blocks;
+  const at = b && docpane.contains(e.target) ? b.showDropAt(e.clientY) : undefined;
+  clearFileDrag();
+  if (route.page === "images") return;          // the library page handles its own drops
+  if (!editor) return;
+  if (!b) return toast(t("This page has no blocks: drop pictures onto an image field instead."), "error");
+  b.addFiles([...e.dataTransfer.files], at);
+});
 
 // ---------- choosing a site ----------
 
