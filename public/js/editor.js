@@ -95,13 +95,14 @@ export async function openEditor({ file, section, config }) {
     // don't redraw while you're typing a tag in it
     if (!force && meta.contains(document.activeElement) && document.activeElement.tagName === "INPUT" && document.activeElement.type !== "date") return;
     const parts = [];
-    if (has("date")) {
-      const d = data.date ? new Date(String(data.date).slice(0, 10) + "T12:00:00") : null;
-      const picker = h("input", { type: "date", class: "meta-date-input", "aria-label": t("Date"), value: data.date ? String(data.date).slice(0, 10) : "",
+    const dateName = has("date") ? "date" : fields.find((f) => f.type === "date")?.name;
+    if (dateName) {
+      const d = data[dateName] ? new Date(String(data[dateName]).slice(0, 10) + "T12:00:00") : null;
+      const picker = h("input", { type: "date", class: "meta-date-input", "aria-label": t("Date"), value: data[dateName] ? String(data[dateName]).slice(0, 10) : "",
         onchange: () => {
           if (!picker.value) return;
-          const rest = /^\d{4}-\d{2}-\d{2}(T.*)$/.exec(String(data.date || ""));
-          data.date = picker.value + (rest ? rest[1] : "T00:00:00" + localOffset());
+          const rest = /^\d{4}-\d{2}-\d{2}(T.*)$/.exec(String(data[dateName] || ""));
+          data[dateName] = picker.value + (rest ? rest[1] : "T00:00:00" + localOffset());
           changed(); refreshInspector();
         } });
       picker.addEventListener("click", () => { try { picker.showPicker(); } catch { /* opens by itself */ } });

@@ -5,22 +5,20 @@
 // themes in dark mode; "Match my Mac" switches between your chosen light and dark theme.
 // Built-in themes can't be changed, but "Duplicate" makes an editable copy.
 // Everything is kept in this browser (localStorage).
-import { h, fill, icon } from "./util.js";
+import { h, fill, icon, toast } from "./util.js";
 import { t as tr, tl } from "./i18n.js";
 
 // built-in themes have translated names; your own keep the name you gave them
 const nameOf = (theme) => (BUILT_IN.some((b) => b.id === theme.id) ? tr(theme.name) : theme.name);
 
+// the fonts offered, in this order (plus "Other font…" for anything else)
+//   google: load it from Google Fonts · weights: the ones loaded · italic: also load italics
+//   weight: what the writing uses with this font unless the theme says otherwise
 const FONTS = {
-  system: { label: "System (San Francisco)", family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif' },
-  serif: { label: "New York (serif)", family: 'ui-serif, "New York", "Iowan Old Style", Georgia, serif' },
-  iowan: { label: "Iowan Old Style", family: '"Iowan Old Style", Palatino, Georgia, serif' },
-  helvetica: { label: "Helvetica Neue", family: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
-  rounded: { label: "SF Rounded", family: 'ui-rounded, "SF Pro Rounded", -apple-system, sans-serif' },
+  system: { label: "System", family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif' },
+  garamond: { label: "EB Garamond", google: "EB Garamond", weights: [400, 500, 600, 700], italic: true, family: '"EB Garamond", Garamond, "Iowan Old Style", Georgia, serif' },
   mono: { label: "SF Mono", family: 'ui-monospace, "SF Mono", Menlo, monospace' },
   menlo: { label: "Menlo", family: 'Menlo, ui-monospace, monospace' },
-  // from Google Fonts (loaded when a theme uses them)
-  //   weights: the ones loaded; weight: what the writing uses unless the theme says otherwise
   zenMincho: { label: "Zen Old Mincho", google: "Zen Old Mincho", weights: [400, 500, 600, 700], weight: 500, family: '"Zen Old Mincho", ui-serif, "Hiragino Mincho ProN", serif' },
   zenGothic: { label: "Zen Kaku Gothic New", google: "Zen Kaku Gothic New", weights: [400, 500, 700], weight: 400, family: '"Zen Kaku Gothic New", -apple-system, "Hiragino Sans", sans-serif' },
 };
@@ -35,6 +33,7 @@ const COLORS = [
 
 const BUILT_IN = [
   { id: "light", name: "Light", kind: "light", code: "ayu-light", colors: { window: "#ffffff", sidebar: "#f0f0f3", list: "#ffffff", panel: "#f6f6f8", card: "#ffffff", text: "#1d1d1f", muted: "#636366", accent: "#0a66d8" } },
+  { id: "paper", name: "Paper", kind: "light", code: "ayu-light", writing: "garamond", size: 18, colors: { window: "#fbf8f1", sidebar: "#f0eadd", list: "#f8f4eb", panel: "#f4efe4", card: "#fffdf8", text: "#2a2723", muted: "#6b6358", accent: "#a94f27" } },
   { id: "dark", name: "Dark", kind: "dark", code: "ayu-dark", colors: { window: "#1e1e1f", sidebar: "#29292b", list: "#232325", panel: "#262628", card: "#2f2f31", text: "#f2f2f7", muted: "#a1a1a6", accent: "#0a66d8" } },
 ];
 
@@ -73,6 +72,7 @@ function varsFor(t) {
   v["--writing-weight"] = String(writingWeight(t));
   v["--writing-word-spacing"] = (t.wordSpacing || 0) + "em";
   v["--ui-weight"] = String(t.uiWeight || 400);
+  v["--ui-scale"] = String((t.uiScale || 100) / 100);
   return v;
 }
 // the writing's weight: the theme's choice, else the font's own (Zen Old Mincho reads best at medium)
@@ -83,8 +83,9 @@ const googleFonts = (t) => {
   const out = new Map();
   for (const x of [t.font, t.writing, t.mono].filter(Boolean)) {
     const f = font(x);
-    if (f.preset && FONTS[f.preset]?.google) for (const w of FONTS[f.preset].weights || [400]) out.set(FONTS[f.preset].google + ":" + w, [FONTS[f.preset].google, w]);
-    else if (f.custom && f.google) out.set(f.custom + ":400", [f.custom, 400]);
+    const p = f.preset && FONTS[f.preset];
+    if (p?.google) for (const w of p.weights || [400]) out.set(p.google + ":" + w, [p.google, w, p.italic]);
+    else if (f.custom && f.google) out.set(f.custom + ":400", [f.custom, 400, false]);
   }
   return [...out.values()];
 };
@@ -96,8 +97,9 @@ export function applyTheme(t = activeTheme()) {
   for (const [k, val] of Object.entries(varsFor(t))) root.style.setProperty(k, val);
   // custom fonts from Google Fonts
   document.querySelectorAll("link[data-theme-font]").forEach((l) => l.remove());
-  for (const [name, weight] of googleFonts(t)) {
-    document.head.append(h("link", { rel: "stylesheet", "data-theme-font": "", href: `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name).replace(/%20/g, "+")}:wght@${weight}&display=swap` }));
+  for (const [name, weight, italic] of googleFonts(t)) {
+    const spec = italic ? `ital,wght@0,${weight};1,${weight}` : `wght@${weight}`;
+    document.head.append(h("link", { rel: "stylesheet", "data-theme-font": "", href: `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name).replace(/%20/g, "+")}:${spec}&display=swap` }));
   }
   // remembered so index.html can paint the right colors before anything loads
   write("wip-theme-boot", { light: bootFor(themeById(read("wip-theme-light", "light"), "light")), dark: bootFor(themeById(read("wip-theme-dark", "dark"), "dark")) });
@@ -194,6 +196,8 @@ export function openAppearance() {
         h("div", { class: "theme-cards" }, themes.map(card)),
         h("div", { class: "theme-actions" },
           h("button", { class: "btn small", onclick: () => duplicate(current) }, icon("plus"), tl("Duplicate")),
+          h("button", { class: "btn small", onclick: () => exportTheme(current) }, icon("upload"), tl("Export")),
+          h("button", { class: "btn small", onclick: () => importTheme((t) => { editing = t.id; applyTheme(t); draw(); }) }, icon("folder"), tl("Import…")),
           builtIn ? null : h("button", { class: "btn small", onclick: () => {
             write("wip-themes", customThemes().filter((t) => t.id !== current.id));
             for (const k of ["wip-theme-light", "wip-theme-dark"]) if (read(k) === current.id) write(k, k.endsWith("dark") ? "dark" : "light");
@@ -262,7 +266,8 @@ export function openAppearance() {
     return [
       group("Interface",
         row(tl("Font"), fontPicker("font", "system")),
-        row(tl("Weight"), weightPicker("uiWeight", t.uiWeight || 400))),
+        row(tl("Weight"), weightPicker("uiWeight", t.uiWeight || 400)),
+        row(tl("Size"), ...slider("uiScale", "%", 85, 130, 5, 100))),
       group("Writing",
         row(tl("Font"), fontPicker("writing", "system")),
         row(tl("Weight"), weightPicker("weight", writingWeight(t))),
@@ -276,6 +281,47 @@ export function openAppearance() {
     ];
   }
   draw();
+}
+
+// ---------- sharing themes ----------
+// Export saves the theme as a small file (to Downloads); Import adds one as a new theme.
+
+export function exportTheme(theme) {
+  const { id, ...rest } = theme;
+  const data = { wipTheme: 1, ...rest, name: nameOf(theme) };
+  const a = h("a", { href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })),
+    download: `${nameOf(theme).replace(/[^\w\- ]+/g, "").trim() || "theme"}.wiptheme.json` });
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+export function importTheme(onDone) {
+  const input = h("input", { type: "file", accept: ".json,application/json", style: { display: "none" } });
+  input.addEventListener("change", async () => {
+    const file = input.files[0];
+    input.remove();
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const hex = /^#[0-9a-f]{6}$/i;
+      if (!data || !data.colors || !COLORS.every(([k]) => hex.test(data.colors[k] || ""))) throw new Error();
+      const theme = {
+        ...Object.fromEntries(Object.entries(data).filter(([k]) => ["code", "font", "writing", "mono", "size", "leading", "tracking", "wordSpacing", "weight", "uiWeight", "uiScale"].includes(k))),
+        id: "custom-" + Date.now().toString(36),
+        name: String(data.name || file.name.replace(/\.wiptheme\.json$|\.json$/, "")).slice(0, 60),
+        kind: data.kind === "dark" ? "dark" : "light",
+        colors: Object.fromEntries(COLORS.map(([k]) => [k, data.colors[k].toLowerCase()])),
+      };
+      const taken = new Set([...BUILT_IN, ...customThemes()].map((x) => x.name));
+      for (let n = 2, base = theme.name; taken.has(theme.name); n++) theme.name = `${base} ${n}`;
+      write("wip-themes", [...customThemes(), theme]);
+      write(theme.kind === "dark" ? "wip-theme-dark" : "wip-theme-light", theme.id);
+      onDone?.(theme);
+    } catch { toast(tr("That file isn't a wip cms theme."), "error"); }
+  });
+  document.body.append(input);
+  input.click();
 }
 
 // a line of Markdown, colored the way Source view colors it

@@ -162,6 +162,9 @@ const JA = {
   // ----- appearance -----
   "Quit wip cms": "wip cms を終了", "wip cms has stopped": "wip cms を終了しました",
   "Everything is saved. You can close this window; open wip cms again when you need it.": "すべて保存されています。このウィンドウは閉じて大丈夫です。必要な時にまた wip cms を開いてください。",
+  "Export": "書き出す", "Import…": "読み込む…", "That file isn't a wip cms theme.": "このファイルは wip cms のテーマではありません。",
+  "Group and sort": "グループと並べ替え", "Group by": "グループ", "Sort by": "並べ替え", "Month": "月", "Year": "年", "Nothing": "なし", "None": "なし",
+  "Newest first": "新しい順", "Oldest first": "古い順",
   "Customize": "カスタマイズ", "Customize…": "カスタマイズ…", "Themes": "テーマ", "Typography": "文字", "Editing “{name}”": "「{name}」を編集中",
   "Built-in themes can't be changed. Duplicate one to make it your own.": "内蔵のテーマは変更できません。複製すると自分用に変えられます。",
   "Duplicate “{name}”": "「{name}」を複製", "copy": "のコピー", "Surfaces": "背景", "Text and accent": "文字とアクセント", "Interface": "画面",

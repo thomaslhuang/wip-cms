@@ -22,6 +22,7 @@
   --writing-weight: 400;
   --writing-word-spacing: 0em;  /* word spacing of the writing */
   --ui-weight: 400;             /* weight of the interface text */
+  --ui-scale: 1;                /* Interface Size in Customize: everything except the writing */
   /* mixed from the base colors */
   --inspector: var(--panel);
   --toolbar: color-mix(in srgb, var(--panel) 50%, var(--window));
@@ -118,6 +119,10 @@ button:disabled { cursor: default; }
 .app[data-view="split"][data-pane="main"] .list, .app[data-view="preview"][data-pane="main"] .list { display: none; }
 .app.resizing, .app.resizing * { cursor: col-resize; user-select: none; }
 .app.resizing iframe { pointer-events: none; }
+
+/* Interface Size: the sidebar, list, toolbar, inspector, menus and windows grow or shrink
+   together; the writing has its own size */
+.sidebar, .list, .toolbar, .inspector, .phonebar, .popmenu, .toast, .overlay > .dialog, .preview-bar { zoom: var(--ui-scale); }
 
 /* ---------- sidebar ---------- */
 .side-head { height: var(--toolbar-h); flex: none; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 10px; }
@@ -560,7 +565,7 @@ select.input { appearance: auto; }
   .setup-row-head { display: none; }
 }
 /* ---------- the Customize window (js/theme.js): one fixed size, tabs at the top ---------- */
-.custom-dialog { width: min(720px, 100%); height: min(640px, calc(100vh - 32px)); padding: 0; gap: 0; overflow: hidden; }
+.custom-dialog { width: min(720px, calc((100vw - 32px) / var(--ui-scale))); height: min(640px, calc((100vh - 32px) / var(--ui-scale))); padding: 0; gap: 0; overflow: hidden; }
 .custom-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .custom-title { font-size: 13px; font-weight: 600; }
 .custom-head .btn { justify-self: end; }

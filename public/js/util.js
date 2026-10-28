@@ -60,6 +60,7 @@ const ICONS = {
   insert: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
   images: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
   text: '<path d="M4 6h16M4 11h16M4 16h10M4 20h7"/>',
+  sort: '<path d="M3 6h13M3 12h9M3 18h5"/><path d="m17 15 3 3 3-3"/><path d="M20 18V6"/>',
   rows: '<rect x="3" y="4" width="6" height="6" rx="1.5"/><rect x="3" y="14" width="6" height="6" rx="1.5"/><path d="M13 6h8M13 9h5M13 16h8M13 19h5"/>',
   grid: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>',
   carousel: '<rect x="6" y="5" width="12" height="14" rx="2"/><path d="M2 7v10M22 7v10"/>',

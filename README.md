@@ -67,7 +67,7 @@ Options:
 | | |
 |---|---|
 | **Sidebar** | Your sections (blog posts, projects), Images, pages and settings. At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site. |
-| **List** | The posts in that section, newest first, under their year and month; click a year or month to fold it away. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** (square pictures, three across, edge to edge; point at one for its title) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
+| **List** | The posts in that section. The ⇅ button picks how they're **grouped** (by month, by year, by any choice field such as Category, or not at all) and **sorted** (newest first, oldest first, or by title). Each section remembers its own, and it only changes this list, never the order on your site. Out of the box, sections filed by month (like blog posts) group by year and month, with the weekday and day beside each post; other dated sections (like projects) group by year, without dates. Click a group to fold it away. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** (square pictures, three across, edge to edge; point at one for its title) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
 | **Inspector** | The post's details: featured image, date, switches, tags, and its permalink. |
 
@@ -116,12 +116,16 @@ written: October 28, 2026 · 2026年10月28日. Translations live in
 `public/js/i18n.js`; anything without one stays in English.
 
 **Customize:** ⋯ → **Customize…** has three tabs. **Themes**: match your Mac or pick
-light or dark, and choose a theme for each; duplicate one to make your own. **Colors** and
-**Typography** change the theme you're on: its colors, fonts (any font on your Mac,
-one from Google Fonts, or the built-in Zen Old Mincho and Zen Kaku Gothic New), writing
-size, weight, line, letter and word spacing, the interface's font and weight, and code
-colors (ayu dark or ayu light), with a preview at the top as you go.
-"Match my Mac" switches between your light and dark theme. Themes are kept in this browser.
+light or dark, and choose a theme for each (Light, Paper and Dark come built in);
+duplicate one to make your own. **Export** saves the theme you're on as a
+`.wiptheme.json` file in Downloads; **Import…** adds one from a file (to share a theme
+or move it to another Mac). **Colors** and **Typography** change the theme you're on: its
+colors; fonts (System, EB Garamond, SF Mono, Menlo, Zen Old Mincho, Zen Kaku Gothic New,
+or any other font on your Mac or on Google Fonts); writing size, weight, line, letter and
+word spacing; the interface's font, weight and **size** (scales the sidebar, list, toolbar
+and inspector, 85–130%); and code colors (ayu dark or ayu light), with a preview at the
+top as you go. "Match my Mac" switches between your light and dark theme. Themes are kept
+in this browser.
 
 **Toolbar**
 
@@ -165,6 +169,24 @@ photos and rearrange float at the bottom of the screen.
 - **From phone** shows a QR code. Your phone needs to be on the same Wi-Fi. The phone
   can only reach the upload page; the editor is only reachable from your Mac. The link
   changes every time wip cms starts.
+
+## Other sites
+
+wip cms isn't tied to studiotomby.com. What it needs from a site is a `.pages.yml` (the
+Pages CMS format) whose sections are folders of Markdown files. It works out the rest
+from the fields:
+
+- **Entries** can be folders (`my-post/index.md`) or plain files (`2026-10-28-my-post.md`),
+  whichever the section's `filename` template says. `{year}`, `{month}`, `{day}` and
+  `{primary}` work in templates.
+- **The date** is a field called `date`, or else the first date field.
+- **The list picture** is `featuredImage`, or else the first single-image field.
+- **Grouping** offers every single-choice (select) field.
+- **Blocks** are only used if the section has a blocks field; otherwise you write one
+  piece of Markdown.
+
+Things that are specific to one site should go in that site's `.pages.yml`, not in wip
+cms's code.
 
 ## How the live preview works
 
@@ -212,7 +234,7 @@ public/
     setup.js         the "Set up a site" window
     rich.js          the writing box: Markdown shown formatted, and turned back into Markdown
     code.js          color-coded Source view
-    theme.js         themes and the Appearance window
+    theme.js         themes and the Customize window
     i18n.js          English / Japanese words, and date styles
     api.js           talking to server.js
     util.js          small helpers and the icons

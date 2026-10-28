@@ -56,7 +56,9 @@ const segmented = (label, options, current, onpick) => h("div", { class: "segmen
 function popMenu(anchor, items) {
   document.querySelector(".popmenu")?.remove();
   const r = anchor.getBoundingClientRect();
-  const menu = h("div", { class: "popmenu", role: "menu", style: { top: r.bottom + 6 + "px", right: Math.max(8, window.innerWidth - r.right) + "px" } },
+  // the menu is drawn at the Interface Size, so its position is too
+  const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
+  const menu = h("div", { class: "popmenu", role: "menu", style: { top: (r.bottom + 6) / scale + "px", right: Math.max(8, window.innerWidth - r.right) / scale + "px" } },
     items.map((it) => it === "-" ? h("div", { class: "popmenu-sep" })
       : it.heading ? h("div", { class: "popmenu-heading" }, it.heading)
       : h("button", { role: "menuitem", class: it.danger ? "danger" : "", onclick: () => { menu.remove(); it.run(); } },
@@ -124,32 +126,25 @@ function drawList() {
   const shown = all.filter((e) => !filter || (e.title + " " + (e.excerpt || "")).toLowerCase().includes(filter));
   const drafts = all.filter((e) => e.draft).length;
   const mode = listMode(s.name);
-  const items = { rows: rowItem, grid: tileItem, text: textItem }[mode];
 
-  // years, then (except in the grid) months inside them; each can be folded away.
-  // While searching everything is open, so nothing that matches is hidden.
-  const years = [];
-  for (const e of shown) {
-    const d = e.date ? asDate(e.date) : null;
-    const yKey = d ? String(d.getFullYear()) : "none";
-    const mKey = d ? `${yKey}-${String(d.getMonth() + 1).padStart(2, "0")}` : "none";
-    let y = years[years.length - 1];
-    if (!y || y.key !== yKey) years.push(y = { key: yKey, date: d, months: [], count: 0 });
-    let m = y.months[y.months.length - 1];
-    if (!m || m.key !== mKey) y.months.push(m = { key: mKey, date: d, entries: [] });
-    m.entries.push(e);
-    y.count++;
-  }
+  const view = listView(s);
+  const dateLabel = view.group === "month" ? (e) => (e.date ? fmtDate(e.date, "weekday") : "") : () => "";
+  const items = { rows: (e) => rowItem(e, dateLabel(e)), grid: tileItem, text: (e) => textItem(e, dateLabel(e)) }[mode];
+  const groups = groupEntries(s, shown, view);
+
+  // each group (and month) can be folded away; while searching everything is open, so
+  // nothing that matches is hidden
   const open = (key) => filter || !isFolded(s.name, key);
   const head = (key, label, count, level) => h("button", { class: `tree-head ${level}`, "aria-expanded": String(open(key)), onclick: () => toggleFold(s.name, key) },
     icon("chevron", "tree-chev"), h("span", { class: "tree-label" }, label), h("span", { class: "tree-count" }, count));
-  const rows = years.map((y) => h("div", { class: "tree-year" },
-    head(y.key, y.date ? fmtDate(y.date, "year") : t("No date"), y.count, "year"),
-    !open(y.key) ? null
-      : mode === "grid" || !y.date ? h("div", { class: "list-items " + mode }, y.months.flatMap((m) => m.entries).map(items))
-      : h("div", { class: "tree-body" }, y.months.map((m) => h("div", { class: "tree-month" },
-          head(m.key, fmtDate(m.date, "monthName"), m.entries.length, "month"),
-          open(m.key) ? h("div", { class: "list-items " + mode }, m.entries.map(items)) : null)))));
+  const box = (entries) => h("div", { class: "list-items " + mode }, entries.map(items));
+  const rows = view.group === "none" ? [box(groups[0]?.entries || [])] : groups.map((g) => h("div", { class: "tree-year" },
+    head(g.key, g.label, g.count, "year"),
+    !open(g.key) ? null
+      : !g.children || mode === "grid" ? box(g.entries)
+      : h("div", { class: "tree-body" }, g.children.map((m) => h("div", { class: "tree-month" },
+          head(m.key, m.label, m.entries.length, "month"),
+          open(m.key) ? box(m.entries) : null)))));
 
   const search = h("input", { class: "search-input", type: "search", placeholder: t("Search"), "aria-label": t("Search {label}", { label: t(s.label) }), value: filter,
     oninput: () => { filter = search.value.toLowerCase(); drawList(); const el = listEl.querySelector(".search-input"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); } });
@@ -161,7 +156,8 @@ function drawList() {
       tbtn("compose", t("New in {label}", { label: tl(s.label) }), () => newEntry(s))),
     h("div", { class: "list-tools" },
       h("label", { class: "search" }, icon("search"), search),
-      segmentedIcons(t("Show as"), [["rows", "rows", t("List")], ["grid", "grid", t("Grid")], ["text", "text", t("Titles only")]], mode, (m) => setListMode(s.name, m))),
+      segmentedIcons(t("Show as"), [["rows", "rows", t("List")], ["grid", "grid", t("Grid")], ["text", "text", t("Titles only")]], mode, (m) => setListMode(s.name, m)),
+      viewButton(s, view)),
     h("div", { class: "list-scroll" }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
 }
@@ -171,18 +167,96 @@ function drawList() {
 const listModes = pref.get("list-modes", {});
 const listMode = (name) => listModes[name] || "rows";
 function setListMode(name, mode) { listModes[name] = mode; pref.set("list-modes", listModes); drawList(); }
+// How a section's list is grouped and sorted, remembered for each section (only in wip cms:
+// the site's own pages keep their order).
+//   group: "month" (years, then months), "year", "field:<name>" (by a choice field, such as
+//          a project's category), or "none"
+//   sort:  "newest", "oldest" or "title"
+// Sections whose files are filed by month (a {month} in the filename template, like blog
+// posts) start grouped by month; other dated sections by year; the rest not at all.
+const listViews = pref.get("list-views", {});
+function listView(s) {
+  const dated = s.fields.some((f) => f.type === "date");
+  const fallback = { group: dated ? (/\{month\}/.test(s.filename || "") ? "month" : "year") : "none", sort: dated ? "newest" : "title" };
+  const v = { ...fallback, ...listViews[s.name] };
+  if (v.group.startsWith("field:") && !choiceFields(s).some((f) => "field:" + f.name === v.group)) v.group = fallback.group;
+  if (!dated && (v.group === "month" || v.group === "year")) v.group = "none";
+  return v;
+}
+function setListView(s, change) { listViews[s.name] = { ...listView(s), ...change }; pref.set("list-views", listViews); drawList(); }
+const choiceFields = (s) => s.fields.filter((f) => f.type === "select" && !f.options?.multiple);
+
+function sortEntries(entries, sort) {
+  const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" });
+  const byDate = (a, b) => String(a.date || "").localeCompare(String(b.date || ""));
+  const list = [...entries];
+  if (sort === "title") return list.sort(byTitle);
+  // undated entries go last either way
+  return list.sort((a, b) => (!a.date) - (!b.date) || (sort === "oldest" ? byDate(a, b) : byDate(b, a)) || byTitle(a, b));
+}
+
+// [{ key, label, count, entries, children? }]
+function groupEntries(s, entries, view) {
+  const sorted = sortEntries(entries, view.sort);
+  const groups = [];
+  const into = (key, label) => {
+    let g = groups.find((x) => x.key === key);
+    if (!g) groups.push(g = { key, label, entries: [], count: 0 });
+    return g;
+  };
+  if (view.group === "none") return [{ key: "all", entries: sorted }];
+  if (view.group.startsWith("field:")) {
+    const f = s.fields.find((x) => "field:" + x.name === view.group);
+    const labelOf = (v) => { const o = (f.options?.values || []).find((x) => String(typeof x === "object" ? x.value : x) === v); return tl(String(typeof o === "object" ? o.label ?? o.value : v)); };
+    for (const e of sorted) { const v = e.choices?.[f.name]; const g = into(view.group + ":" + (v ?? ""), v ? labelOf(v) : t("None")); g.entries.push(e); g.count++; }
+    return groups.sort((a, b) => (a.label === t("None")) - (b.label === t("None")) || a.label.localeCompare(b.label));
+  }
+  // by date: years (newest first unless sorted oldest first), and months inside for "month"
+  for (const e of sorted) {
+    const d = e.date ? asDate(e.date) : null;
+    const g = into(d ? String(d.getFullYear()) : "none", d ? fmtDate(d, "year") : t("No date"));
+    g.entries.push(e); g.count++;
+    if (view.group === "month" && d) {
+      g.children ||= [];
+      const mKey = `${g.key}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      let m = g.children.find((x) => x.key === mKey);
+      if (!m) g.children.push(m = { key: mKey, label: fmtDate(d, "monthName"), entries: [] });
+      m.entries.push(e);
+    }
+  }
+  const dir = view.sort === "oldest" ? 1 : -1;
+  groups.sort((a, b) => (a.key === "none") - (b.key === "none") || dir * a.key.localeCompare(b.key));
+  for (const g of groups) g.children?.sort((a, b) => dir * a.key.localeCompare(b.key));
+  return groups;
+}
+
+// the button beside the view switch: Group By / Sort By
+function viewButton(s, view) {
+  const dated = s.fields.some((f) => f.type === "date");
+  const btn = tbtn("sort", t("Group and sort"), () => popMenu(btn, [
+    { heading: tl("Group by") },
+    ...(dated ? [["month", tl("Month")], ["year", tl("Year")]] : []).concat(choiceFields(s).map((f) => ["field:" + f.name, tl(f.label || f.name)]), [["none", tl("Nothing")]])
+      .map(([g, label]) => ({ label, checked: view.group === g, run: () => setListView(s, { group: g }) })),
+    "-",
+    { heading: tl("Sort by") },
+    ...(dated ? [["newest", tl("Newest first")], ["oldest", tl("Oldest first")]] : []).concat([["title", tl("Title")]])
+      .map(([o, label]) => ({ label, checked: view.sort === o, run: () => setListView(s, { sort: o }) })),
+  ]), { cls: "view-btn" });
+  return btn;
+}
+
 const segmentedIcons = (label, options, current, onpick) => h("div", { class: "segmented icons", role: "group", "aria-label": label },
   options.map(([value, ic, text]) => h("button", { class: value === current ? "on" : "", "aria-pressed": String(value === current), "aria-label": text, title: text, onclick: () => onpick(value) }, icon(ic))));
 
 const isActive = (e) => (route.file === e.file ? " active" : "");
 const titleOf = (e) => (e.isBook ? h("i", {}, e.title) : e.title);
 const draftBadge = (e) => (e.draft ? h("span", { class: "badge" }, t("Draft")) : null);
-function rowItem(e) {
+function rowItem(e, date) {
   return h("a", { class: "row-item" + isActive(e), href: "#/edit/" + e.file },
     e.featuredImage ? h("img", { class: "row-thumb", src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "row-thumb empty" }),
     h("span", { class: "row-text" },
       h("span", { class: "row-title" }, titleOf(e)),
-      h("span", { class: "row-sub" }, e.date ? fmtDate(e.date, "weekday") : "", draftBadge(e)),
+      date || e.draft ? h("span", { class: "row-sub" }, date, draftBadge(e)) : null,
       e.excerpt ? h("span", { class: "row-excerpt" }, e.excerpt) : null));
 }
 // the grid: square pictures edge to edge; the title shows when you point at one
@@ -192,10 +266,10 @@ function tileItem(e) {
     h("span", { class: "tile-title" }, titleOf(e)),
     draftBadge(e));
 }
-function textItem(e) {
+function textItem(e, date) {
   return h("a", { class: "text-item" + isActive(e), href: "#/edit/" + e.file },
     h("span", { class: "text-title" }, titleOf(e)), draftBadge(e),
-    h("span", { class: "text-date" }, e.date ? fmtDate(e.date, "weekday") : ""));
+    date ? h("span", { class: "text-date" }, date) : null);
 }
 
 // drag the list's right edge to make it wider (handy for the grid)
@@ -221,7 +295,7 @@ function newEntry(section) {
   const now = new Date();
   const root = config.site.contentRoot === "." ? "" : config.site.contentRoot + "/";
   const base = "/" + (section.path.startsWith(root) ? section.path.slice(root.length) : section.path) + "/" +
-    (section.filename || "{primary}/index.md").replace("{year}", now.getFullYear()).replace("{month}", String(now.getMonth() + 1).padStart(2, "0")).replace(/\{primary\}\/index\.md$/, "").replace(/\{primary\}.*$/, "");
+    (section.filename || "{primary}/index.md").replace("{year}", now.getFullYear()).replace("{month}", String(now.getMonth() + 1).padStart(2, "0")).replace("{day}", String(now.getDate()).padStart(2, "0")).replace(/\{primary\}\/index\.md$/, "").replace(/\{primary\}.*$/, "");
   let edited = false;
   const title = h("input", { class: "field-input", placeholder: t("Title"), "aria-label": t("Title"), oninput: () => { if (!edited) link.value = slugify(title.value); } });
   const link = h("input", { class: "field-input permalink-input", placeholder: t("made from the title"), "aria-label": t("Permalink"),
