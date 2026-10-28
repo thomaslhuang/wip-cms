@@ -9,7 +9,9 @@
 //   - "Rearrange" (toolbar) shrinks every block to one line you can drag
 //   - files dropped onto the post become blocks (app.js asks via root.api.addFiles)
 //   - deleting only asks first when the block has something in it
-//   - "Photos" adds one Image block per picked photo, straight away
+//   - there's one "image" choice: pick or upload one picture or several; each extra one
+//     becomes its own image block after it. (A "multi-upload" block in .pages.yml, kept for
+//     Pages CMS, isn't offered here: image does the same.)
 //   - an image with "aside next" on sits beside the image after it, as on the site
 //   - carousels show as a strip you scroll sideways, collages in the site's staggered layout
 //
@@ -64,7 +66,7 @@ export function renderBlocks(field, list, ctx) {
 
   async function choose(def, at) {
     choosing = null;
-    if (def.name === "photos" || def.name === "multi-upload") {
+    if (isMulti(def)) {
       // pick or upload many photos, get one Image block each
       const urls = await openPicker({ multiple: true, folder: ctx.imageFolder });
       if (urls && urls.length) {
@@ -88,11 +90,16 @@ export function renderBlocks(field, list, ctx) {
       el?.querySelector(".rich-box:not([hidden]), textarea:not([hidden]), input")?.focus();
     });
   }
+  // the multi-upload block type: hidden when there's an image block, which does the same
+  const isMulti = (d) => d.name === "photos" || d.name === "multi-upload";
+  const imageDef = () => defs.find((d) => d.name === "image");
+  const offered = () => defs.filter((d) => !(isMulti(d) && imageDef()));
+
   function chooser(at) {
     return h("div", { class: "chooser", role: "menu" },
       h("div", { class: "chooser-head" }, h("span", {}, tr("Insert")),
         h("button", { class: "icon-btn", "aria-label": tr("Cancel"), onclick: () => { choosing = null; draw(); } }, icon("x"))),
-      h("div", { class: "chooser-options" }, defs.map((d) =>
+      h("div", { class: "chooser-options" }, offered().map((d) =>
         h("button", { class: "chooser-option", role: "menuitem", onclick: () => choose(d, at) }, icon(TYPE_ICONS[d.name] || "plus"), tr(d.label || d.name)))));
   }
   function openChooser(at) {
@@ -149,7 +156,15 @@ export function renderBlocks(field, list, ctx) {
     }
     let body;
     if (def) {
-      body = renderFields(def.fields || [], b, blockCtx);
+      // an image block that gets several pictures keeps the first and adds a block for each other one
+      const fieldCtx = b[key] === "image" ? { ...blockCtx, splitImages: (urls) => {
+        const at = list.indexOf(b) + 1;
+        const made = urls.map((url) => ({ ...newBlock(def), image: url }));
+        list.splice(at, 0, ...made);
+        selected = made[made.length - 1];
+        draw();
+      } } : blockCtx;
+      body = renderFields(def.fields || [], b, fieldCtx);
       // mark the options that only show while selected, and give the main fields placeholders
       for (const fieldEl of body.children) {
         const f = (def.fields || []).find((x) => x.name === fieldEl.dataset.name);
@@ -338,8 +353,8 @@ export function renderBlocks(field, list, ctx) {
 
   root.api = {
     insert: () => openChooser(insertIndex()),
-    addPhotos: () => { const d = defs.find((x) => x.name === "photos" || x.name === "multi-upload"); if (d) choose(d, insertIndex()); },
-    hasPhotos: () => defs.some((x) => x.name === "photos" || x.name === "multi-upload"),
+    addPhotos: () => { const d = defs.find(isMulti) || imageDef(); if (d) choose({ ...d, name: "photos" }, insertIndex()); },
+    hasPhotos: () => !!(defs.find(isMulti) || imageDef()),
     toggleRearrange,
     showDropAt, hideDrop, addFiles,
     isRearranging: () => rearranging,

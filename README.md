@@ -75,6 +75,11 @@ there. Click the date for a date picker, click Draft or Published to switch, and
 "add tag" (Return adds it, suggestions come from tags you've used). The inspector shows
 the same and stays in step.
 
+**Pictures:** there's one **image** choice in the Insert menu. Choose or upload one
+picture, or several at once: the first fills that block and each of the others gets its
+own image block right after it. (The "multi-upload" block in `.pages.yml` stays for Pages
+CMS, but wip cms doesn't offer it, since image does the same.)
+
 **Moving blocks:** point at a block and drag the ⠿ handle in the margin to its left. The
 block itself moves through the post as you drag (with a small label following the
 pointer), so you see the result before letting go; dragging near the top or bottom of the

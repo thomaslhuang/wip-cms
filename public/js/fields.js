@@ -299,14 +299,21 @@ function acceptDrops(el, ctx, onPicked) {
   });
 }
 
+// one picture. In an image block you can pick or upload several at once: the first goes
+// here and each of the others gets its own image block after this one (ctx.splitImages).
 function imageOne(field, obj, ctx) {
   const box = h("div", { class: "image-one" });
-  const set = (urls) => { obj[field.name] = urls[urls.length - 1]; ctx.changed(); draw(); };
+  const many = !!ctx.splitImages;
+  const set = (urls) => {
+    obj[field.name] = urls[0];
+    ctx.changed();
+    if (many && urls.length > 1) ctx.splitImages(urls.slice(1)); else draw();
+  };
   const draw = () => {
     const url = obj[field.name];
     fill(box,
       url ? thumb(url, () => { delete obj[field.name]; ctx.changed(); draw(); }) : null,
-      url ? null : imageButtons(ctx, false, set));
+      url ? null : imageButtons(ctx, many, set));
   };
   acceptDrops(box, ctx, set);
   draw();
