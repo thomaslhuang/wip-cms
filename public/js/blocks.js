@@ -80,7 +80,7 @@ export function renderBlocks(field, list, ctx) {
     requestAnimationFrame(() => {
       const el = [...listEl.querySelectorAll(".block")].find((c) => c.blockRef === b);
       el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      el?.querySelector("textarea, input")?.focus();
+      el?.querySelector(".rich-box:not([hidden]), textarea:not([hidden]), input")?.focus();
     });
   }
   function chooser(at) {
@@ -152,8 +152,8 @@ export function renderBlocks(field, list, ctx) {
         if (isSecondary(f)) fieldEl.classList.add("secondary");
         else {
           fieldEl.classList.add("primary");
-          const t = fieldEl.querySelector(":scope > textarea, :scope > input, .rich > textarea");
-          if (t && !t.placeholder) t.placeholder = f.type === "rich-text" ? "Write something…" : `Add ${String(f.label || f.name).toLowerCase()}`;
+          const t = fieldEl.querySelector(":scope > textarea, :scope > input");
+          if (t && !t.placeholder) t.placeholder = `Add ${String(f.label || f.name).toLowerCase()}`;
         }
       }
     } else body = h("p", { class: "muted" }, `Unknown block type "${b[key]}"`);

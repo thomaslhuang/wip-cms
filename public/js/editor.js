@@ -96,7 +96,7 @@ export async function openEditor({ file, section, config }) {
   if (titleField) {
     const title = autosize(h("textarea", { class: "doc-title", rows: 1, placeholder: "Title", "aria-label": "Title", value: data.title ?? "",
       oninput: () => { data.title = title.value.replace(/\n/g, " "); changed(); },
-      onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); doc.querySelector(".block textarea, .doc-body textarea")?.focus(); } } }));
+      onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); doc.querySelector(".block .rich-box:not([hidden]), .block textarea:not([hidden]), .doc-body .rich-box:not([hidden]), .doc-body textarea")?.focus(); } } }));
     doc.append(title, meta);
     drawMeta();
   }
@@ -105,7 +105,6 @@ export async function openEditor({ file, section, config }) {
     if (blockField.type !== "block") {
       // plain body text: written straight into the page, like a text block
       blocksEl.classList.add("doc-body");
-      blocksEl.querySelector("textarea")?.setAttribute("placeholder", "Write something…");
     }
     doc.append(blocksEl);
   } else {

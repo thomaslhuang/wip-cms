@@ -4,8 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>wip cms</title>
-  <!-- light / dark before anything draws, so it doesn't flash (js/app.js has the setting) -->
-  <script>try { const t = localStorage.getItem("wip-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
+  <!-- the theme's colours before anything draws, so it doesn't flash (js/theme.js has the themes) -->
+  <script>
+    try {
+      const m = localStorage.getItem("wip-theme") || "system";
+      const boot = JSON.parse(localStorage.getItem("wip-theme-boot") || "null");
+      const dark = m === "dark" || (m === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+      const t = boot && boot[dark ? "dark" : "light"];
+      const root = document.documentElement;
+      if (t) { root.dataset.theme = t.kind; root.dataset.code = t.code; for (const k in t.vars) root.style.setProperty(k, t.vars[k]); }
+      else root.dataset.theme = dark ? "dark" : "light";
+    } catch {}
+  </script>
   <link rel="stylesheet" href="/styles.css">
   <script src="/vendor/markdown-it.js"></script>
 </head>

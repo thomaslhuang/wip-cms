@@ -18,6 +18,9 @@ import { api } from "./api.js";
 import { openEditor } from "./editor.js";
 import { libraryBrowser, setMediaRoot } from "./media.js";
 import { openSetup } from "./setup.js";
+import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
+
+applyTheme();
 
 const $ = (id) => document.getElementById(id);
 const app = $("app"), sidebarEl = $("sidebar"), listEl = $("list"), toolbarEl = $("toolbar");
@@ -42,13 +45,6 @@ let splitAt = pref.get("split", 0.5);                 // share of the width for 
 let previewSize = pref.get("preview-size", "full");   // full | phone
 const narrow = () => window.matchMedia("(max-width: 760px)").matches;
 
-// light / dark / follow the Mac
-function setTheme(t) {
-  try { localStorage.setItem("wip-theme", t); } catch { /* fine */ }
-  if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-  else delete document.documentElement.dataset.theme;
-}
-const theme = () => { try { return localStorage.getItem("wip-theme") || "system"; } catch { return "system"; } };
 
 // ---------- small pieces ----------
 
@@ -245,6 +241,7 @@ function drawToolbar() {
     ] : []),
     { heading: "Appearance" },
     ...[["system", "Match my Mac"], ["light", "Light"], ["dark", "Dark"]].map(([t, label]) => ({ label, checked: theme() === t, run: () => setTheme(t) })),
+    { label: "Themes, colours and fonts…", run: () => openAppearance() },
     "-",
     { label: "Open another site…", run: () => chooseSite(true) },
   ]));

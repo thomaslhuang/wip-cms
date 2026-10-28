@@ -60,6 +60,24 @@ Options:
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
 | **Inspector** | The post's details: featured image, date, switches, tags, and its web address. |
 
+**Writing**
+
+- Text shows its formatting as you write: *italic* looks italic, **bold** looks bold,
+  links look like links. Typing `*word*` or `**word**` formats it as you go; ⌘B and ⌘I
+  work too, and ⇧↩ (or the line-break button) starts a new line in the same paragraph.
+  Captions work the same way.
+- It's still saved as Markdown, exactly as the site expects, and only text you change is
+  rewritten. (One small difference: italics you edit are saved as `*word*` even if they
+  were `<i>word</i>` before. They look the same on the site.)
+- **Source** (top right of a selected text block) shows the Markdown itself in a
+  monospace font, colour-coded with the ayu colours. HTML blocks are colour-coded too.
+  wip cms remembers whether you last used Write or Source.
+
+**Themes:** ⋯ → **Themes, colours and fonts…** Pick light and dark themes (Light, Dark,
+Paper, Ayu, Ink), or duplicate one and change its colours, fonts (any font on your Mac,
+or one from Google Fonts), writing size and code colours (ayu dark or ayu light).
+"Match my Mac" switches between your light and dark theme. Themes are kept in this browser.
+
 **Toolbar**
 
 - **Write / Split / Preview:** just the document, the document beside the live site
@@ -138,13 +156,19 @@ public/
     blocks.js        the blocks: select, insert, move, rearrange, delete
     media.js         image uploads (WebP), the picker window, the Images page
     setup.js         the "Set up a site" window
+    rich.js          the writing box: Markdown shown formatted, and turned back into Markdown
+    code.js          colour-coded Source view
+    theme.js         themes and the Appearance window
     api.js           talking to server.js
     util.js          small helpers and the icons
 ```
 
 Some common changes:
 
-- **Colours (light and dark):** the top of `public/styles.css`.
+- **Built-in themes and font choices:** `BUILT_IN` and `FONTS` at the top of
+  `public/js/theme.js`. How the other colours are mixed from a theme's eight: the top of
+  `public/styles.css`.
+- **Code colours:** the `--syn-…` lines near the top of `public/styles.css`.
 - **How long it waits before saving:** `SAVE_AFTER` at the top of `public/js/editor.js`.
 - **Which block options only show when a block is selected:** `isSecondary` at the top
   of `public/js/blocks.js`.

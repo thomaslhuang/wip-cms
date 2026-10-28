@@ -6,6 +6,8 @@
 import { h, fill, icon, autosize, isPlainObject, toast } from "./util.js";
 import { openPicker, chooseFiles, uploadFiles } from "./media.js";
 import { renderBlocks } from "./blocks.js";
+import { richBox } from "./rich.js";
+import { codeArea } from "./code.js";
 
 // ---------- shared bits ----------
 
@@ -28,6 +30,12 @@ const EDITORS = {
   },
 
   text(field, obj, ctx) {
+    // captions are Markdown on the site, so they show their formatting while you write
+    if (/^caption/i.test(field.name)) {
+      const box = richBox({ value: obj[field.name] ?? "", inline: true, placeholder: `Add ${String(field.label || field.name).toLowerCase()}`,
+        onChange: (v) => { obj[field.name] = v; ctx.changed(); } });
+      return wrap(field, box.el);
+    }
     const t = autosize(h("textarea", { class: "input textarea", rows: 2, value: obj[field.name] ?? "",
       oninput: () => { obj[field.name] = t.value; ctx.changed(); } }));
     return wrap(field, t);
@@ -72,7 +80,7 @@ const EDITORS = {
   code(field, obj, ctx) {
     const t = autosize(h("textarea", { class: "input textarea code", rows: 4, spellcheck: false, value: obj[field.name] ?? "",
       oninput: () => { obj[field.name] = t.value; ctx.changed(); } }));
-    return wrap(field, t);
+    return wrap(field, codeArea(t, "html"));
   },
 
   "rich-text"(field, obj, ctx) {
@@ -186,37 +194,65 @@ function chips(field, obj, ctx, values) {
   return box;
 }
 
-// markdown (or HTML) text with Write / Preview, a few formatting buttons and "line break"
+// Markdown (or HTML) writing, two ways (the choice is remembered):
+//   Write    the formatting shows (bold looks bold); see rich.js
+//   Source   the Markdown itself, in a monospace font, colour-coded; see code.js
+// plus bold, italic, link and "line break" buttons that work in both.
+const getMode = () => { try { return localStorage.getItem("wip-text-mode") || "write"; } catch { return "write"; } };
+const putMode = (m) => { try { localStorage.setItem("wip-text-mode", m); } catch { /* fine */ } };
+
 function richText(field, obj, ctx) {
-  const html = field.options?.format === "html";
-  const t = autosize(h("textarea", { class: "input textarea prose" + (html ? " code" : ""), rows: 3, value: obj[field.name] ?? "",
-    oninput: () => { obj[field.name] = t.value; ctx.changed(); } }));
-  const preview = h("div", { class: "prose-preview", hidden: true });
+  const isHtml = field.options?.format === "html";
+  const value = () => obj[field.name] ?? "";
+  const set = (v) => { obj[field.name] = v; ctx.changed(); };
+
+  // Source: the text itself
+  const t = autosize(h("textarea", { class: "input textarea prose source", rows: 3, spellcheck: !isHtml, value: value(), oninput: () => set(t.value) }));
+  const source = codeArea(t, isHtml ? "html" : "markdown");
+  // Write: formatted
+  const box = isHtml ? htmlBox(value(), set) : richBox({ value: value(), placeholder: "Write something…", onChange: set });
+
   const insert = (before, after = "", placeholder = "") => {
-    const { selectionStart: s, selectionEnd: e, value } = t;
-    const chosen = value.slice(s, e) || placeholder;
+    const { selectionStart: s, selectionEnd: e, value: v } = t;
+    const chosen = v.slice(s, e) || placeholder;
     t.setRangeText(before + chosen + after, s, e, "end");
-    if (!value.slice(s, e) && placeholder) t.setSelectionRange(s + before.length, s + before.length + placeholder.length);
+    if (!v.slice(s, e) && placeholder) t.setSelectionRange(s + before.length, s + before.length + placeholder.length);
     t.focus();
     t.dispatchEvent(new Event("input"));
   };
+  let mode = getMode();
   const tabs = h("div", { class: "seg" });
-  const setMode = (mode) => {
-    const showPreview = mode === "preview";
-    if (showPreview) preview.innerHTML = html ? t.value : (window.markdownit ? window.markdownit({ html: true }).render(t.value) : t.value);
-    preview.hidden = !showPreview;
-    t.hidden = showPreview;
-    tabs.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.mode === mode));
+  const setMode = (m, remember) => {
+    mode = m;
+    if (m === "source") {
+      t.value = value();
+      requestAnimationFrame(() => { t.style.height = "auto"; t.style.height = t.scrollHeight + 2 + "px"; source.repaint(); });
+    }
+    else box.set(value());
+    source.hidden = m !== "source";
+    box.el.hidden = m === "source";
+    tabs.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+    if (remember) putMode(m);
   };
-  tabs.append(h("button", { "data-mode": "write", class: "on", onclick: () => setMode("write") }, "Write"),
-              h("button", { "data-mode": "preview", onclick: () => setMode("preview") }, "Preview"));
-  const tools = html ? [] : [
-    h("button", { class: "tool", title: "Bold", onclick: () => insert("**", "**", "bold") }, h("b", {}, "B")),
-    h("button", { class: "tool", title: "Italic", onclick: () => insert("*", "*", "italic") }, h("i", {}, "I")),
-    h("button", { class: "tool", title: "Link", onclick: () => insert("[", "](https://)", "link text") }, "link"),
-    h("button", { class: "tool", title: "Line break (new line, same paragraph)", onclick: () => insert("\\\n") }, icon("linebreak"), "line break"),
+  tabs.append(h("button", { "data-mode": "write", onclick: () => setMode("write", true) }, "Write"),
+              h("button", { "data-mode": "source", onclick: () => setMode("source", true) }, "Source"));
+  const act = (cmd, md) => () => (mode === "source" ? md() : box.command(cmd));
+  const tools = isHtml ? [] : [
+    h("button", { class: "tool", title: "Bold (⌘B)", onclick: act("bold", () => insert("**", "**", "bold")) }, h("b", {}, "B")),
+    h("button", { class: "tool", title: "Italic (⌘I)", onclick: act("italic", () => insert("*", "*", "italic")) }, h("i", {}, "I")),
+    h("button", { class: "tool", title: "Link", onclick: act("link", () => insert("[", "](https://)", "link text")) }, "link"),
+    h("button", { class: "tool", title: "Line break: a new line in the same paragraph (⇧↩)", onclick: act("break", () => insert("\\\n")) }, icon("linebreak"), "line break"),
   ];
-  return h("div", { class: "rich" }, h("div", { class: "rich-bar" }, ...tools, tabs), t, preview);
+  const el = h("div", { class: "rich" }, h("div", { class: "rich-bar" }, ...tools, tabs), box.el, source);
+  setMode(mode);
+  return el;
+}
+
+// HTML-format text fields: Write edits the HTML directly
+function htmlBox(value, onChange) {
+  const el = h("div", { class: "rich-box", contenteditable: "true", role: "textbox", "aria-multiline": "true", html: value });
+  el.addEventListener("input", () => onChange(el.innerHTML));
+  return { el, set: (v) => { el.innerHTML = v; }, command(cmd) { el.focus(); document.execCommand(cmd === "break" ? "insertLineBreak" : cmd); onChange(el.innerHTML); } };
 }
 
 // ---------- images ----------

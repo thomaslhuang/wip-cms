@@ -1,0 +1,207 @@
+// Themes: colours, fonts and code colours for the whole of wip cms.
+//
+// A theme is a handful of colours (the rest are mixed from them in styles.css), fonts, a
+// writing size, and which code colours to use. Light themes are used in light mode, dark
+// themes in dark mode; "Match my Mac" switches between your chosen light and dark theme.
+// Built-in themes can't be changed, but "Duplicate" makes an editable copy.
+// Everything is kept in this browser (localStorage).
+import { h, fill, icon } from "./util.js";
+
+const FONTS = {
+  system: { label: "System (San Francisco)", family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif' },
+  serif: { label: "New York (serif)", family: 'ui-serif, "New York", "Iowan Old Style", Georgia, serif' },
+  iowan: { label: "Iowan Old Style", family: '"Iowan Old Style", Palatino, Georgia, serif' },
+  helvetica: { label: "Helvetica Neue", family: '"Helvetica Neue", Helvetica, Arial, sans-serif' },
+  rounded: { label: "SF Rounded", family: 'ui-rounded, "SF Pro Rounded", -apple-system, sans-serif' },
+  mono: { label: "SF Mono", family: 'ui-monospace, "SF Mono", Menlo, monospace' },
+  menlo: { label: "Menlo", family: 'Menlo, ui-monospace, monospace' },
+};
+const font = (key, d) => (typeof key === "object" && key ? key : FONTS[key] ? { preset: key } : { preset: d });
+const familyOf = (f) => (f.preset ? FONTS[f.preset]?.family : `"${f.custom}", ${FONTS.system.family}`);
+
+// the colours you can change, in the order shown
+const COLOURS = [
+  ["window", "Writing background"], ["sidebar", "Sidebar"], ["list", "Post list"], ["panel", "Toolbar & inspector"],
+  ["card", "Cards & menus"], ["text", "Text"], ["muted", "Secondary text"], ["accent", "Accent"],
+];
+
+const BUILT_IN = [
+  { id: "light", name: "Light", kind: "light", code: "ayu-light", colors: { window: "#ffffff", sidebar: "#f0f0f3", list: "#ffffff", panel: "#f6f6f8", card: "#ffffff", text: "#1d1d1f", muted: "#636366", accent: "#0a66d8" } },
+  { id: "dark", name: "Dark", kind: "dark", code: "ayu-dark", colors: { window: "#1e1e1f", sidebar: "#29292b", list: "#232325", panel: "#262628", card: "#2f2f31", text: "#f2f2f7", muted: "#a1a1a6", accent: "#0a66d8" } },
+  { id: "paper", name: "Paper", kind: "light", code: "ayu-light", writing: "iowan", colors: { window: "#fbf8f1", sidebar: "#f0eadd", list: "#f8f4eb", panel: "#f4efe4", card: "#fffdf8", text: "#2a2723", muted: "#6b6358", accent: "#a94f27" } },
+  { id: "ayu", name: "Ayu", kind: "dark", code: "ayu-dark", mono: "menlo", colors: { window: "#0b0e14", sidebar: "#0d1017", list: "#0f131a", panel: "#0f131a", card: "#151a23", text: "#bfbdb6", muted: "#8a8f98", accent: "#e6b450" } },
+  { id: "ink", name: "Ink", kind: "dark", code: "ayu-dark", writing: "serif", colors: { window: "#131923", sidebar: "#18202c", list: "#161d28", panel: "#19212d", card: "#1f2836", text: "#e6ebf2", muted: "#9aa6b6", accent: "#4c8dff" } },
+];
+
+// ---------- stored settings ----------
+
+const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } };
+const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private window */ } };
+export const mode = () => { try { return localStorage.getItem("wip-theme") || "system"; } catch { return "system"; } };
+const customThemes = () => read("wip-themes", []);
+const allThemes = () => [...BUILT_IN, ...customThemes()];
+const themeById = (id, kind) => allThemes().find((t) => t.id === id) || BUILT_IN.find((t) => t.id === kind);
+const darkNow = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
+function activeTheme() {
+  const m = mode();
+  const dark = m === "dark" || (m === "system" && darkNow());
+  return dark ? themeById(read("wip-theme-dark", "dark"), "dark") : themeById(read("wip-theme-light", "light"), "light");
+}
+
+// ---------- turning a theme into CSS variables ----------
+
+const luminance = (hex) => {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+function varsFor(t) {
+  const v = {};
+  for (const [k] of COLOURS) v["--" + k] = t.colors[k];
+  // white or near-black text on accent-coloured buttons, whichever reads better
+  v["--on-accent"] = luminance(t.colors.accent) > 0.4 ? "#111111" : "#ffffff";
+  v["--font"] = familyOf(font(t.font, "system"));
+  v["--font-writing"] = familyOf(font(t.writing, "system"));
+  v["--mono"] = familyOf(font(t.mono, "mono"));
+  v["--writing-size"] = (t.size || 16) + "px";
+  return v;
+}
+const googleFonts = (t) => [t.font, t.writing, t.mono].filter((f) => f && typeof f === "object" && f.custom && f.google).map((f) => f.custom);
+
+export function applyTheme(t = activeTheme()) {
+  const root = document.documentElement;
+  root.dataset.theme = t.kind;
+  root.dataset.code = t.code || (t.kind === "dark" ? "ayu-dark" : "ayu-light");
+  for (const [k, val] of Object.entries(varsFor(t))) root.style.setProperty(k, val);
+  // custom fonts from Google Fonts
+  document.querySelectorAll("link[data-theme-font]").forEach((l) => l.remove());
+  for (const name of googleFonts(t)) {
+    document.head.append(h("link", { rel: "stylesheet", "data-theme-font": "", href: `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name).replace(/%20/g, "+")}:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap` }));
+  }
+  // remembered so index.html can paint the right colours before anything loads
+  write("wip-theme-boot", { light: bootFor(themeById(read("wip-theme-light", "light"), "light")), dark: bootFor(themeById(read("wip-theme-dark", "dark"), "dark")) });
+}
+const bootFor = (t) => ({ kind: t.kind, code: t.code, vars: varsFor(t) });
+
+export function setMode(m) {
+  try { localStorage.setItem("wip-theme", m); } catch { /* fine */ }
+  applyTheme();
+}
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (mode() === "system") applyTheme(); });
+
+// ---------- the Appearance window ----------
+
+export function openAppearance() {
+  let editing = activeTheme().id;
+  const body = h("div", { class: "appearance" });
+  const close = () => { overlay.remove(); applyTheme(); };
+  const overlay = h("div", { class: "overlay", onclick: (e) => { if (e.target === overlay) close(); } },
+    h("div", { class: "dialog appearance-dialog", role: "dialog", "aria-label": "Appearance" },
+      h("div", { class: "appearance-head" }, h("p", { class: "dialog-title" }, "Appearance"), h("button", { class: "btn primary", onclick: close }, "Done")),
+      body));
+  document.body.append(overlay);
+  const onKey = (e) => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", onKey); } };
+  document.addEventListener("keydown", onKey);
+
+  const saveCustom = (t) => { write("wip-themes", customThemes().map((c) => (c.id === t.id ? t : c))); applyTheme(t); };
+
+  function draw() {
+    const themes = allThemes();
+    const current = themes.find((t) => t.id === editing) || themes[0];
+    const lightId = read("wip-theme-light", "light"), darkId = read("wip-theme-dark", "dark");
+    const pickFor = (kind) => h("select", { class: "field-input", "aria-label": kind === "dark" ? "Dark theme" : "Light theme",
+      onchange: (e) => { write(kind === "dark" ? "wip-theme-dark" : "wip-theme-light", e.target.value); editing = e.target.value; applyTheme(); draw(); } },
+      themes.filter((t) => t.kind === kind).map((t) => h("option", { value: t.id, selected: t.id === (kind === "dark" ? darkId : lightId) }, t.name)));
+
+    const swatch = (t) => h("button", { class: "theme-card" + (t.id === editing ? " on" : ""), onclick: () => { editing = t.id; applyTheme(t); draw(); }, "aria-pressed": String(t.id === editing) },
+      h("span", { class: "theme-mini", style: { background: t.colors.window } },
+        h("span", { class: "theme-mini-side", style: { background: t.colors.sidebar } }),
+        h("span", { class: "theme-mini-lines" },
+          h("span", { style: { background: t.colors.text } }), h("span", { style: { background: t.colors.muted, width: "60%" } }),
+          h("span", { class: "theme-mini-dot", style: { background: t.colors.accent } }))),
+      h("span", { class: "theme-name" }, t.name), h("span", { class: "theme-kind" }, t.kind === "dark" ? "Dark" : "Light"));
+
+    const builtIn = BUILT_IN.some((t) => t.id === current.id);
+    const duplicate = () => {
+      const copy = JSON.parse(JSON.stringify(current));
+      copy.id = "custom-" + Date.now().toString(36);
+      copy.name = current.name + " copy";
+      write("wip-themes", [...customThemes(), copy]);
+      write(copy.kind === "dark" ? "wip-theme-dark" : "wip-theme-light", copy.id);
+      editing = copy.id;
+      applyTheme(copy);
+      draw();
+    };
+
+    fill(body,
+      h("div", { class: "appearance-row" },
+        h("span", { class: "appearance-label" }, "Mode"),
+        h("div", { class: "segmented", role: "group", "aria-label": "Mode" },
+          [["system", "Match my Mac"], ["light", "Light"], ["dark", "Dark"]].map(([m, label]) =>
+            h("button", { class: mode() === m ? "on" : "", "aria-pressed": String(mode() === m), onclick: () => { setMode(m); editing = activeTheme().id; draw(); } }, label)))),
+      h("div", { class: "appearance-row two" },
+        h("label", {}, h("span", { class: "appearance-label" }, "Light theme"), pickFor("light")),
+        h("label", {}, h("span", { class: "appearance-label" }, "Dark theme"), pickFor("dark"))),
+      h("div", { class: "theme-cards" }, themes.map(swatch)),
+      h("div", { class: "theme-actions" },
+        h("button", { class: "btn small", onclick: duplicate }, icon("plus"), builtIn ? `Duplicate “${current.name}” to customise` : "Duplicate"),
+        builtIn ? null : h("button", { class: "btn small", onclick: () => {
+          write("wip-themes", customThemes().filter((t) => t.id !== current.id));
+          for (const k of ["wip-theme-light", "wip-theme-dark"]) if (read(k) === current.id) write(k, k.endsWith("dark") ? "dark" : "light");
+          editing = activeTheme().id; applyTheme(); draw();
+        } }, icon("trash"), "Delete theme")),
+      builtIn ? h("p", { class: "muted small" }, "Built-in themes can't be changed. Duplicate one to make your own: colours, fonts and code colours.") : editor(current));
+  }
+
+  function editor(t) {
+    const update = (fn) => { fn(t); saveCustom(t); };
+    const colourRow = ([key, label]) => {
+      const text = h("input", { class: "field-input hex", value: t.colors[key], "aria-label": label + " (hex)", onchange: (e) => {
+        if (/^#[0-9a-f]{6}$/i.test(e.target.value)) { update((x) => { x.colors[key] = e.target.value.toLowerCase(); }); picker.value = e.target.value; }
+        else e.target.value = t.colors[key];
+      } });
+      const picker = h("input", { type: "color", value: t.colors[key], "aria-label": label, oninput: (e) => { text.value = e.target.value; update((x) => { x.colors[key] = e.target.value; }); } });
+      return h("label", { class: "colour-row" }, picker, h("span", {}, label), text);
+    };
+    const fontRow = (which, label, fallback) => {
+      const f = font(t[which], fallback);
+      const custom = h("input", { class: "field-input", placeholder: "Font name, e.g. Inter", value: f.custom || "", hidden: !!f.preset,
+        onchange: (e) => update((x) => { x[which] = { custom: e.target.value.trim(), google: !!google.checked }; }) });
+      const google = h("input", { type: "checkbox", checked: !!f.google, onchange: () => update((x) => { x[which] = { custom: custom.value.trim(), google: google.checked }; }) });
+      const googleRow = h("label", { class: "check-row", hidden: !!f.preset }, google, "Load it from Google Fonts (otherwise it must be installed on this Mac)");
+      return h("div", { class: "font-row" },
+        h("span", { class: "appearance-label" }, label),
+        h("select", { class: "field-input", "aria-label": label, onchange: (e) => {
+          if (e.target.value === "custom") { custom.hidden = false; googleRow.hidden = false; custom.focus(); return; }
+          custom.hidden = true; googleRow.hidden = true;
+          update((x) => { x[which] = e.target.value; });
+        } },
+          Object.entries(FONTS).map(([k, v]) => h("option", { value: k, selected: f.preset === k }, v.label)),
+          h("option", { value: "custom", selected: !f.preset }, "Other font…")),
+        custom, googleRow);
+    };
+    return h("div", { class: "theme-editor" },
+      h("div", { class: "appearance-row two" },
+        h("label", {}, h("span", { class: "appearance-label" }, "Name"), h("input", { class: "field-input", value: t.name, onchange: (e) => { update((x) => { x.name = e.target.value || "Untitled"; }); draw(); } })),
+        h("div", {}, h("span", { class: "appearance-label" }, "Used for"),
+          h("div", { class: "segmented", role: "group", "aria-label": "Light or dark" },
+            [["light", "Light mode"], ["dark", "Dark mode"]].map(([k, label]) => h("button", { class: t.kind === k ? "on" : "", onclick: () => {
+              const was = t.kind === "dark" ? "wip-theme-dark" : "wip-theme-light";
+              if (read(was) === t.id) write(was, t.kind);   // its old mode goes back to the built-in theme
+              update((x) => { x.kind = k; });
+              write(k === "dark" ? "wip-theme-dark" : "wip-theme-light", t.id);
+              draw();
+            } }, label))))),
+      h("div", { class: "appearance-label" }, "Colours"),
+      h("div", { class: "colour-grid" }, COLOURS.map(colourRow)),
+      h("div", { class: "appearance-row two" },
+        h("label", {}, h("span", { class: "appearance-label" }, "Code colours (Source view and HTML)"),
+          h("select", { class: "field-input", onchange: (e) => update((x) => { x.code = e.target.value; }) },
+            [["ayu-dark", "Ayu Dark"], ["ayu-light", "Ayu Light"]].map(([v, l]) => h("option", { value: v, selected: (t.code || "ayu-dark") === v }, l)))),
+        h("label", {}, h("span", { class: "appearance-label" }, `Writing size: ${t.size || 16}px`),
+          h("input", { type: "range", min: 14, max: 22, step: 1, value: t.size || 16, oninput: (e) => { update((x) => { x.size = Number(e.target.value); }); e.target.previousSibling.textContent = `Writing size: ${e.target.value}px`; } }))),
+      fontRow("font", "Interface font", "system"),
+      fontRow("writing", "Writing font (titles and text)", "system"),
+      fontRow("mono", "Code font (Source view)", "mono"));
+  }
+  draw();
+}
