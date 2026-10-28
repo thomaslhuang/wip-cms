@@ -21,6 +21,7 @@ const media = require("./lib/media");
 const { allTags, syncTagSuggestions } = require("./lib/tags");
 const preview = require("./lib/preview");
 const phone = require("./lib/phone");
+const setup = require("./lib/setup");
 
 const PORT = Number(process.env.WIP_PORT) || 4321;
 // Listens on the local network so your phone can reach the photo-upload page, but from
@@ -46,6 +47,9 @@ const routes = {
   // which site is open, and recent ones (for the "Open site" screen)
   "GET /api/site": () => ({ site: site.info(), recent: site.recentSites() }),
   "POST /api/site": (q, body) => { const info = site.openSite(body.path); preview.startPreview(); return { site: info }; },
+  // setting up a new site: look at a folder, then write its .pages.yml (lib/setup.js)
+  "GET /api/site/inspect": (q) => setup.inspect(q.path),
+  "POST /api/site/setup": (q, body) => { const { root } = setup.create(body.path, body.plan || {}); const info = site.openSite(root); preview.startPreview(); return { site: info }; },
 
   // everything the editor needs to draw itself
   "GET /api/config": () => ({ site: site.info(), ...loadConfig(), tags: allTags(), preview: preview.previewInfo() }),

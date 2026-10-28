@@ -7,6 +7,8 @@
 //   - "Rearrange" (toolbar) shrinks every block to one line you can drag
 //   - deleting only asks first when the block has something in it
 //   - "Photos" adds one Image block per picked photo, straight away
+//   - an image with "aside next" on sits beside the image after it, as on the site
+//   - carousels show as a strip you scroll sideways, collages in the site's staggered layout
 //
 // The toolbar (app.js) drives it through root.api: insert(), addPhotos(), toggleRearrange().
 import { h, fill, icon, firstWords, confirmBox } from "./util.js";
@@ -36,7 +38,7 @@ export function renderBlocks(field, list, ctx) {
   function select(b) {
     if (selected === b) return;
     selected = b;
-    listEl.querySelectorAll(":scope > .block").forEach((el) => el.classList.toggle("selected", el.blockRef === b));
+    listEl.querySelectorAll(".block").forEach((el) => el.classList.toggle("selected", el.blockRef === b));
   }
   root.addEventListener("pointerdown", (e) => {
     if (rearranging) return;
@@ -76,7 +78,7 @@ export function renderBlocks(field, list, ctx) {
     draw();
     // put the cursor in the new block
     requestAnimationFrame(() => {
-      const el = [...listEl.children].find((c) => c.blockRef === b);
+      const el = [...listEl.querySelectorAll(".block")].find((c) => c.blockRef === b);
       el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       el?.querySelector("textarea, input")?.focus();
     });
@@ -114,8 +116,17 @@ export function renderBlocks(field, list, ctx) {
     [list[i], list[j]] = [list[j], list[i]];
     ctx.changed();
     draw();
-    requestAnimationFrame(() => [...listEl.children].find((c) => c.blockRef === b)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+    requestAnimationFrame(() => [...listEl.querySelectorAll(".block")].find((c) => c.blockRef === b)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }
+
+  // ----- images side by side ("aside next") -----
+  // the same rule as the site (lib/blocks.js): an image with pair on, followed by another
+  // image, makes a row of two
+  const pairsWith = (i) => list[i]?.[key] === "image" && list[i].pair && list[i + 1]?.[key] === "image";
+  const layoutKey = () => list.map((b, i) => (pairsWith(i) ? "p" : "-")).join("");
+  let drawnLayout = "";
+  // a change that pairs or unpairs images redraws, so they move next to each other straight away
+  const blockCtx = { ...ctx, changed: () => { ctx.changed(); if (layoutKey() !== drawnLayout) draw(); } };
 
   // ----- one block -----
   const previewOf = (b) => firstWords(b.text || b.caption || b.alt || "", 8) || (Array.isArray(b.images) ? `${b.images.length} photos` : "empty");
@@ -133,7 +144,7 @@ export function renderBlocks(field, list, ctx) {
     }
     let body;
     if (def) {
-      body = renderFields(def.fields || [], b, ctx);
+      body = renderFields(def.fields || [], b, blockCtx);
       // mark the options that only show while selected, and give the main fields placeholders
       for (const fieldEl of body.children) {
         const f = (def.fields || []).find((x) => x.name === fieldEl.dataset.name);
@@ -152,9 +163,16 @@ export function renderBlocks(field, list, ctx) {
         h("button", { class: "icon-btn", "aria-label": "Move up", disabled: i === 0, onclick: () => move(b, -1) }, icon("up")),
         h("button", { class: "icon-btn", "aria-label": "Move down", disabled: i === list.length - 1, onclick: () => move(b, 1) }, icon("down")),
         h("button", { class: "icon-btn danger", "aria-label": "Delete block", onclick: () => remove(b) }, icon("trash"))),
-      h("div", { class: "block-body" }, body));
+      h("div", { class: "block-body" }, body),
+      kindNote(b));
     el.blockRef = b;
     return el;
+  }
+  // a line under carousels and collages saying which is which, even when not selected
+  function kindNote(b) {
+    if (b[key] === "carousel") return h("div", { class: "carousel-note" }, icon("carousel"), `carousel · one at a time, changes every ${b.seconds || 3} seconds`);
+    if (b[key] === "collage") return h("div", { class: "carousel-note" }, icon("grid"), "collage · all at once, staggered");
+    return null;
   }
   const insertLine = (at) => h("div", { class: "insert-line" },
     h("button", { "aria-label": "Insert a block here", title: "Insert a block here", onclick: () => openChooser(at) }, icon("plus")));
@@ -195,11 +213,15 @@ export function renderBlocks(field, list, ctx) {
   function draw() {
     root.classList.toggle("rearranging", rearranging);
     const items = [];
-    list.forEach((b, i) => {
+    drawnLayout = layoutKey();
+    for (let i = 0; i < list.length; i++) {
       if (choosing === i) items.push(chooser(i));
       else if (!rearranging) items.push(insertLine(i));
-      items.push(blockEl(b, i));
-    });
+      if (!rearranging && pairsWith(i)) {
+        items.push(h("div", { class: "block-pair" }, blockEl(list[i], i), blockEl(list[i + 1], i + 1)));
+        i++;
+      } else items.push(blockEl(list[i], i));
+    }
     if (choosing !== null && choosing >= list.length) items.push(chooser(list.length));
     else if (!rearranging) items.push(insertLine(list.length));
     fill(listEl, items);

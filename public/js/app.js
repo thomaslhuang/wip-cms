@@ -17,6 +17,7 @@ import { h, fill, icon, toast } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
 import { libraryBrowser, setMediaRoot } from "./media.js";
+import { openSetup } from "./setup.js";
 
 const $ = (id) => document.getElementById(id);
 const app = $("app"), sidebarEl = $("sidebar"), listEl = $("list"), toolbarEl = $("toolbar");
@@ -327,7 +328,7 @@ function watchForPreview(ed) {
     if (currentView() === "write") return; // saving a moment later updates the preview anyway
     previewNote.textContent = "Updating…";
     draftTimer = setTimeout(async () => {
-      try { await api.draft(ed.file, ed.data, ed.body); previewNote.textContent = LIVE; }
+      try { const p = ed.payload(); await api.draft(ed.file, p.data, p.body); previewNote.textContent = LIVE; }
       catch (e) { previewNote.textContent = e.message; }
     }, 400);
   });
@@ -422,12 +423,22 @@ async function chooseSite(canCancel) {
   const input = h("input", { class: "field-input", placeholder: "/Users/you/Documents/my-site", value: site?.root || "" });
   const err = h("p", { class: "error-text small" });
   const open = async (path) => {
-    try { await editor?.flush(); await api.openSite(path); location.hash = ""; location.reload(); }
-    catch (e) { err.textContent = e.message; }
+    err.textContent = "";
+    try {
+      if (!path) return input.focus();
+      const info = await api.inspectSite(path);
+      if (!info.exists) { err.textContent = `There's no folder at ${info.root}.`; return; }
+      // not set up for wip cms yet: offer to set it up
+      if (!info.hasConfig) { overlay.remove(); openSetup(info, () => chooseSite(canCancel)); return; }
+      await editor?.flush();
+      await api.openSite(path);
+      location.hash = "";
+      location.reload();
+    } catch (e) { err.textContent = e.message; }
   };
   const overlay = h("div", { class: "overlay" }, h("div", { class: "dialog wide" },
     h("p", { class: "dialog-title" }, "Open a site"),
-    h("p", { class: "muted small" }, "The site's main folder: the one with .pages.yml in it. In Finder, select the folder and press ⌥⌘C to copy its path, then paste it here."),
+    h("p", { class: "muted small" }, "The site's main folder. In Finder, select the folder and press ⌥⌘C to copy its path, then paste it here. A folder that isn't set up for wip cms yet (a new client site, say) gets a few questions first."),
     input, err,
     recent.length ? h("div", { class: "recent" }, h("p", { class: "muted small" }, "Recent"),
       recent.map((p) => h("button", { class: "recent-site", onclick: () => open(p) }, icon("folder"), h("span", {}, p)))) : null,
@@ -444,7 +455,8 @@ async function chooseSite(canCancel) {
 (async () => {
   const { site } = await api.site();
   if (!site) { app.hidden = true; await chooseSite(false); return; }
-  config = await api.config();
+  // the site's settings can't be read (moved, or .pages.yml deleted): pick a site again
+  try { config = await api.config(); } catch (e) { app.hidden = true; await chooseSite(false); toast("Couldn't read that site's settings (.pages.yml), so pick a site to open.", "error"); return; }
   setMediaRoot(config.site.mediaInput);
   if (narrow()) showInspector = false;
   await Promise.all(config.sections.filter((s) => s.kind === "collection").map((s) => loadList(s.name).catch(() => {})));

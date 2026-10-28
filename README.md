@@ -27,6 +27,20 @@ to switch sites later.
 
 Stop it with **Ctrl+C** in Terminal.
 
+**A new site (for a client, say):** click the site name, paste the new site's folder,
+and press Open. If it isn't set up yet, wip cms asks a few questions instead:
+
+- which folder the pages live in and where images go;
+- which sections it should have (case studies, news, pages…);
+- whether each is **Posts** (title, featured image, date, draft, tags) or **Pages** (title,
+  description);
+- whether you write **Text** (one piece of Markdown under the title) or **Blocks** (text,
+  images, carousels, collages, like studiotomby.com; the site's templates need to show
+  them).
+
+It then writes the site's `.pages.yml`, makes the folders and opens the site. It never
+overwrites an existing `.pages.yml`, and you can edit the file by hand afterwards.
+
 Options:
 
 | | |
@@ -112,6 +126,7 @@ lib/
   tags.js            keeps the tag suggestions in .pages.yml up to date
   preview.js         the live preview (shadow copy + Eleventy)
   phone.js           phone uploads: the secret link, the QR code, who may connect
+  setup.js           setting up a new site: writes its .pages.yml
 public/
   index.html         the window: sidebar, list, toolbar, document, preview, inspector
   styles.css         all the styling; light and dark colours at the top
@@ -122,6 +137,7 @@ public/
     fields.js        each kind of field (text, date, switch, tags, image…)
     blocks.js        the blocks: select, insert, move, rearrange, delete
     media.js         image uploads (WebP), the picker window, the Images page
+    setup.js         the "Set up a site" window
     api.js           talking to server.js
     util.js          small helpers and the icons
 ```

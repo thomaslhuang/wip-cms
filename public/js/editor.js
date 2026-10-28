@@ -23,7 +23,17 @@ export async function openEditor({ file, section, config }) {
     data.tags = [...new Set([...(data.tags || []), ...data.newTags.split(",").map((t) => t.trim()).filter(Boolean)])];
   }
   delete data.newTags;
-  const original = JSON.stringify({ data, body: entry.body });
+
+  const fields = ((section ? section.fields : config.sections.find((s) => s.path === file)?.fields) || []).filter((f) => !SKIP.has(f.name));
+  // a field called "body" is the text under the --- front matter --- (the Pages CMS convention)
+  const hasBody = fields.some((f) => f.name === "body");
+  if (hasBody) data.body = entry.body || "";
+  const payload = () => {
+    if (!hasBody) return { data, body: entry.body };
+    const { body, ...rest } = data;
+    return { data: rest, body: body || "" };
+  };
+  const original = JSON.stringify(payload());
 
   // ----- saving -----
   let pending = false, saving = null, timer = null, failed = false;
@@ -37,7 +47,8 @@ export async function openEditor({ file, section, config }) {
     if (saving) { await saving; return save(); }
     pending = false;
     setStatus("Saving…");
-    saving = api.save(file, data, entry.body)
+    const p = payload();
+    saving = api.save(file, p.data, p.body)
       .then(() => {
         failed = false;
         if (!pending) setStatus("Saved");
@@ -63,8 +74,8 @@ export async function openEditor({ file, section, config }) {
   const ctx = { changed, imageFolder, tags: config.tags };
 
   // ----- the document -----
-  const fields = ((section ? section.fields : config.sections.find((s) => s.path === file)?.fields) || []).filter((f) => !SKIP.has(f.name));
-  const blockField = fields.find((f) => f.type === "block");
+  // the document's main part: the blocks, or else the body text of a plain post
+  const blockField = fields.find((f) => f.type === "block") || (hasBody ? fields.find((f) => f.name === "body") : null);
   const titleField = blockField && fields.find((f) => f.name === "title");
 
   const meta = h("div", { class: "doc-meta" });
@@ -85,12 +96,17 @@ export async function openEditor({ file, section, config }) {
   if (titleField) {
     const title = autosize(h("textarea", { class: "doc-title", rows: 1, placeholder: "Title", "aria-label": "Title", value: data.title ?? "",
       oninput: () => { data.title = title.value.replace(/\n/g, " "); changed(); },
-      onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); doc.querySelector(".block textarea")?.focus(); } } }));
+      onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); doc.querySelector(".block textarea, .doc-body textarea")?.focus(); } } }));
     doc.append(title, meta);
     drawMeta();
   }
   if (blockField) {
     blocksEl = renderField(blockField, data, ctx);
+    if (blockField.type !== "block") {
+      // plain body text: written straight into the page, like a text block
+      blocksEl.classList.add("doc-body");
+      blocksEl.querySelector("textarea")?.setAttribute("placeholder", "Write something…");
+    }
     doc.append(blocksEl);
   } else {
     // a page without blocks: its fields, in grouped cards
@@ -130,21 +146,21 @@ export async function openEditor({ file, section, config }) {
   // closing the tab with a save still waiting: send it anyway
   const onLeave = () => {
     if (!pending) return;
-    fetch("/api/entry", { method: "PUT", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file, data, body: entry.body }) });
+    fetch("/api/entry", { method: "PUT", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file, ...payload() }) });
   };
   window.addEventListener("pagehide", onLeave);
 
   return {
     file, url, section,
     get title() { return data.title || config.sections.find((s) => s.path === file)?.label || file; },
-    data, body: entry.body,
+    data, payload,
     doc, inspector,
-    blocks: blocksEl?.api || null,
+    blocks: blocksEl?.api || null,  // only block fields have one
     status: () => statusText,
     onStatus: (fn) => statusListeners.add(fn),
     onChange: (fn) => changeListeners.add(fn),
     flush: () => { pending = pending || failed; return save(); },
-    isChanged: () => JSON.stringify({ data, body: entry.body }) !== original,
+    isChanged: () => JSON.stringify(payload()) !== original,
     async revert() {
       if (!(await confirmBox("Put this back the way it was when you opened it? Your changes since then will be lost.", "Revert"))) return false;
       const was = JSON.parse(original);
