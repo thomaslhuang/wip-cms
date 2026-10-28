@@ -6,7 +6,7 @@
 // Built-in themes can't be changed, but "Duplicate" makes an editable copy.
 // Everything is kept in this browser (localStorage).
 import { h, fill, icon } from "./util.js";
-import { t as tr } from "./i18n.js";
+import { t as tr, tl } from "./i18n.js";
 
 // built-in themes have translated names; your own keep the name you gave them
 const nameOf = (theme) => (BUILT_IN.some((b) => b.id === theme.id) ? tr(theme.name) : theme.name);
@@ -20,8 +20,9 @@ const FONTS = {
   mono: { label: "SF Mono", family: 'ui-monospace, "SF Mono", Menlo, monospace' },
   menlo: { label: "Menlo", family: 'Menlo, ui-monospace, monospace' },
   // from Google Fonts (loaded when a theme uses them)
-  zenMincho: { label: "Zen Old Mincho", google: "Zen Old Mincho:wght@400;500;700", family: '"Zen Old Mincho", ui-serif, "Hiragino Mincho ProN", serif' },
-  zenGothic: { label: "Zen Kaku Gothic New", google: "Zen Kaku Gothic New:wght@400;500;700", family: '"Zen Kaku Gothic New", -apple-system, "Hiragino Sans", sans-serif' },
+  //   weights: the ones loaded; weight: what the writing uses unless the theme says otherwise
+  zenMincho: { label: "Zen Old Mincho", google: "Zen Old Mincho", weights: [400, 500, 600, 700], weight: 500, family: '"Zen Old Mincho", ui-serif, "Hiragino Mincho ProN", serif' },
+  zenGothic: { label: "Zen Kaku Gothic New", google: "Zen Kaku Gothic New", weights: [400, 500, 700], weight: 400, family: '"Zen Kaku Gothic New", -apple-system, "Hiragino Sans", sans-serif' },
 };
 const font = (key, d) => (typeof key === "object" && key ? key : FONTS[key] ? { preset: key } : { preset: d });
 const familyOf = (f) => (f.preset ? FONTS[f.preset]?.family : `"${f.custom}", ${FONTS.system.family}`);
@@ -70,15 +71,24 @@ function varsFor(t) {
   v["--font-writing"] = familyOf(font(t.writing, "system"));
   v["--mono"] = familyOf(font(t.mono, "mono"));
   v["--writing-size"] = (t.size || 16) + "px";
+  v["--writing-leading"] = String(t.leading || 1.6);
+  v["--writing-tracking"] = (t.tracking || 0) + "em";
+  v["--writing-weight"] = String(writingWeight(t));
   return v;
 }
-// "Zen Old Mincho:wght@400;700" -> Zen+Old+Mincho:wght@400;700. Fonts typed in by name ask
-// for the regular weight only, which every Google font has (bold is then drawn by the browser).
-const googleSpec = (name) => { const [fam, axes] = name.split(":"); return encodeURIComponent(fam).replace(/%20/g, "+") + (axes ? ":" + axes : ""); };
-const googleFonts = (t) => [...new Set([t.font, t.writing, t.mono].filter(Boolean).map((x) => {
-  const f = font(x);
-  return f.preset ? FONTS[f.preset]?.google : f.google ? f.custom : null;
-}).filter(Boolean))];
+// the writing's weight: the theme's choice, else the font's own (Zen Old Mincho reads best at medium)
+const writingWeight = (t) => t.weight || FONTS[font(t.writing, "system").preset]?.weight || 400;
+// Google Fonts to load: [family, weight] pairs, one request each, so a weight a font doesn't
+// have can't stop the others from loading. Fonts typed in by name load their regular weight.
+const googleFonts = (t) => {
+  const out = new Map();
+  for (const x of [t.font, t.writing, t.mono].filter(Boolean)) {
+    const f = font(x);
+    if (f.preset && FONTS[f.preset]?.google) for (const w of FONTS[f.preset].weights || [400]) out.set(FONTS[f.preset].google + ":" + w, [FONTS[f.preset].google, w]);
+    else if (f.custom && f.google) out.set(f.custom + ":400", [f.custom, 400]);
+  }
+  return [...out.values()];
+};
 
 export function applyTheme(t = activeTheme()) {
   const root = document.documentElement;
@@ -87,8 +97,8 @@ export function applyTheme(t = activeTheme()) {
   for (const [k, val] of Object.entries(varsFor(t))) root.style.setProperty(k, val);
   // custom fonts from Google Fonts
   document.querySelectorAll("link[data-theme-font]").forEach((l) => l.remove());
-  for (const name of googleFonts(t)) {
-    document.head.append(h("link", { rel: "stylesheet", "data-theme-font": "", href: `https://fonts.googleapis.com/css2?family=${googleSpec(name)}&display=swap` }));
+  for (const [name, weight] of googleFonts(t)) {
+    document.head.append(h("link", { rel: "stylesheet", "data-theme-font": "", href: `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name).replace(/%20/g, "+")}:wght@${weight}&display=swap` }));
   }
   // remembered so index.html can paint the right colors before anything loads
   write("wip-theme-boot", { light: bootFor(themeById(read("wip-theme-light", "light"), "light")), dark: bootFor(themeById(read("wip-theme-dark", "dark"), "dark")) });
@@ -147,33 +157,42 @@ export function openAppearance() {
 
     fill(body,
       h("div", { class: "appearance-row" },
-        h("span", { class: "appearance-label" }, tr("Mode")),
+        h("span", { class: "appearance-label" }, tl("Mode")),
         h("div", { class: "segmented", role: "group", "aria-label": tr("Mode") },
-          [["system", tr("Match my Mac")], ["light", tr("Light")], ["dark", tr("Dark")]].map(([m, label]) =>
+          [["system", tl("Match my Mac")], ["light", tr("Light")], ["dark", tr("Dark")]].map(([m, label]) =>
             h("button", { class: mode() === m ? "on" : "", "aria-pressed": String(mode() === m), onclick: () => { setMode(m); editing = activeTheme().id; draw(); } }, label)))),
       h("div", { class: "appearance-row two" },
-        h("label", {}, h("span", { class: "appearance-label" }, tr("Light theme")), pickFor("light")),
-        h("label", {}, h("span", { class: "appearance-label" }, tr("Dark theme")), pickFor("dark"))),
+        h("label", {}, h("span", { class: "appearance-label" }, tl("Light theme")), pickFor("light")),
+        h("label", {}, h("span", { class: "appearance-label" }, tl("Dark theme")), pickFor("dark"))),
       h("div", { class: "theme-cards" }, themes.map(swatch)),
       h("div", { class: "theme-actions" },
-        h("button", { class: "btn small", onclick: duplicate }, icon("plus"), builtIn ? tr("Duplicate “{name}” to customize", { name: nameOf(current) }) : tr("Duplicate")),
+        h("button", { class: "btn small", onclick: duplicate }, icon("plus"), builtIn ? tl("Duplicate “{name}” to customize", { name: nameOf(current) }) : tr("Duplicate")),
         builtIn ? null : h("button", { class: "btn small", onclick: () => {
           write("wip-themes", customThemes().filter((t) => t.id !== current.id));
           for (const k of ["wip-theme-light", "wip-theme-dark"]) if (read(k) === current.id) write(k, k.endsWith("dark") ? "dark" : "light");
           editing = activeTheme().id; applyTheme(); draw();
-        } }, icon("trash"), tr("Delete theme"))),
+        } }, icon("trash"), tl("Delete theme"))),
       builtIn ? h("p", { class: "muted small" }, tr("Built-in themes can't be changed. Duplicate one to make your own: colors, fonts and code colors.")) : editor(current));
   }
 
   function editor(t) {
     const update = (fn) => { fn(t); saveCustom(t); };
+    // a labeled slider for a number setting; the label shows the value
+    const slider = (key, label, min, max, step, dflt) => {
+      const text = h("span", { class: "appearance-label" }, tl(label, { n: t[key] ?? dflt }));
+      return h("label", {}, text, h("input", { type: "range", min, max, step, value: t[key] ?? dflt, oninput: (e) => {
+        const v = Number(e.target.value);
+        update((x) => { x[key] = v; });
+        text.textContent = tl(label, { n: Number(v.toFixed(3)) });
+      } }));
+    };
     const colorRow = ([key, label]) => {
       const text = h("input", { class: "field-input hex", value: t.colors[key], "aria-label": tr(label) + " (hex)", onchange: (e) => {
         if (/^#[0-9a-f]{6}$/i.test(e.target.value)) { update((x) => { x.colors[key] = e.target.value.toLowerCase(); }); picker.value = e.target.value; }
         else e.target.value = t.colors[key];
       } });
       const picker = h("input", { type: "color", value: t.colors[key], "aria-label": tr(label), oninput: (e) => { text.value = e.target.value; update((x) => { x.colors[key] = e.target.value; }); } });
-      return h("label", { class: "color-row" }, picker, h("span", {}, tr(label)), text);
+      return h("label", { class: "color-row" }, picker, h("span", {}, tl(label)), text);
     };
     const fontRow = (which, label, fallback) => {
       const f = font(t[which], fallback);
@@ -182,36 +201,41 @@ export function openAppearance() {
       const google = h("input", { type: "checkbox", checked: !!f.google, onchange: () => update((x) => { x[which] = { custom: custom.value.trim(), google: google.checked }; }) });
       const googleRow = h("label", { class: "check-row", hidden: !!f.preset }, google, tr("Load it from Google Fonts (otherwise it must be installed on this Mac)"));
       return h("div", { class: "font-row" },
-        h("span", { class: "appearance-label" }, tr(label)),
+        h("span", { class: "appearance-label" }, tl(label)),
         h("select", { class: "field-input", "aria-label": tr(label), onchange: (e) => {
           if (e.target.value === "custom") { custom.hidden = false; googleRow.hidden = false; custom.focus(); return; }
           custom.hidden = true; googleRow.hidden = true;
           update((x) => { x[which] = e.target.value; });
         } },
-          Object.entries(FONTS).map(([k, v]) => h("option", { value: k, selected: f.preset === k }, v.label)),
-          h("option", { value: "custom", selected: !f.preset }, tr("Other font…"))),
+          Object.entries(FONTS).map(([k, v]) => h("option", { value: k, selected: f.preset === k }, tl(v.label))),
+          h("option", { value: "custom", selected: !f.preset }, tl("Other font…"))),
         custom, googleRow);
     };
     return h("div", { class: "theme-editor" },
       h("div", { class: "appearance-row two" },
-        h("label", {}, h("span", { class: "appearance-label" }, tr("Name")), h("input", { class: "field-input", value: t.name, onchange: (e) => { update((x) => { x.name = e.target.value || tr("Untitled"); }); draw(); } })),
-        h("div", {}, h("span", { class: "appearance-label" }, tr("Used for")),
+        h("label", {}, h("span", { class: "appearance-label" }, tl("Name")), h("input", { class: "field-input", value: t.name, onchange: (e) => { update((x) => { x.name = e.target.value || tr("Untitled"); }); draw(); } })),
+        h("div", {}, h("span", { class: "appearance-label" }, tl("Used for")),
           h("div", { class: "segmented", role: "group", "aria-label": tr("Light or dark") },
-            [["light", tr("Light mode")], ["dark", tr("Dark mode")]].map(([k, label]) => h("button", { class: t.kind === k ? "on" : "", onclick: () => {
+            [["light", tl("Light mode")], ["dark", tl("Dark mode")]].map(([k, label]) => h("button", { class: t.kind === k ? "on" : "", onclick: () => {
               const was = t.kind === "dark" ? "wip-theme-dark" : "wip-theme-light";
               if (read(was) === t.id) write(was, t.kind);   // its old mode goes back to the built-in theme
               update((x) => { x.kind = k; });
               write(k === "dark" ? "wip-theme-dark" : "wip-theme-light", t.id);
               draw();
             } }, label))))),
-      h("div", { class: "appearance-label" }, tr("Colors")),
+      h("div", { class: "appearance-label" }, tl("Colors")),
       h("div", { class: "color-grid" }, COLORS.map(colorRow)),
       h("div", { class: "appearance-row two" },
-        h("label", {}, h("span", { class: "appearance-label" }, tr("Code colors (Source view and HTML)")),
+        h("label", {}, h("span", { class: "appearance-label" }, tl("Code colors (Source view and HTML)")),
           h("select", { class: "field-input", onchange: (e) => update((x) => { x.code = e.target.value; }) },
             [["ayu-dark", "Ayu Dark"], ["ayu-light", "Ayu Light"]].map(([v, l]) => h("option", { value: v, selected: (t.code || "ayu-dark") === v }, l)))),
-        h("label", {}, h("span", { class: "appearance-label" }, tr("Writing size: {n}px", { n: t.size || 16 })),
-          h("input", { type: "range", min: 14, max: 22, step: 1, value: t.size || 16, oninput: (e) => { update((x) => { x.size = Number(e.target.value); }); e.target.previousSibling.textContent = tr("Writing size: {n}px", { n: e.target.value }); } }))),
+        slider("size", "Writing size: {n}px", 14, 22, 1, 16)),
+      h("div", { class: "appearance-row two" },
+        slider("leading", "Line spacing: {n}", 1.2, 2.2, 0.05, 1.6),
+        slider("tracking", "Letter spacing: {n}em", -0.03, 0.12, 0.005, 0)),
+      h("label", { class: "font-row" }, h("span", { class: "appearance-label" }, tl("Writing weight")),
+        h("select", { class: "field-input", onchange: (e) => update((x) => { x.weight = Number(e.target.value); }) },
+          [[300, "Light"], [400, "Regular"], [500, "Medium"], [600, "Semibold"]].map(([w, l]) => h("option", { value: w, selected: writingWeight(t) === w }, tl(l))))),
       fontRow("font", "Interface font", "system"),
       fontRow("writing", "Writing font (titles and text)", "system"),
       fontRow("mono", "Code font (Source view)", "mono"));

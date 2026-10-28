@@ -9,11 +9,11 @@ import { ghost, autoScroll } from "./drag.js";
 import { renderBlocks } from "./blocks.js";
 import { richBox } from "./rich.js";
 import { codeArea } from "./code.js";
-import { t as tr, t2 } from "./i18n.js";
+import { t as tr, t2, tl, fmtDate } from "./i18n.js";
 
 // ---------- shared bits ----------
 
-const labelOf = (f) => f.label === false ? null : tr(f.label || f.name);
+const labelOf = (f) => f.label === false ? null : tl(f.label || f.name);
 
 function wrap(field, ...content) {
   return h("div", { class: `field field-${field.type}${field.list ? " field-list" : ""}`, "data-name": field.name },
@@ -58,15 +58,22 @@ const EDITORS = {
 
   // dates are stored like 2026-10-21T00:00:00-07:00; the picker changes only the day part
   date(field, obj, ctx) {
+    // shown the same way as the date under the title ("October 22, 2026", in your date
+    // style); clicking it opens the date picker
     const value = obj[field.name] ? String(obj[field.name]) : "";
-    const input = h("input", { type: "date", class: "input", value: value.slice(0, 10),
+    const shown = h("span", {});
+    const show = () => { shown.textContent = obj[field.name] ? fmtDate(obj[field.name], "long") : tr("Add a date"); };
+    const input = h("input", { type: "date", class: "date-input", "aria-label": labelOf(field) || tr("Date"), value: value.slice(0, 10),
+      onclick: () => { try { input.showPicker(); } catch { /* opens by itself */ } },
       onchange: () => {
-        if (!input.value) { delete obj[field.name]; ctx.changed(); return; }
+        if (!input.value) { delete obj[field.name]; ctx.changed(); show(); return; }
         const rest = /^\d{4}-\d{2}-\d{2}(T.*)$/.exec(String(obj[field.name] || ""));
         obj[field.name] = input.value + (rest ? rest[1] : "T00:00:00" + localOffset());
         ctx.changed();
+        show();
       } });
-    return wrap(field, input);
+    show();
+    return wrap(field, h("label", { class: "date-field" }, icon("calendar"), shown, input));
   },
 
   select(field, obj, ctx) {
@@ -75,7 +82,7 @@ const EDITORS = {
     if (obj[field.name] === undefined && field.default !== undefined) obj[field.name] = field.default;
     const sel = h("select", { class: "input", onchange: () => { obj[field.name] = sel.value || undefined; ctx.changed(); } },
       field.default === undefined ? h("option", { value: "" }, "—") : null,
-      values.map((v) => h("option", { value: v.value, selected: String(obj[field.name] ?? "") === v.value }, tr(String(v.label)))));
+      values.map((v) => h("option", { value: v.value, selected: String(obj[field.name] ?? "") === v.value }, tl(String(v.label)))));
     return wrap(field, sel);
   },
 

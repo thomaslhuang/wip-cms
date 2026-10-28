@@ -18,7 +18,7 @@ import { api } from "./api.js";
 import { openEditor } from "./editor.js";
 import { libraryBrowser, setMediaRoot } from "./media.js";
 import { openSetup } from "./setup.js";
-import { t, t2, fmtDate, lang, setLang, dateStyle, setDateStyle } from "./i18n.js";
+import { t, t2, tl, fmtDate, lang, setLang, dateStyle, setDateStyle } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
 applyTheme();
@@ -85,11 +85,11 @@ function drawSidebar() {
       tbtn("sidebar", t("Hide sidebar"), () => toggleSidebar(), { cls: "side-hide" })),
     h("nav", { class: "side-scroll" },
       h("div", { class: "side-group" }, t("Library")),
-      collections.map((s) => item("#/s/" + s.name, s.name === "projects" ? "grid" : "text", t(s.label), lists[s.name]?.length, route.section === s.name)),
+      collections.map((s) => item("#/s/" + s.name, s.name === "projects" ? "grid" : "text", tl(s.label), lists[s.name]?.length, route.section === s.name)),
       item("#/images", "images", t("Images"), null, route.page === "images"),
       Object.entries(groups).map(([g, items]) => [
-        h("div", { class: "side-group" }, lang() === "ja" ? t(g) : g[0].toUpperCase() + g.slice(1)),
-        items.map((s) => item("#/edit/" + s.path, g === "pages" ? (s.name === "home" ? "house" : "text") : "gear", t(s.label), null, route.file === s.path)),
+        h("div", { class: "side-group" }, tl(g)),
+        items.map((s) => item("#/edit/" + s.path, g === "pages" ? (s.name === "home" ? "house" : "text") : "gear", tl(s.label), null, route.file === s.path)),
       ])),
     h("div", { class: "side-foot" },
       changesCount == null ? null : h("span", { class: "dot" + (changesCount ? " on" : "") }),
@@ -156,9 +156,9 @@ function drawList() {
   fill(listEl,
     h("div", { class: "list-head" },
       h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
-      h("div", { class: "list-title" }, h("div", { class: "list-name" }, t(s.label)),
+      h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
         h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
-      tbtn("compose", t("New in {label}", { label: t(s.label) }), () => newEntry(s))),
+      tbtn("compose", t("New in {label}", { label: tl(s.label) }), () => newEntry(s))),
     h("div", { class: "list-tools" },
       h("label", { class: "search" }, icon("search"), search),
       segmentedIcons(t("Show as"), [["rows", "rows", t("List")], ["grid", "grid", t("Grid")], ["text", "text", t("Titles only")]], mode, (m) => setListMode(s.name, m))),
@@ -274,16 +274,16 @@ function drawToolbar() {
   }
   const more = tbtn("more", t("More"), () => popMenu(more, [
     ...(editor ? [
-      { label: t("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
-      ...(editor.section ? [{ label: t("Move to Trash"), danger: true, run: async () => {
+      { label: tl("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
+      ...(editor.section ? [{ label: tl("Move to Trash"), danger: true, run: async () => {
         const section = editor.section.name;
         if (await editor.remove()) { editor.destroy(); editor = null; await loadList(section, true); location.hash = "#/s/" + section; }
       } }] : []),
       "-",
     ] : []),
     { heading: t("Appearance") },
-    ...[["system", t("Match my Mac")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
-    { label: t("Themes, colors and fonts…"), run: () => openAppearance() },
+    ...[["system", tl("Match my Mac")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
+    { label: tl("Themes, colors and fonts…"), run: () => openAppearance() },
     "-",
     // the whole app in English or Japanese (reloads to switch)
     { heading: t("Language") },
@@ -292,7 +292,7 @@ function drawToolbar() {
     { heading: t("Dates") },
     ...["western", "japanese", "era"].map((style) => ({ label: fmtDate(new Date(), "long", style), checked: dateStyle() === style, run: () => { setDateStyle(style); drawList(); editor?.redrawMeta?.(); } })),
     "-",
-    { label: t("Open another site…"), run: () => chooseSite(true) },
+    { label: tl("Open another site…"), run: () => chooseSite(true) },
   ]));
   right.push(more);
 

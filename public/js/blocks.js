@@ -20,7 +20,7 @@ import { h, fill, icon, firstWords, confirmBox } from "./util.js";
 import { renderFields } from "./fields.js";
 import { openPicker, uploadAny } from "./media.js";
 import { ghost, autoScroll } from "./drag.js";
-import { t as tr, t2 } from "./i18n.js";
+import { t as tr, t2, tl } from "./i18n.js";
 
 // options that only show while a block is selected
 const isSecondary = (f) => ["boolean", "select", "number"].includes(f.type) || f.name === "alt";
@@ -30,7 +30,7 @@ export function renderBlocks(field, list, ctx) {
   const key = field.blockKey || "type";
   const defs = field.blocks || [];
   const defOf = (b) => defs.find((d) => d.name === b?.[key]);
-  const labelOf = (b) => tr(defOf(b)?.label || b?.[key] || "block");
+  const labelOf = (b) => tl(defOf(b)?.label || b?.[key] || "block");
 
   let rearranging = false;
   let selected = null;                 // the selected block (one of list)
@@ -100,7 +100,7 @@ export function renderBlocks(field, list, ctx) {
       h("div", { class: "chooser-head" }, h("span", {}, tr("Insert")),
         h("button", { class: "icon-btn", "aria-label": tr("Cancel"), onclick: () => { choosing = null; draw(); } }, icon("x"))),
       h("div", { class: "chooser-options" }, offered().map((d) =>
-        h("button", { class: "chooser-option", role: "menuitem", onclick: () => choose(d, at) }, icon(TYPE_ICONS[d.name] || "plus"), tr(d.label || d.name)))));
+        h("button", { class: "chooser-option", role: "menuitem", onclick: () => choose(d, at) }, icon(TYPE_ICONS[d.name] || "plus"), tl(d.label || d.name)))));
   }
   function openChooser(at) {
     if (rearranging) toggleRearrange();

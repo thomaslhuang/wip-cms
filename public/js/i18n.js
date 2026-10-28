@@ -25,6 +25,26 @@ export function t(text, vars) {
   if (vars) for (const [k, v] of Object.entries(vars)) out = out.split(`{${k}}`).join(v);
   return out;
 }
+// Title Case for names of fields, sections and settings ("featured image" -> "Featured
+// Image", "seconds per image" -> "Seconds per Image"). Only in English; Japanese has no case.
+const ACRONYMS = new Set(["html", "css", "url", "pdf", "rss", "seo", "id"]);
+const SMALL = new Set(["a", "an", "the", "and", "or", "but", "nor", "for", "of", "on", "in", "at", "to", "by", "per", "vs", "via", "as", "with", "from"]);
+export function titleCase(text) {
+  if (lang() === "ja") return text;
+  const words = String(text).split(/(\s+|(?=[(])|(?<=[(]))/);
+  const real = words.filter((w) => /\w/.test(w));
+  return words.map((w) => {
+    if (!/[a-z]/.test(w) || /[A-Z]/.test(w.slice(1))) return w;          // "HTML", "iPhone", "(5px)": as they are
+    const first = w === real[0], lastWord = w === real[real.length - 1];
+    if (!first && !lastWord && SMALL.has(w.toLowerCase())) return w.toLowerCase();
+    if (ACRONYMS.has(w.toLowerCase())) return w.toUpperCase();
+    if (/^\d/.test(w)) return w;                                             // "16px"
+    return w.replace(/(^|-)([a-z])/g, (m, p1, c) => p1 + c.toUpperCase());  // "multi-upload" -> "Multi-Upload"
+  }).join("");
+}
+// a name, translated and in Title Case
+export const tl = (text, vars) => titleCase(t(text, vars));
+
 // one / many: t2(n, "{n} image", "{n} images")
 export const t2 = (n, one, many, vars = {}) => t(n === 1 ? one : many, { n, ...vars });
 
@@ -145,7 +165,8 @@ const JA = {
   "Name": "名前", "Untitled": "名称未設定", "Used for": "使うモード", "Light mode": "ライトモード", "Dark mode": "ダークモード", "Light or dark": "ライトかダーク",
   "Colors": "色", "Writing background": "本文の背景", "Sidebar": "サイドバー", "Post list": "投稿リスト", "Toolbar & inspector": "ツールバーとインスペクタ",
   "Cards & menus": "カードとメニュー", "Secondary text": "補助テキスト", "Accent": "アクセント",
-  "Code colors (Source view and HTML)": "コードの色（ソース表示とHTML）", "Writing size: {n}px": "文字の大きさ：{n}px",
+  "Code colors (Source view and HTML)": "コードの色（ソース表示とHTML）", "Writing size: {n}px": "文字の大きさ：{n}px", "Line spacing: {n}": "行間：{n}", "Letter spacing: {n}em": "字間：{n}em",
+  "Writing weight": "文字の太さ", "Regular": "標準", "Medium": "中太", "Semibold": "やや太",
   "Interface font": "画面のフォント", "Writing font (titles and text)": "本文のフォント（タイトルと文章）", "Code font (Source view)": "コードのフォント（ソース表示）",
   "Other font…": "その他のフォント…", "Font name, e.g. Inter": "フォント名（例：Inter）",
   "Load it from Google Fonts (otherwise it must be installed on this Mac)": "Google Fonts から読み込む（オフの場合はこのMacにインストールされている必要があります）",

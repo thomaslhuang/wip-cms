@@ -3,7 +3,7 @@
 // .pages.yml and makes the folders.
 import { h, fill, icon } from "./util.js";
 import { api } from "./api.js";
-import { t as tr } from "./i18n.js";
+import { t as tr, tl } from "./i18n.js";
 
 const POSTY = ["blog", "posts", "news", "journal", "work", "projects", "case-studies", "portfolio"];
 
@@ -24,7 +24,7 @@ export function openSetup(info, back) {
   const list = h("div", { class: "setup-rows" });
   const draw = () => {
     fill(list,
-      h("div", { class: "setup-row setup-row-head", "aria-hidden": "true" }, h("span", {}, tr("Name in the sidebar")), h("span", {}, tr("Folder")), h("span", {}, tr("Kind")), h("span", {}, tr("Writing")), h("span", {}, tr("Template")), h("span", {})),
+      h("div", { class: "setup-row setup-row-head", "aria-hidden": "true" }, h("span", {}, tl("Name in the sidebar")), h("span", {}, tl("Folder")), h("span", {}, tl("Kind")), h("span", {}, tl("Writing")), h("span", {}, tl("Template")), h("span", {})),
       rows.map((r, i) => {
         const folder = h("input", { class: "field-input", value: r.folder, "aria-label": tr("Folder"), oninput: () => { r.folder = folder.value; r.folderEdited = true; } });
         const label = h("input", { class: "field-input", value: r.label, "aria-label": tr("Name in the sidebar"), oninput: () => {
@@ -60,10 +60,10 @@ export function openSetup(info, back) {
       info.generator ? tr(/^[AEIOU]/.test(info.generator) ? "This looks like an {generator} site. " : "This looks like a {generator} site. ", { generator: info.generator }) : "",
       tr("wip cms will write a .pages.yml file describing the sections below, and make their folders. Each post or page becomes its own folder with an index.md inside. You can change all of this later in .pages.yml.")),
     h("div", { class: "setup-paths" },
-      h("label", {}, h("span", { class: "field-label" }, tr("Pages folder (the site generator's input)")), source),
-      h("label", {}, h("span", { class: "field-label" }, tr("Images folder, inside it")), images)),
+      h("label", {}, h("span", { class: "field-label" }, tl("Pages folder (the site generator's input)")), source),
+      h("label", {}, h("span", { class: "field-label" }, tl("Images folder, inside it")), images)),
     info.folders.length ? h("p", { class: "muted small" }, tr("Folders already there: {list}", { list: info.folders.join(", ") })) : null,
-    h("div", { class: "field-label" }, tr("Sections")),
+    h("div", { class: "field-label" }, tl("Sections")),
     list,
     h("p", { class: "muted small" },
       tr("Posts get a title, featured image, date, draft switch and tags; pages get a title and a description. “Blocks” lets you mix text, images, carousels and collages, like your own site, but the client site's templates need to be able to show them. “Template” fills in the layout field (for Eleventy, e.g. post.njk).")),

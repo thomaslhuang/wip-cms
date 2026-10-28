@@ -58,7 +58,7 @@ Options:
 | **Sidebar** | Your sections (blog posts, projects), Images, pages and settings. At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site. |
 | **List** | The posts in that section, newest first, under their year and month; click a year or month to fold it away. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** (square pictures, three across, edge to edge; point at one for its title) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
-| **Inspector** | The post's details: featured image, date, switches, tags, and its web address. |
+| **Inspector** | The post's details: featured image, date, switches, tags, and its permalink. |
 
 **New posts:** the pencil above the list asks for a title and a **permalink** (the end of
 its web address, e.g. `/blog/2026/10/cafe-opening/`). The permalink follows the title as
@@ -106,7 +106,8 @@ written: October 28, 2026 · 2026年10月28日 · 令和8年10月28日. Translat
 
 **Themes:** ⋯ → **Themes, colors and fonts…** Pick light and dark themes (Light, Dark,
 Paper, Ayu, Ink), or duplicate one and change its colors, fonts (any font on your Mac,
-or one from Google Fonts), writing size and code colors (ayu dark or ayu light).
+one from Google Fonts, or the built-in Zen Old Mincho and Zen Kaku Gothic New), writing
+size, line spacing, letter spacing and weight, and code colors (ayu dark or ayu light).
 "Match my Mac" switches between your light and dark theme. Themes are kept in this browser.
 
 **Toolbar**

@@ -15,7 +15,7 @@ function localOffset() {
 }
 import { api } from "./api.js";
 import { renderField } from "./fields.js";
-import { t, t2, fmtDate } from "./i18n.js";
+import { t, t2, tl, fmtDate } from "./i18n.js";
 
 const SAVE_AFTER = 1200;            // ms after the last change
 const SKIP = new Set(["newTags"]);   // Pages CMS-only helpers
@@ -153,7 +153,7 @@ export async function openEditor({ file, section, config }) {
     // a longer title (projects' "full title") sits right under the title, as a subtitle
     if (subtitleField) {
       const sub = autosize(h("textarea", { class: "doc-subtitle", rows: 1, "aria-label": subtitleField.label || subtitleField.name,
-        placeholder: t("{label} (optional)", { label: t(subtitleField.label || subtitleField.name) }), value: data[subtitleField.name] ?? "",
+        placeholder: t("{label} (optional)", { label: tl(subtitleField.label || subtitleField.name) }), value: data[subtitleField.name] ?? "",
         oninput: () => { data[subtitleField.name] = sub.value.replace(/\n/g, " "); changed(); },
         onkeydown: (e) => { if (e.key === "Enter") e.preventDefault(); } }));
       doc.append(sub);
@@ -172,7 +172,7 @@ export async function openEditor({ file, section, config }) {
     for (const f of galleryFields) {
       const el = renderField(f, data, ctx);
       if (el) doc.append(h("section", { class: "doc-gallery" },
-        h("div", { class: "doc-section-head" }, h("span", {}, t(f.label || f.name)), Array.isArray(data[f.name]) ? h("span", { class: "muted" }, t2(data[f.name].length, "{n} image", "{n} images")) : null),
+        h("div", { class: "doc-section-head" }, h("span", {}, tl(f.label || f.name)), Array.isArray(data[f.name]) ? h("span", { class: "muted" }, t2(data[f.name].length, "{n} image", "{n} images")) : null),
         el));
     }
   } else {
@@ -202,14 +202,14 @@ export async function openEditor({ file, section, config }) {
       } else {
         rows = null;
         inspector.append(h("div", { class: "group-wrap" },
-          h("div", { class: "group-label" }, el.querySelector(".field-label")?.textContent || t(f.label || f.name)),
+          h("div", { class: "group-label" }, el.querySelector(".field-label")?.textContent || tl(f.label || f.name)),
           h("div", { class: "group" + (f.type === "image" ? " image-group" : "") }, el)));
       }
     }
   } else {
     inspector.append(h("p", { class: "muted small inspector-empty" }, t("This page's fields are all in the document.")));
   }
-  inspector.append(h("div", { class: "group-wrap" }, h("div", { class: "group-label" }, t("Address")), h("div", { class: "address" }, url)));
+  inspector.append(h("div", { class: "group-wrap" }, h("div", { class: "group-label" }, t("Permalink")), h("div", { class: "address" }, url)));
   if (scroll && inspector.parentNode) inspector.parentNode.scrollTop = scroll;
   }
   refreshInspector();
