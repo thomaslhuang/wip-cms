@@ -2,24 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>wip cms</title>
+  <!-- light / dark before anything draws, so it doesn't flash (js/app.js has the setting) -->
+  <script>try { const t = localStorage.getItem("wip-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
   <link rel="stylesheet" href="/styles.css">
   <script src="/vendor/markdown-it.js"></script>
 </head>
 <body>
-  <!-- top bar: site, what's open, Window menu, and the buttons for what's open (js/app.js) -->
-  <header class="topbar">
-    <button id="site-name" class="site-name" title="Open another site">wip cms</button>
-    <div id="crumbs" class="crumbs"></div>
-    <div id="actions" class="actions"></div>
-    <div class="menu-wrap">
-      <button id="window-btn" class="btn ghost" title="Show, hide and arrange panels">Window</button>
-      <div id="window-menu" class="menu" hidden></div>
-    </div>
-  </header>
-  <!-- the panels (js/dock.js) -->
-  <main id="dock" class="dock"></main>
+  <!--
+    The window, left to right (js/app.js fills each part):
+      sidebar     your site's sections and pages
+      list        the posts in the chosen section
+      main        toolbar, then the document and/or live preview, and the inspector
+  -->
+  <div id="app" class="app">
+    <aside id="sidebar" class="sidebar" aria-label="Sections"></aside>
+    <section id="list" class="list" aria-label="Posts"></section>
+    <main class="main">
+      <header id="toolbar" class="toolbar"></header>
+      <div class="workspace">
+        <div id="stage" class="stage">
+          <div id="docpane" class="docpane"></div>
+          <div id="divider" class="divider" role="separator" aria-label="Resize preview"></div>
+          <div id="previewpane" class="previewpane"></div>
+        </div>
+        <aside id="inspector" class="inspector" aria-label="Details"></aside>
+      </div>
+      <div id="phonebar" class="phonebar"></div>
+    </main>
+  </div>
 
   <script type="module" src="/js/app.js"></script>
 </body>

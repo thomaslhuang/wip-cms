@@ -63,11 +63,23 @@ const routes = {
   // forget unsaved edits: the preview goes back to what's saved
   "DELETE /api/draft": (q) => { preview.syncFromSite(q.file); return { ok: true }; },
 
+  // how many files changed since the last commit (the "ready to publish" count)
+  "GET /api/changes": () => changes(),
+
   // images
   "GET /api/image-folder": (q) => ({ folder: site.rel(site.imageFolderFor(q.file)) }),
   "GET /api/media": (q) => media.listFolder(q.folder),
   "GET /api/phone-link": (q) => phone.phoneLink(PORT, q.folder || site.rel(site.imagesDir())),
 };
+
+// git status of the open site; works without git too (count is then null)
+function changes() {
+  try {
+    const out = require("child_process").execFileSync("git", ["status", "--porcelain"], { cwd: site.requireSite().root, encoding: "utf8", timeout: 5000 });
+    const files = out.split("\n").filter((l) => l.trim() && !l.includes(".cms-trash/"));
+    return { count: files.length };
+  } catch { return { count: null }; }
+}
 
 // ---------- plumbing ----------
 

@@ -5,9 +5,10 @@ It runs on your Mac and edits the site's files directly. Nothing goes online unt
 commit and push, for example in GitHub Desktop. It reads the same `.pages.yml` as Pages
 CMS, so you can use both.
 
-The editor is made of panels, the way InDesign is. You can drag them around, dock them
-side by side or stack them as tabs. One of them is a **live preview** of the real site
-that updates as you type, before you save.
+It's laid out like a Mac app (think Notes or Pages): your sections on the left, your
+posts next to them, the post itself as a document, and its details in an inspector on
+the right. It saves as you type, has a **live preview** of the real site beside your
+writing, and comes in light and dark.
 
 ## Starting it
 
@@ -36,43 +37,45 @@ Options:
 
 ## Using it
 
-**Panels**
+**The window, left to right**
 
-| Panel | What's in it |
+| | |
 |---|---|
-| **Navigator** | Your sections (blog posts, projects) and pages. Use **+** to make a new post, and the box at the top to find one. |
-| **Details** | The open post's title, featured image, date, switches and tags. |
-| **Content** | The post's blocks. Pages without blocks show all their fields here. |
-| **Preview** | The real page, updating as you type. You can view it at full, tablet or phone width. |
-| **Images** | The image library. You can drop files on it to upload, use **From phone** to upload from your phone, or click an image to copy its address. |
+| **Sidebar** | Your sections (blog posts, projects), Images, pages and settings. At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site. |
+| **List** | The posts in that section, newest first, grouped by month. Search at the top; the pencil makes a new one. |
+| **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
+| **Inspector** | The post's details: featured image, date, switches, tags, and its web address. |
 
-**Arranging panels**
+**Toolbar**
 
-- **Move a panel:** drag it by its tab onto another panel. A blue area shows where it
-  will land. Drop on an edge to dock it beside, above or below that panel, or drop in
-  the middle to add it as a tab.
-- **Resize:** drag the thin line between two panels.
-- **Minimise:** click the **–** at the right of a panel's tabs, or double-click its tab
-  strip. It shrinks to just its tabs: a strip across, or a strip down the side.
-  Click a tab to bring it back.
-- **Close a panel:** click the **×** on its tab.
-- **Window** (top right): reopen closed panels or switch to a ready-made layout.
-  - **Write with preview:** Details above Content, with the preview beside them.
-  - **Write:** the same, without the preview.
-  - **Focus:** Details minimised above Content, with the preview beside them.
-  - **Preview below:** Details, Content and the preview in one column.
-- Your layout is remembered. In a narrow window, all panels become tabs.
+- **Write / Split / Preview:** just the document, the document beside the live site
+  (drag the line between them), or just the site. In Split, the post list steps aside
+  to make room.
+- **⊕ Insert a block**, **Add photos** (one image block per photo), and **Rearrange**
+  (each block shrinks to one line you can drag).
+- **Open on your site** in a new tab, and **show / hide the inspector**.
+- **⋯** has **Revert to when opened**, **Move to Trash**, **Appearance** (match your
+  Mac, light or dark) and **Open another site…**
+- The sidebar button (top of the sidebar) hides the sidebar and list for more room.
+
+In a narrower window the list, then the sidebar, step aside while you write. On a phone
+it shows one column at a time, details open as a sheet from the bottom, and insert,
+photos and rearrange float at the bottom of the screen.
 
 **Saving and publishing**
 
-- Press **Save** or **⌘S**. If you try to leave with unsaved changes, it asks first.
+- There's no Save button: it saves a moment after you stop typing (the toolbar shows
+  Edited, Saving…, Saved). **⌘S** saves straight away.
+- **Revert to when opened** (in ⋯) puts the post back the way it was when you opened it.
 - Saving writes into the site folder. Publish the way you normally do: commit and push
   in GitHub Desktop.
-- **Delete** (the ⋮ menu) moves the post and its image folder into `.cms-trash` in the
-  site, so you can get them back.
+- **Move to Trash** moves the post and its image folder into `.cms-trash` in the site,
+  so you can get them back.
 
 **Images**
 
+- **Images** in the sidebar shows the whole library: drop files on it to upload, use
+  **From phone**, or click an image to copy its address.
 - Uploads are converted in the browser to WebP, 1500px on the longest edge. They go
   into the post's own image folder, e.g. `src/images/blog/2026/10/my-post/`.
 - **From phone** shows a QR code. Your phone needs to be on the same Wi-Fi. The phone
@@ -87,15 +90,14 @@ When a site opens, wip cms:
    image library are linked rather than copied.
 2. Runs the site's own Eleventy on that copy at http://localhost:8080.
 
-While you type, your unsaved changes are written only into the shadow copy. Eleventy
-rebuilds, and the Preview panel updates in place. Your real files change only when you
-save.
+In Split or Preview, what you type goes into the shadow copy straight away, so the page
+updates in place without waiting for the save a moment later.
 
 Changes you make outside wip cms are copied into the shadow copy too, for example
 editing a template in VS Code or pulling in GitHub Desktop.
 
 The preview needs an Eleventy site with its packages installed (`npm install` in the
-site folder). For other sites, everything except the Preview panel still works.
+site folder). For other sites, everything except the preview still works.
 
 ## Where things are (for changing it later)
 
@@ -111,24 +113,23 @@ lib/
   preview.js         the live preview (shadow copy + Eleventy)
   phone.js           phone uploads: the secret link, the QR code, who may connect
 public/
-  index.html         the page: top bar + panel area
-  styles.css         all the styling; colours and sizes at the top
+  index.html         the window: sidebar, list, toolbar, document, preview, inspector
+  styles.css         all the styling; light and dark colours at the top
   phone.html         the page your phone sees
   js/
-    app.js           the panels, the top bar, the Window menu, opening things
-    dock.js          the panel system: tabs, docking, resizing, layouts
-    editor.js        one open post: builds the Details and Content panels, Save, Delete
+    app.js           the columns, the toolbar and ⋯ menu, the preview, opening things
+    editor.js        one open post: the document and the inspector, saving as you type
     fields.js        each kind of field (text, date, switch, tags, image…)
-    blocks.js        the block list: add, rearrange, collapse, delete
-    media.js         image uploads (WebP), the picker window, the Images panel
+    blocks.js        the blocks: select, insert, move, rearrange, delete
+    media.js         image uploads (WebP), the picker window, the Images page
     api.js           talking to server.js
     util.js          small helpers and the icons
 ```
 
 Some common changes:
 
-- **Colours and sizes:** the top of `public/styles.css`.
-- **Ready-made layouts:** `PRESETS` near the top of `public/js/app.js`.
-- **Which fields sit side by side in Details:** `ROLES` at the top of
-  `public/js/editor.js`.
+- **Colours (light and dark):** the top of `public/styles.css`.
+- **How long it waits before saving:** `SAVE_AFTER` at the top of `public/js/editor.js`.
+- **Which block options only show when a block is selected:** `isSecondary` at the top
+  of `public/js/blocks.js`.
 - **Upload size or format:** `LONGEST_EDGE` in `public/js/media.js`.

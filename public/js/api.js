@@ -16,6 +16,7 @@ const qs = (o) => new URLSearchParams(o).toString();
 export const api = {
   site: () => call("GET", "/api/site"),
   openSite: (path) => call("POST", "/api/site", { path }),
+  changes: () => call("GET", "/api/changes"),
   preview: () => call("GET", "/api/preview"),
   draft: (file, data, body) => call("PUT", "/api/draft", { file, data, body }),
   discardDraft: (file) => call("DELETE", "/api/draft?" + qs({ file })),
