@@ -42,7 +42,7 @@ Options:
 | | |
 |---|---|
 | **Sidebar** | Your sections (blog posts, projects), Images, pages and settings. At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site. |
-| **List** | The posts in that section, newest first, grouped by month. Search at the top; the pencil makes a new one. |
+| **List** | The posts in that section, newest first. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** of pictures (grouped by year) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
 | **Inspector** | The post's details: featured image, date, switches, tags, and its web address. |
 

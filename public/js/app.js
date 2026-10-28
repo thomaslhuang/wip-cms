@@ -116,18 +116,17 @@ function drawList() {
   const all = lists[s.name] || [];
   const shown = all.filter((e) => !filter || (e.title + " " + (e.excerpt || "")).toLowerCase().includes(filter));
   const drafts = all.filter((e) => e.draft).length;
-  const rows = [];
-  let lastGroup = null;
+  const mode = listMode(s.name);
+  const items = { rows: rowItem, grid: tileItem, text: textItem }[mode];
+  // grouped by month; each group's items sit in their own box so the grid can lay them out
+  const groups = [];
   for (const e of shown) {
-    const group = e.date ? MONTH(e.date) : "No date";
-    if (group !== lastGroup) { rows.push(h("div", { class: "list-group" }, group)); lastGroup = group; }
-    rows.push(h("a", { class: "row-item" + (route.file === e.file ? " active" : ""), href: "#/edit/" + e.file },
-      e.featuredImage ? h("img", { class: "row-thumb", src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "row-thumb empty" }),
-      h("span", { class: "row-text" },
-        h("span", { class: "row-title" }, e.isBook ? h("i", {}, e.title) : e.title),
-        h("span", { class: "row-sub" }, e.date ? SHORT(e.date) : "", e.draft ? h("span", { class: "badge" }, "Draft") : null),
-        e.excerpt ? h("span", { class: "row-excerpt" }, e.excerpt) : null)));
+    // the grid groups by year, so there's a row of pictures to look at rather than one per month
+    const name = !e.date ? "No date" : mode === "grid" ? String(asDate(e.date).getFullYear()) : MONTH(e.date);
+    if (!groups.length || groups[groups.length - 1].name !== name) groups.push({ name, entries: [] });
+    groups[groups.length - 1].entries.push(e);
   }
+  const rows = groups.map((g) => [h("div", { class: "list-group" }, g.name), h("div", { class: "list-items " + mode }, g.entries.map(items))]);
   const search = h("input", { class: "search-input", type: "search", placeholder: "Search", "aria-label": `Search ${s.label}`, value: filter,
     oninput: () => { filter = search.value.toLowerCase(); drawList(); const el = listEl.querySelector(".search-input"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); } });
   fill(listEl,
@@ -136,8 +135,57 @@ function drawList() {
       h("div", { class: "list-title" }, h("div", { class: "list-name" }, s.label),
         h("div", { class: "list-count" }, `${all.length} ${all.length === 1 ? "item" : "items"}${drafts ? `, ${drafts} draft${drafts > 1 ? "s" : ""}` : ""}`)),
       tbtn("compose", `New in ${s.label}`, () => newEntry(s))),
-    h("label", { class: "search" }, icon("search"), search),
-    h("div", { class: "list-scroll" }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? "Nothing matches." : "Nothing here yet.")));
+    h("div", { class: "list-tools" },
+      h("label", { class: "search" }, icon("search"), search),
+      segmentedIcons("Show as", [["rows", "rows", "List"], ["grid", "grid", "Grid"], ["text", "text", "Titles only"]], mode, (m) => setListMode(s.name, m))),
+    h("div", { class: "list-scroll" }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? "Nothing matches." : "Nothing here yet.")),
+    h("div", { class: "list-resize", role: "separator", "aria-label": "Resize list", onpointerdown: resizeList }));
+}
+
+// three ways to show a section, remembered for each one: list (picture, title, first
+// words), grid (pictures), titles only
+const listModes = pref.get("list-modes", {});
+const listMode = (name) => listModes[name] || "rows";
+function setListMode(name, mode) { listModes[name] = mode; pref.set("list-modes", listModes); drawList(); }
+const segmentedIcons = (label, options, current, onpick) => h("div", { class: "segmented icons", role: "group", "aria-label": label },
+  options.map(([value, ic, text]) => h("button", { class: value === current ? "on" : "", "aria-pressed": String(value === current), "aria-label": text, title: text, onclick: () => onpick(value) }, icon(ic))));
+
+const isActive = (e) => (route.file === e.file ? " active" : "");
+const titleOf = (e) => (e.isBook ? h("i", {}, e.title) : e.title);
+const draftBadge = (e) => (e.draft ? h("span", { class: "badge" }, "Draft") : null);
+function rowItem(e) {
+  return h("a", { class: "row-item" + isActive(e), href: "#/edit/" + e.file },
+    e.featuredImage ? h("img", { class: "row-thumb", src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "row-thumb empty" }),
+    h("span", { class: "row-text" },
+      h("span", { class: "row-title" }, titleOf(e)),
+      h("span", { class: "row-sub" }, e.date ? SHORT(e.date) : "", draftBadge(e)),
+      e.excerpt ? h("span", { class: "row-excerpt" }, e.excerpt) : null));
+}
+function tileItem(e) {
+  return h("a", { class: "tile" + isActive(e), href: "#/edit/" + e.file, title: e.title },
+    h("span", { class: "tile-pic" },
+      e.featuredImage ? h("img", { src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "tile-letter", "aria-hidden": "true" }, (e.title || "?").trim()[0]),
+      draftBadge(e)),
+    h("span", { class: "tile-title" }, titleOf(e)),
+    h("span", { class: "tile-date" }, e.date ? SHORT(e.date) : ""));
+}
+function textItem(e) {
+  return h("a", { class: "text-item" + isActive(e), href: "#/edit/" + e.file },
+    h("span", { class: "text-title" }, titleOf(e)), draftBadge(e),
+    h("span", { class: "text-date" }, e.date ? asDate(e.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""));
+}
+
+// drag the list's right edge to make it wider (handy for the grid)
+let listWidth = pref.get("list-width", 300);
+listEl.style.width = listWidth + "px";
+function resizeList(e) {
+  e.preventDefault();
+  const startX = e.clientX, startW = listEl.offsetWidth;
+  app.classList.add("resizing");
+  const move = (ev) => { listWidth = Math.min(640, Math.max(240, startW + ev.clientX - startX)); listEl.style.width = listWidth + "px"; };
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); app.classList.remove("resizing"); pref.set("list-width", listWidth); };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
 }
 
 function newEntry(section) {
