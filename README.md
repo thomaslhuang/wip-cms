@@ -75,9 +75,10 @@ there. Click the date for a date picker, click Draft or Published to switch, and
 "add tag" (Return adds it, suggestions come from tags you've used). The inspector shows
 the same and stays in step.
 
-**Moving blocks:** point at a block and drag the ⠿ handle in the margin to its left. A
-copy follows the pointer and a blue line shows where it will land; dragging near the top
-or bottom of the window scrolls. (Rearrange in the toolbar still shrinks every block to a
+**Moving blocks:** point at a block and drag the ⠿ handle in the margin to its left. The
+block itself moves through the post as you drag (with a small label following the
+pointer), so you see the result before letting go; dragging near the top or bottom of the
+window scrolls. (Rearrange in the toolbar still shrinks every block to a
 line, for big reshuffles.)
 
 **Writing**

@@ -207,19 +207,35 @@ export function renderBlocks(field, list, ctx) {
   }
   const hideDrop = () => { dropLine.hidden = true; };
 
+  // The block itself moves as you drag (a copy also follows the pointer), so you see the
+  // post as it will be. It only moves when it would really change place.
   function dragBlock(e, b) {
     if (e.button > 0) return;
     e.preventDefault();
     const x0 = e.clientX, y0 = e.clientY;
-    let dragging = false, copy = null, scroller = null, last = e, target = null;
-    const sources = () => [...listEl.querySelectorAll(".block")].filter((c) => c.blockRef === b);
+    let dragging = false, copy = null, scroller = null, last = e, src = null;
+    const isUnit = (c) => c.classList.contains("block") || c.classList.contains("block-pair");
     const begin = () => {
       dragging = true;
       select(null);
+      src = [...listEl.querySelectorAll(".block")].find((c) => c.blockRef === b);
+      // a block that was beside another image comes out of the pair while it moves
+      if (src.parentNode !== listEl) listEl.insertBefore(src, src.parentNode);
       copy = ghost(h("div", { class: "block-ghost" }, icon(TYPE_ICONS[b[key]] || "text"), h("b", {}, labelOf(b)), h("span", {}, previewOf(b))), 260, last, { x: 20, y: 18 });
-      sources().forEach((c) => c.classList.add("drag-source"));
+      src.classList.add("drag-source");
       root.classList.add("block-dragging");
-      scroller = autoScroll([root.closest(".docpane")], () => { target = showDropAt(last.clientY); });
+      scroller = autoScroll([root.closest(".docpane")], () => place(last));
+    };
+    // before the first other block whose middle is below the pointer; nothing happens
+    // while that's where it already is
+    const place = (ev) => {
+      const others = [...listEl.children].filter((c) => isUnit(c) && c !== src);
+      const before = others.find((u) => { const r = u.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; }) || null;
+      let next = src.nextElementSibling;
+      while (next && !isUnit(next)) next = next.nextElementSibling;
+      if (next === before) return;
+      if (before) listEl.insertBefore(src, before);
+      else listEl.append(src);
     };
     const move = (ev) => {
       last = ev;
@@ -227,19 +243,18 @@ export function renderBlocks(field, list, ctx) {
       ev.preventDefault();
       copy.move(ev);
       scroller.at(ev);
-      target = showDropAt(ev.clientY);
+      place(ev);
     };
     const end = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", end);
       window.removeEventListener("pointercancel", end);
       if (!dragging) { select(b); return; }
-      copy.remove(); scroller.stop(); hideDrop();
+      copy.remove(); scroller.stop();
       root.classList.remove("block-dragging");
-      const from = list.indexOf(b);
-      let to = target ?? from;
-      if (to > from) to--;
-      if (to !== from) { list.splice(from, 1); list.splice(to, 0, b); ctx.changed(); }
+      // the new order is the order on the page
+      const order = [...listEl.querySelectorAll(".block")].map((c) => c.blockRef).filter(Boolean);
+      if (order.length === list.length && order.some((x, k) => x !== list[k])) { list.splice(0, list.length, ...order); ctx.changed(); }
       selected = b;
       draw();
     };

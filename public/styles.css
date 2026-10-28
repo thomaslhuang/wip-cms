@@ -288,8 +288,14 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
 @media (hover: none) { .block-grip { opacity: .6; left: -26px; } }
 .block-pair .block > .block-grip { left: -26px; }
 .block-pair .block + .block > .block-grip { left: auto; right: 4px; top: 10px; background: var(--pop); box-shadow: var(--shadow); }
-.block.drag-source { opacity: .3; }
-.block-dragging .insert-line { visibility: hidden; }
+.block.drag-source { opacity: .55; box-shadow: 0 0 0 2px var(--accent); background: var(--accent-soft); }
+/* while dragging, the + lines step aside and the same space goes around each block, so
+   nothing jumps when the block moves */
+.block-dragging .insert-line { display: none; }
+.block-dragging .block-list { padding: 11px 0; }
+.block-dragging .block-list > .block, .block-dragging .block-list > .block-pair { margin-top: 11px; margin-bottom: 11px; }
+.block-dragging .block-list > .block.drag-source { transition: none; }
+.docpane:has(.block-dragging) { overflow-anchor: none; }
 .block-dragging, .block-dragging * { cursor: grabbing !important; user-select: none; }
 /* where a dragged block (or dropped files) will land */
 .drop-line { position: absolute; left: -6px; right: -6px; height: 3px; margin-top: -1px; border-radius: 2px; background: var(--accent); pointer-events: none; z-index: 8; }
