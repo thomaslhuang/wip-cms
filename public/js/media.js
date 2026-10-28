@@ -183,7 +183,7 @@ export function libraryBrowser({ folder } = {}) {
   return view;
 }
 
-// the picker window. Resolves with an array of /images/... addresses, or null if cancelled.
+// the picker window. Resolves with an array of /images/... addresses, or null if canceled.
 //   multiple:  pick several
 //   folder:    where it opens, and where "Upload" saves (the post's own image folder)
 //   phone:     open straight into "From phone" (QR code for uploading from your phone)

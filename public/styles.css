@@ -1,23 +1,23 @@
 /* wip cms: the look
    -----------------
-   Colours come from the theme (js/theme.js): eight base colours, set on <html> as
+   Colors come from the theme (js/theme.js): eight base colors, set on <html> as
    --window, --sidebar, --list, --panel, --card, --text, --muted and --accent. Everything else
-   (lines, fills, hover colours...) is mixed from those below, so any theme hangs together.
+   (lines, fills, hover colors...) is mixed from those below, so any theme hangs together.
    The values here are the built-in Light and Dark themes, used until a theme is applied.
-   In order: colours, the window's columns, sidebar, post list, toolbar, the document and
+   In order: colors, the window's columns, sidebar, post list, toolbar, the document and
    its blocks, the inspector, fields, preview, menus and dialogs, the image library,
    smaller windows, phones. */
 
 :root {
   color-scheme: light;
-  /* base colours (a theme replaces these) */
+  /* base colors (a theme replaces these) */
   --window: #ffffff;  --sidebar: #f0f0f3;  --list: #ffffff;  --panel: #f6f6f8;  --card: #ffffff;
   --text: #1d1d1f;  --muted: #636366;  --accent: #0a66d8;  --on-accent: #ffffff;
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-writing: var(--font);
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
   --writing-size: 16px;
-  /* mixed from the base colours */
+  /* mixed from the base colors */
   --inspector: var(--panel);
   --toolbar: color-mix(in srgb, var(--panel) 50%, var(--window));
   --pop: var(--card);
@@ -56,7 +56,7 @@
   --overlay: rgba(0, 0, 0, 0.5);
 }
 
-/* code colours (Source view, HTML blocks): the ayu colour schemes, text only; the
+/* code colors (Source view, HTML blocks): the ayu color schemes, text only; the
    background stays the theme's */
 :root, :root[data-code="ayu-light"] {
   --syn-fg: #5c6166; --syn-comment: #787b8099; --syn-tag: #55b4d4; --syn-attr: #f2ae49; --syn-string: #86b300;
@@ -224,7 +224,7 @@ button:disabled { cursor: default; }
 .meta-date:hover { background: var(--fill); color: var(--text); }
 .meta-date .icon { width: 14px; height: 14px; }
 .meta-date-input { position: absolute; inset: 0; opacity: 0; width: 100%; border: 0; padding: 0; cursor: pointer; }
-/* draft / published: a coloured pill, so it stands apart from the tags */
+/* draft / published: a colored pill, so it stands apart from the tags */
 .meta-status { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px 0 8px; border-radius: 12px; border: 0; font-weight: 600; font-size: 12px; }
 .meta-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .meta-status.is-draft { background: var(--draft-soft); color: var(--draft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--draft) 45%, transparent); }
@@ -268,7 +268,7 @@ button:disabled { cursor: default; }
 .block .primary .rich-box, .doc-body .rich-box { border: 0 !important; padding: 0 !important; background: none !important; }
 .rich-box:focus-visible { outline: none; }
 
-/* Source: monospace, colour-coded (js/code.js); the coloured copy sits under the see-through text */
+/* Source: monospace, color-coded (js/code.js); the colored copy sits under the see-through text */
 .code-wrap { position: relative; }
 .code-wrap[hidden] { display: none; }
 .code-layer { position: absolute; inset: 0; margin: 0; overflow: hidden; pointer-events: none; white-space: pre-wrap; overflow-wrap: break-word;
@@ -570,15 +570,15 @@ select.input { appearance: auto; }
 .theme-kind { font-size: 11px; color: var(--muted); }
 .theme-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .theme-editor { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
-.colour-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; }
-.colour-row { display: grid; grid-template-columns: 30px 1fr 86px; align-items: center; gap: 8px; }
-.colour-row input[type="color"] { width: 30px; height: 24px; padding: 0; border: 1px solid var(--line-strong); border-radius: 5px; background: none; }
-.colour-row .hex { font: 12px var(--mono); padding: 3px 6px; }
+.color-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; }
+.color-row { display: grid; grid-template-columns: 30px 1fr 86px; align-items: center; gap: 8px; }
+.color-row input[type="color"] { width: 30px; height: 24px; padding: 0; border: 1px solid var(--line-strong); border-radius: 5px; background: none; }
+.color-row .hex { font: 12px var(--mono); padding: 3px 6px; }
 .font-row { display: grid; grid-template-columns: 1fr 1.2fr; gap: 6px 12px; align-items: center; }
 .font-row > input, .font-row > .check-row { grid-column: 2; }
 .check-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
 @media (max-width: 760px) {
-  .appearance-row.two, .colour-grid, .font-row { grid-template-columns: 1fr; }
+  .appearance-row.two, .color-grid, .font-row { grid-template-columns: 1fr; }
   .font-row > input, .font-row > .check-row { grid-column: 1; }
 }
 .recent { display: flex; flex-direction: column; gap: 2px; }

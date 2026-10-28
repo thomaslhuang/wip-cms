@@ -283,7 +283,7 @@ function drawToolbar() {
     ] : []),
     { heading: t("Appearance") },
     ...[["system", t("Match my Mac")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
-    { label: t("Themes, colours and fonts…"), run: () => openAppearance() },
+    { label: t("Themes, colors and fonts…"), run: () => openAppearance() },
     "-",
     // the whole app in English or Japanese (reloads to switch)
     { heading: t("Language") },

@@ -96,7 +96,7 @@ line, for big reshuffles.)
   rewritten. (One small difference: italics you edit are saved as `*word*` even if they
   were `<i>word</i>` before. They look the same on the site.)
 - **Source** (top right of a selected text block) shows the Markdown itself in a
-  monospace font, colour-coded with the ayu colours. HTML blocks are colour-coded too.
+  monospace font, color-coded with the ayu colors. HTML blocks are color-coded too.
   wip cms remembers whether you last used Write or Source.
 
 **Japanese:** ⋯ → Language → 日本語 switches all of wip cms to Japanese (your section and
@@ -104,9 +104,9 @@ field names from .pages.yml too, for the common ones). ⋯ → Dates picks how d
 written: October 28, 2026 · 2026年10月28日 · 令和8年10月28日. Translations live in
 `public/js/i18n.js`; anything without one stays in English.
 
-**Themes:** ⋯ → **Themes, colours and fonts…** Pick light and dark themes (Light, Dark,
-Paper, Ayu, Ink), or duplicate one and change its colours, fonts (any font on your Mac,
-or one from Google Fonts), writing size and code colours (ayu dark or ayu light).
+**Themes:** ⋯ → **Themes, colors and fonts…** Pick light and dark themes (Light, Dark,
+Paper, Ayu, Ink), or duplicate one and change its colors, fonts (any font on your Mac,
+or one from Google Fonts), writing size and code colors (ayu dark or ayu light).
 "Match my Mac" switches between your light and dark theme. Themes are kept in this browser.
 
 **Toolbar**
@@ -185,7 +185,7 @@ lib/
   setup.js           setting up a new site: writes its .pages.yml
 public/
   index.html         the window: sidebar, list, toolbar, document, preview, inspector
-  styles.css         all the styling; light and dark colours at the top
+  styles.css         all the styling; light and dark colors at the top
   phone.html         the page your phone sees
   js/
     app.js           the columns, the toolbar and ⋯ menu, the preview, opening things
@@ -195,7 +195,7 @@ public/
     media.js         image uploads (WebP), the picker window, the Images page
     setup.js         the "Set up a site" window
     rich.js          the writing box: Markdown shown formatted, and turned back into Markdown
-    code.js          colour-coded Source view
+    code.js          color-coded Source view
     theme.js         themes and the Appearance window
     i18n.js          English / Japanese words, and date styles
     api.js           talking to server.js
@@ -205,9 +205,9 @@ public/
 Some common changes:
 
 - **Built-in themes and font choices:** `BUILT_IN` and `FONTS` at the top of
-  `public/js/theme.js`. How the other colours are mixed from a theme's eight: the top of
+  `public/js/theme.js`. How the other colors are mixed from a theme's eight: the top of
   `public/styles.css`.
-- **Code colours:** the `--syn-…` lines near the top of `public/styles.css`.
+- **Code colors:** the `--syn-…` lines near the top of `public/styles.css`.
 - **How long it waits before saving:** `SAVE_AFTER` at the top of `public/js/editor.js`.
 - **Which block options only show when a block is selected:** `isSecondary` at the top
   of `public/js/blocks.js`.

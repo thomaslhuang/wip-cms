@@ -1,8 +1,8 @@
-// Colour-coded source (Markdown, HTML, CSS) in a normal text box.
+// Color-coded source (Markdown, HTML, CSS) in a normal text box.
 //
 // The text box stays a real <textarea> (so typing, undo and spell check work as usual);
-// its text is made see-through and a coloured copy is drawn exactly underneath it.
-// The colours are the theme's "code colours" (ayu dark or ayu light, see styles.css).
+// its text is made see-through and a colored copy is drawn exactly underneath it.
+// The colors are the theme's "code colors" (ayu dark or ayu light, see styles.css).
 import { h } from "./util.js";
 
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -90,7 +90,7 @@ export function markdown(src) {
   }).join("\n");
 }
 
-// Colour a textarea's text. lang: "markdown" | "html". Returns the wrapper to put in the page.
+// Color a textarea's text. lang: "markdown" | "html". Returns the wrapper to put in the page.
 export function codeArea(textarea, lang = "markdown") {
   const layer = h("pre", { class: "code-layer", "aria-hidden": "true" });
   const wrap = h("div", { class: "code-wrap" }, layer, textarea);

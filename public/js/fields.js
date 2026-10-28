@@ -198,7 +198,7 @@ function chips(field, obj, ctx, values) {
 
 // Markdown (or HTML) writing, two ways (the choice is remembered):
 //   Write    the formatting shows (bold looks bold); see rich.js
-//   Source   the Markdown itself, in a monospace font, colour-coded; see code.js
+//   Source   the Markdown itself, in a monospace font, color-coded; see code.js
 // plus bold, italic, link and "line break" buttons that work in both.
 const getMode = () => { try { return localStorage.getItem("wip-text-mode") || "write"; } catch { return "write"; } };
 const putMode = (m) => { try { localStorage.setItem("wip-text-mode", m); } catch { /* fine */ } };

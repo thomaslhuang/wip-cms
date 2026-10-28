@@ -82,15 +82,15 @@ export function icon(name, cls = "") {
   return span;
 }
 
-// muted colour per block type (same as the Pages CMS script)
-const TYPE_COLOURS = {
+// muted color per block type (same as the Pages CMS script)
+const TYPE_COLORS = {
   text: "#8c9bb8", image: "#8fae8b", "multi-upload": "#c4a46b", photos: "#c4a46b",
   carousel: "#b48fb3", collage: "#c98f7a", html: "#9b9b9b",
 };
 const EXTRA = ["#a3a07a", "#8fa3c4", "#c49a9a", "#9ab89a"];
-export function colourFor(label) {
+export function colorFor(label) {
   label = String(label || "").toLowerCase();
-  if (TYPE_COLOURS[label]) return TYPE_COLOURS[label];
+  if (TYPE_COLORS[label]) return TYPE_COLORS[label];
   let n = 0;
   for (const ch of label) n = (n * 31 + ch.charCodeAt(0)) >>> 0;
   return EXTRA[n % EXTRA.length];
