@@ -1,0 +1,86 @@
+<!doctype html>
+<!-- The page your phone opens after scanning the QR code in the CMS.
+     Pick photos; each one is shrunk to 1500px on the phone and sent to your Mac,
+     into the post's image folder. The editor on the Mac picks them up by itself. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>send photos to studiotomby cms</title>
+  <style>
+    :root { --bg: #0b0b0b; --text: #f2f2f2; --muted: #9a9a9a; --line: #2a2a2a; --accent: #10b981; --danger: #e5484d; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 -apple-system, BlinkMacSystemFont, sans-serif; padding: 20px 16px 40px; }
+    h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+    .muted { color: var(--muted); font-size: 14px; }
+    .folder { font-size: 13px; color: var(--muted); word-break: break-all; margin: 0 0 20px; }
+    label.pick { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 56px; border-radius: 10px;
+      background: var(--accent); color: #04130d; font-weight: 600; font-size: 17px; cursor: pointer; }
+    input[type=file] { display: none; }
+    .list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 20px; }
+    .item { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; background: #1c1c1c; }
+    .item img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: .45; transition: opacity .2s; }
+    .item.done img { opacity: 1; }
+    .item .state { position: absolute; left: 4px; bottom: 4px; font-size: 11px; background: rgba(0,0,0,.7); padding: 1px 6px; border-radius: 6px; }
+    .item.error .state { background: var(--danger); }
+    .summary { margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Send photos to your Mac</h1>
+  <p class="folder" id="folder"></p>
+  <label class="pick">Choose photos<input id="files" type="file" accept="image/*" multiple></label>
+  <p class="muted summary" id="summary">They'll appear in the CMS on your Mac a moment after uploading. Keep this page open until they say “sent”.</p>
+  <div class="list" id="list"></div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const token = params.get("t");
+    const folder = params.get("folder") || "src/images";
+    document.getElementById("folder").textContent = "into " + folder.replace(/^src\//, "");
+    const LONGEST_EDGE = 1500;
+
+    // shrink to 1500px; WebP if the phone can make it, otherwise JPEG
+    async function prepare(file) {
+      try {
+        const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+        const scale = Math.min(1, LONGEST_EDGE / Math.max(bmp.width, bmp.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+        c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+        const stem = file.name.replace(/\.[^.]+$/, "") || "photo";
+        const webp = await new Promise((r) => c.toBlob(r, "image/webp", 0.82));
+        if (webp && webp.type === "image/webp") return { blob: webp, name: stem + ".webp" };
+        const jpg = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.9));
+        return { blob: jpg, name: stem + ".jpg" };
+      } catch { return { blob: file, name: file.name }; }
+    }
+
+    let sent = 0, failed = 0;
+    const summary = document.getElementById("summary");
+    document.getElementById("files").addEventListener("change", async (e) => {
+      const files = [...e.target.files];
+      e.target.value = "";
+      for (const file of files) {
+        const item = document.createElement("div");
+        item.className = "item";
+        item.innerHTML = '<img alt=""><span class="state">waiting…</span>';
+        item.querySelector("img").src = URL.createObjectURL(file);
+        document.getElementById("list").prepend(item);
+        const state = item.querySelector(".state");
+        try {
+          state.textContent = "sending…";
+          const { blob, name } = await prepare(file);
+          const res = await fetch(`/api/upload?t=${encodeURIComponent(token)}&folder=${encodeURIComponent(folder)}&name=${encodeURIComponent(name)}`, { method: "POST", body: blob });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || "failed");
+          item.classList.add("done"); state.textContent = "sent"; sent++;
+        } catch (err) {
+          item.classList.add("error"); state.textContent = err.message; failed++;
+        }
+        summary.textContent = `${sent} sent` + (failed ? `, ${failed} failed` : "") + ". You can choose more.";
+      }
+    });
+  </script>
+</body>
+</html>
