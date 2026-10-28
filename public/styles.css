@@ -320,8 +320,9 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
   padding-bottom: 6px; counter-reset: slide; scrollbar-width: thin; }
 .block-carousel .image-many .thumb { flex: none; width: auto; height: 260px; aspect-ratio: auto; scroll-snap-align: start; counter-increment: slide; }
 .block-carousel .image-many .thumb img { width: auto; height: 100%; object-fit: contain; }
-.block-carousel .image-many .thumb::before { content: counter(slide); position: absolute; left: 8px; top: 8px; z-index: 1; min-width: 22px; height: 22px; padding: 0 6px;
-  border-radius: 11px; background: rgba(20, 20, 20, 0.72); color: #fff; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.block-carousel .image-many .thumb::before { content: counter(slide) "/" attr(data-total); position: absolute; right: 8px; top: 8px; z-index: 1; height: 20px; padding: 0 6px;
+  border-radius: 10px; background: rgba(20, 20, 20, 0.62); color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .02em; display: flex; align-items: center; justify-content: center;
+  font-variant-numeric: tabular-nums; pointer-events: none; }  /* "2/6" in the top right, like Instagram */
 .carousel-note { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-top: 2px; }
 .carousel-note .icon { width: 14px; height: 14px; }
 
@@ -429,7 +430,14 @@ select.input { appearance: auto; }
 .thumb:hover .thumb-tools, .thumb:focus-within .thumb-tools { opacity: 1; }
 @media (hover: none) { .thumb-tools { opacity: 1; } }
 .thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
-.image-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.image-buttons { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.image-buttons-sep { width: 1px; height: 18px; background: var(--line-strong); margin: 0 4px; }
+.image-buttons-label { font-size: 12px; color: var(--muted); }
+/* dragging pictures into a new order */
+.image-many .thumb { cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.image-many .thumb img { pointer-events: none; }
+.image-many.reordering .thumb { cursor: grabbing; transition: transform .12s; }
+.image-many .thumb.dragging { opacity: .55; outline: 2px solid var(--accent); outline-offset: 2px; }
 .image-many .image-buttons { margin-top: 8px; }
 
 .field-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 16px; }

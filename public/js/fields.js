@@ -263,52 +263,105 @@ function thumb(url, onRemove, extra = []) {
     h("div", { class: "thumb-tools" }, ...extra, h("button", { class: "icon-btn", title: tr("Remove image"), onclick: onRemove }, icon("trash"))));
 }
 
+// the buttons under an image field: Choose (from the library) | Upload from: Computer, Phone
+//   onPicked(urls) gets the chosen or uploaded /images/... addresses
+function imageButtons(ctx, multiple, onPicked) {
+  return h("div", { class: "image-buttons" },
+    h("button", { class: "btn small", onclick: async () => {
+      const picked = await openPicker({ multiple, folder: ctx.imageFolder });
+      if (picked && picked.length) onPicked(picked);
+    } }, icon("folder"), tr("Choose")),
+    h("span", { class: "image-buttons-sep", "aria-hidden": "true" }),
+    h("span", { class: "image-buttons-label" }, tr("Upload from")),
+    h("button", { class: "btn small", title: tr("Upload from this computer"), onclick: () => chooseFiles(multiple, async (files) => {
+      try { onPicked(await uploadFiles(ctx.imageFolder, files)); } catch (e) { toast(e.message, "error"); }
+    }) }, icon("laptop"), tr("Computer")),
+    h("button", { class: "btn small", title: tr("Upload from your phone"), onclick: async () => {
+      const picked = await openPicker({ multiple, folder: ctx.imageFolder, phone: true });
+      if (picked && picked.length) onPicked(picked);
+    } }, icon("phone"), tr("Phone")));
+}
+
 function imageOne(field, obj, ctx) {
   const box = h("div", { class: "image-one" });
   const draw = () => {
     const url = obj[field.name];
-    fill(box, 
+    fill(box,
       url ? thumb(url, () => { delete obj[field.name]; ctx.changed(); draw(); }) : null,
-      url ? null : h("div", { class: "image-buttons" },
-        h("button", { class: "btn small", onclick: async () => {
-          const picked = await openPicker({ folder: ctx.imageFolder });
-          if (picked && picked[0]) { obj[field.name] = picked[0]; ctx.changed(); draw(); }
-        } }, icon("folder"), tr("Choose")),
-        h("button", { class: "btn small", onclick: () => chooseFiles(false, async (files) => {
-          try { const [u] = await uploadFiles(ctx.imageFolder, files); obj[field.name] = u; ctx.changed(); draw(); } catch (e) { toast(e.message, "error"); }
-        }) }, icon("upload"), tr("Upload")),
-        h("button", { class: "btn small", title: tr("Upload from your phone"), onclick: async () => {
-          const picked = await openPicker({ folder: ctx.imageFolder, phone: true });
-          if (picked && picked[0]) { obj[field.name] = picked[0]; ctx.changed(); draw(); }
-        } }, icon("phone"), tr("Phone"))));
+      url ? null : imageButtons(ctx, false, (urls) => { obj[field.name] = urls[urls.length - 1]; ctx.changed(); draw(); }));
   };
   draw();
   return box;
 }
 
+// several images (carousel, collage, a project's gallery): drag one to change the order.
+// With a mouse, just drag; on a touch screen, press and hold a moment first (so swiping
+// still scrolls).
 function imageMany(field, obj, ctx) {
   if (!Array.isArray(obj[field.name])) obj[field.name] = obj[field.name] ? [obj[field.name]] : [];
   const list = obj[field.name];
   const box = h("div", { class: "image-many" });
+  let strip;
   const draw = () => {
-    fill(box, 
-      h("div", { class: "thumbs" }, list.map((url, i) => thumb(url, () => { list.splice(i, 1); ctx.changed(); draw(); }, [
-        h("button", { class: "icon-btn", title: tr("Move earlier"), disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; ctx.changed(); draw(); } }, icon("chevron", "flip")),
-        h("button", { class: "icon-btn", title: tr("Move later"), disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; ctx.changed(); draw(); } }, icon("chevron")),
-      ]))),
-      h("div", { class: "image-buttons" },
-        h("button", { class: "btn small", onclick: async () => {
-          const picked = await openPicker({ multiple: true, folder: ctx.imageFolder });
-          if (picked && picked.length) { list.push(...picked); ctx.changed(); draw(); }
-        } }, icon("folder"), tr("Choose")),
-        h("button", { class: "btn small", onclick: () => chooseFiles(true, async (files) => {
-          try { list.push(...await uploadFiles(ctx.imageFolder, files)); ctx.changed(); draw(); } catch (e) { toast(e.message, "error"); }
-        }) }, icon("upload"), tr("Upload")),
-        h("button", { class: "btn small", title: tr("Upload from your phone"), onclick: async () => {
-          const picked = await openPicker({ multiple: true, folder: ctx.imageFolder, phone: true });
-          if (picked && picked.length) { list.push(...picked); ctx.changed(); draw(); }
-        } }, icon("phone"), tr("Phone"))));
+    strip = h("div", { class: "thumbs" }, list.map((url, i) => {
+      const el = thumb(url, () => { list.splice(i, 1); ctx.changed(); draw(); });
+      el.dataset.index = i;
+      el.dataset.total = list.length;
+      el.title = tr("Drag to move");
+      el.addEventListener("pointerdown", (e) => startDrag(e, el));
+      el.addEventListener("dragstart", (e) => e.preventDefault());   // no browser image dragging
+      return el;
+    }));
+    fill(box, strip, imageButtons(ctx, true, (urls) => { list.push(...urls); ctx.changed(); draw(); }));
   };
+
+  function startDrag(e, el) {
+    if (e.button > 0 || e.target.closest("button")) return;
+    const touch = e.pointerType === "touch";
+    const x0 = e.clientX, y0 = e.clientY;
+    let dragging = false, timer = null;
+    const begin = () => {
+      dragging = true;
+      el.classList.add("dragging");
+      box.classList.add("reordering");
+      try { el.setPointerCapture(e.pointerId); } catch { /* fine */ }
+    };
+    if (touch) timer = setTimeout(begin, 280);
+    const move = (ev) => {
+      if (!dragging) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        if (touch) return end();          // moved before the hold: it's a scroll, not a drag
+        begin();
+      }
+      ev.preventDefault();
+      // the picture under the pointer: go before it (left half) or after it (right half)
+      const over = [...strip.children].find((c) => {
+        if (c === el) return false;
+        const r = c.getBoundingClientRect();
+        return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
+      });
+      if (!over) return;
+      const r = over.getBoundingClientRect();
+      if (ev.clientX < r.left + r.width / 2) { if (over.previousSibling !== el) strip.insertBefore(el, over); }
+      else if (over.nextSibling !== el) strip.insertBefore(el, over.nextSibling);
+    };
+    const end = () => {
+      clearTimeout(timer);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      if (!dragging) return;
+      el.classList.remove("dragging");
+      box.classList.remove("reordering");
+      const order = [...strip.children].map((c) => list[Number(c.dataset.index)]);
+      if (order.some((u, k) => u !== list[k])) { list.splice(0, list.length, ...order); ctx.changed(); }
+      draw();
+    };
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+  }
+
   draw();
   return box;
 }

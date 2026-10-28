@@ -126,6 +126,10 @@ photos and rearrange float at the bottom of the screen.
 
 **Images**
 
+- Under an image field: **Choose** picks from the library; **Upload from Computer** or
+  **Phone** adds new ones.
+- In carousels, collages and galleries, **drag a picture** to change the order (on a touch
+  screen, press and hold first). Carousel pictures show their number, like "2/6", top right.
 - **Images** in the sidebar shows the whole library: drop files on it to upload, use
   **From phone**, or click an image to copy its address.
 - Uploads are converted in the browser to WebP, 1500px on the longest edge. They go

@@ -105,7 +105,7 @@ const JA = {
   "Line break: a new line in the same paragraph (⇧↩)": "改行：同じ段落のまま次の行へ（⇧↩）", "line break": "改行", "Source": "ソース",
   "Link to (web address):": "リンク先（ウェブアドレス）：",
   // ----- images -----
-  "Remove image": "画像を削除", "Choose": "選ぶ", "Upload": "アップロード", "Upload from your phone": "スマホからアップロード",
+  "Remove image": "画像を削除", "Upload from": "アップロード元", "Upload from this computer": "このパソコンからアップロード", "Choose": "選ぶ", "Upload": "アップロード", "Upload from your phone": "スマホからアップロード",
   "Move earlier": "前へ", "Move later": "後へ", "From phone": "スマホから", "Refresh": "更新", "Close": "閉じる",
   "Uploaded {n} image": "{n} 枚アップロードしました", "Uploaded {n} images": "{n} 枚アップロードしました", "Copied {url}": "コピーしました：{url}",
   "No images here yet. Upload some, or go up a folder.": "まだ画像がありません。アップロードするか、上のフォルダに戻ってください。",
