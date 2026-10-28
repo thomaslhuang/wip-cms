@@ -1,4 +1,4 @@
-# WIP CMS
+# wip cms
 
 A local editor for static sites that use a `.pages.yml` (the Pages CMS settings file).
 It runs on your Mac and edits the site's files directly. Nothing goes online until you
@@ -77,11 +77,11 @@ Options:
   into the post's own image folder, e.g. `src/images/blog/2026/10/my-post/`.
 - **From phone** shows a QR code. Your phone needs to be on the same Wi-Fi. The phone
   can only reach the upload page; the editor is only reachable from your Mac. The link
-  changes every time WIP CMS starts.
+  changes every time wip cms starts.
 
 ## How the live preview works
 
-When a site opens, WIP CMS:
+When a site opens, wip cms:
 
 1. Copies the site into a temporary folder, the "shadow copy". `node_modules` and the
    image library are linked rather than copied.
@@ -91,7 +91,7 @@ While you type, your unsaved changes are written only into the shadow copy. Elev
 rebuilds, and the Preview panel updates in place. Your real files change only when you
 save.
 
-Changes you make outside WIP CMS are copied into the shadow copy too, for example
+Changes you make outside wip cms are copied into the shadow copy too, for example
 editing a template in VS Code or pulling in GitHub Desktop.
 
 The preview needs an Eleventy site with its packages installed (`npm install` in the

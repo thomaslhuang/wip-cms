@@ -246,7 +246,7 @@ siteBtn.addEventListener("click", () => chooseSite(true));
   if (!site) { await chooseSite(false); return; }
   config = await api.config();
   siteBtn.textContent = config.site.name;
-  document.title = `${config.site.name} · WIP CMS`;
+  document.title = `${config.site.name} · wip cms`;
   setMediaRoot(config.site.mediaInput);
   fill(panelEls.images, libraryBrowser({ folder: config.site.mediaInput }).el);
   dock = createDock(document.getElementById("dock"), PANELS, PRESETS);

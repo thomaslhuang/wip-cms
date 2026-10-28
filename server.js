@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// WIP CMS
+// wip cms
 // -------
 // A local editor for static sites that use a .pages.yml (the Pages CMS settings file).
 //
@@ -97,7 +97,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ----- other devices (your phone): only the upload page and uploads -----
     if (!phone.isLocal(req)) {
-      if (!phone.validToken(q.t)) return send(res, 403, { error: "This link has expired. Scan the QR code in WIP CMS again." });
+      if (!phone.validToken(q.t)) return send(res, 403, { error: "This link has expired. Scan the QR code in wip cms again." });
       if (req.method === "GET" && url.pathname === "/phone") return serveFile(res, path.join(PUBLIC, "phone.html"));
       if (req.method === "POST" && url.pathname === "/api/upload") return send(res, 200, media.saveUpload(q.folder, q.name, await readBody(req)));
       return send(res, 403, { error: "Only photo uploads are allowed from other devices." });
@@ -132,7 +132,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   const cliPath = process.argv.slice(2).find((a) => !a.startsWith("--"));
   const opened = site.tryOpenLast(cliPath);
-  console.log(`\n  WIP CMS   →  http://localhost:${PORT}`);
+  console.log(`\n  wip cms   →  http://localhost:${PORT}`);
   console.log(opened ? `  site      →  ${opened.root}` : "  site      →  none yet: pick one in the browser");
   if (opened && !process.argv.includes("--no-preview")) {
     preview.startPreview();
