@@ -40,6 +40,9 @@ export async function openEditor({ file, section, config }) {
     return { data: rest, body: body || "" };
   };
   const original = JSON.stringify(payload());
+  // list items: a fingerprint of what's in the file, sent with each save so it can't land on
+  // the wrong item if the list changed somewhere else (lib/listfile.js)
+  let version = entry.version;
 
   // ----- saving -----
   let pending = false, saving = null, timer = null, failed = false;
@@ -54,8 +57,9 @@ export async function openEditor({ file, section, config }) {
     pending = false;
     setStatus("Saving…");
     const p = payload();
-    saving = api.save(file, p.data, p.body)
-      .then(() => {
+    saving = api.save(file, p.data, p.body, version)
+      .then((saved) => {
+        if (saved?.version) version = saved.version;
         failed = false;
         if (!pending) setStatus("Saved");
         if (data.tags) config.tags = [...new Set([...(config.tags || []), ...data.tags])];
@@ -77,15 +81,22 @@ export async function openEditor({ file, section, config }) {
   const imageFolder = section
     ? (await api.imageFolder(file)).folder
     : `${config.site.mediaInput}/${(file.match(/([^/]+)\.json$/) || [, ""])[1]}`.replace(/\/$/, "");
-  const ctx = { changed, imageFolder, tags: config.tags };
+  // entry: the post's own values, for image folders named after it (src/img/projects/{slug})
+  const ctx = { changed, imageFolder, tags: config.tags, entry: data };
 
   // ----- the document -----
-  // the document's main part: the blocks, or else the body text of a plain post
-  const blockField = fields.find((f) => f.type === "block") || (hasBody ? fields.find((f) => f.name === "body") : null);
-  const titleField = blockField && fields.find((f) => f.name === "title");
-  // also in the document rather than the inspector: a long title, and galleries (several images)
+  // the document's main part: the blocks, or else the body text of a plain post, or else (for
+  // posts kept in a data file) its first long text field, like a project's description
+  const blockField = fields.find((f) => f.type === "block") || (hasBody ? fields.find((f) => f.name === "body") : null)
+    || (section ? fields.find((f) => f.type === "rich-text") : null);
+  // the big title: whichever field names the post (title, or the section's view.primary)
+  const primary = section?.primary || "title";
+  const titleField = section && fields.find((f) => f.name === primary && (!f.type || f.type === "string"));
+  // also in the document rather than the inspector: a long title, and galleries (several
+  // images, or a list of pictures with captions)
   const subtitleField = titleField && fields.find((f) => ["longTitle", "subtitle", "fullTitle"].includes(f.name) && f.type === "string");
-  const galleryFields = blockField ? fields.filter((f) => f.type === "image" && f.options?.multiple) : [];
+  const isGallery = (f) => (f.type === "image" && f.options?.multiple) || (f.type === "object" && f.list && (f.fields || []).some((x) => x.type === "image"));
+  const galleryFields = section ? fields.filter(isGallery) : [];
 
   // under the title: the date, draft and tags, each editable right there
   const meta = h("div", { class: "doc-meta" });
@@ -95,7 +106,7 @@ export async function openEditor({ file, section, config }) {
     // don't redraw while you're typing a tag in it
     if (!force && meta.contains(document.activeElement) && document.activeElement.tagName === "INPUT" && document.activeElement.type !== "date") return;
     const parts = [];
-    const dateName = has("date") ? "date" : fields.find((f) => f.type === "date")?.name;
+    const dateName = (fields.find((f) => f.name === "date" && f.type === "date") || fields.find((f) => f.type === "date"))?.name;
     if (dateName) {
       const d = data[dateName] ? new Date(String(data[dateName]).slice(0, 10) + "T12:00:00") : null;
       const picker = h("input", { type: "date", class: "meta-date-input", "aria-label": t("Date"), value: data[dateName] ? String(data[dateName]).slice(0, 10) : "",
@@ -147,8 +158,8 @@ export async function openEditor({ file, section, config }) {
   let blocksEl = null;
   const doc = h("div", { class: "doc" });
   if (titleField) {
-    const title = autosize(h("textarea", { class: "doc-title", rows: 1, placeholder: t("Title"), "aria-label": t("Title"), value: data.title ?? "",
-      oninput: () => { data.title = title.value.replace(/\n/g, " "); changed(); },
+    const title = autosize(h("textarea", { class: "doc-title", rows: 1, placeholder: t("Title"), "aria-label": t("Title"), value: data[primary] ?? "",
+      oninput: () => { data[primary] = title.value.replace(/\n/g, " "); changed(); },
       onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); doc.querySelector(".block .rich-box:not([hidden]), .block textarea:not([hidden]), .doc-body .rich-box:not([hidden]), .doc-body textarea")?.focus(); } } }));
     doc.append(title);
     // a longer title (projects' "full title") sits right under the title, as a subtitle
@@ -162,35 +173,49 @@ export async function openEditor({ file, section, config }) {
     doc.append(meta);
     drawMeta();
   }
-  if (blockField) {
-    blocksEl = renderField(blockField, data, ctx);
-    if (blockField.type !== "block") {
-      // plain body text: written straight into the page, like a text block
-      blocksEl.classList.add("doc-body");
+  if (blockField || titleField) {
+    if (blockField) {
+      blocksEl = renderField(blockField, data, ctx);
+      if (blockField.type !== "block") {
+        // plain body text: written straight into the page, like a text block
+        blocksEl.classList.add("doc-body");
+        blocksEl.querySelector(".field-label")?.remove();
+      }
+      doc.append(blocksEl);
     }
-    doc.append(blocksEl);
     // big picture content (a project's gallery) belongs with the writing, not in the inspector
     for (const f of galleryFields) {
       const el = renderField(f, data, ctx);
+      el?.querySelector(":scope > .field-label")?.remove();
       if (el) doc.append(h("section", { class: "doc-gallery" },
-        h("div", { class: "doc-section-head" }, h("span", {}, tl(f.label || f.name)), Array.isArray(data[f.name]) ? h("span", { class: "muted" }, t2(data[f.name].length, "{n} image", "{n} images")) : null),
+        h("div", { class: "doc-section-head" }, h("span", {}, tl(f.label || f.name)), Array.isArray(data[f.name]) ? h("span", { class: "muted" }, t2(data[f.name].length, "{n} item", "{n} items")) : null),
         el));
+    }
+    // nothing long to write and no gallery (a printed-matter item: a picture and a caption):
+    // its fields go in the document, under the title
+    if (!blockField && !galleryFields.length) {
+      for (const f of fields) {
+        if (f === titleField || f === subtitleField) continue;
+        const el = renderField(f, data, ctx);
+        if (el) doc.append(h("div", { class: "group doc-field" }, el));
+      }
     }
   } else {
     // a page without blocks: its fields, in grouped cards
     doc.classList.add("doc-form");
-    doc.append(h("h1", { class: "doc-heading" }, config.sections.find((s) => s.path === file)?.label || data.title || file));
-    for (const f of fields) { const el = renderField(f, data, ctx); if (el) doc.append(h("div", { class: "group" }, el)); }
+    doc.append(h("h1", { class: "doc-heading" }, config.sections.find((s) => s.path === file)?.label || data[primary] || data.title || file));
+    for (const f of fields) { if (section && f === titleField) continue; const el = renderField(f, data, ctx); if (el) doc.append(h("div", { class: "group" }, el)); }
   }
 
   // ----- the inspector -----
   // (rebuilt when the date, draft or tags change under the title, so both show the same)
   const inspector = h("div", { class: "inspector-body" });
-  const url = entry.url || guessPageUrl(file);
+  // list items with no page of their own (a list of stockists) have no address
+  const url = entry.url || (section?.store === "list" ? null : guessPageUrl(file));
   function refreshInspector() {
   const scroll = inspector.parentNode?.scrollTop;
   fill(inspector);
-  if (blockField) {
+  if (blockField || galleryFields.length) {
     let rows = null; // consecutive date / switch fields share one card
     for (const f of fields) {
       if (f === blockField || f === titleField || f === subtitleField || galleryFields.includes(f)) continue;
@@ -210,7 +235,8 @@ export async function openEditor({ file, section, config }) {
   } else {
     inspector.append(h("p", { class: "muted small inspector-empty" }, t("This page's fields are all in the document.")));
   }
-  inspector.append(h("div", { class: "group-wrap" }, h("div", { class: "group-label" }, t("Permalink")), h("div", { class: "address" }, url)));
+  // (a list item whose "slug" field is shown above already has its permalink there)
+  if (url && !(section?.store === "list" && fields.some((f) => f.name === "slug"))) inspector.append(h("div", { class: "group-wrap" }, h("div", { class: "group-label" }, t("Permalink")), h("div", { class: "address" }, url)));
   if (scroll && inspector.parentNode) inspector.parentNode.scrollTop = scroll;
   }
   refreshInspector();
@@ -221,13 +247,13 @@ export async function openEditor({ file, section, config }) {
   // closing the tab with a save still waiting: send it anyway
   const onLeave = () => {
     if (!pending) return;
-    fetch("/api/entry", { method: "PUT", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file, ...payload() }) });
+    fetch("/api/entry", { method: "PUT", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file, ...payload(), version }) });
   };
   window.addEventListener("pagehide", onLeave);
 
   return {
     file, url, section,
-    get title() { return data.title || config.sections.find((s) => s.path === file)?.label || file; },
+    get title() { return data[primary] || data.title || config.sections.find((s) => s.path === file)?.label || file; },
     data, payload,
     doc, inspector,
     redrawMeta: () => drawMeta(true),
@@ -241,11 +267,12 @@ export async function openEditor({ file, section, config }) {
       if (!(await confirmBox(t("Put this back the way it was when you opened it? Your changes since then will be lost."), t("Revert")))) return false;
       const was = JSON.parse(original);
       clearTimeout(timer); pending = false;
-      await api.save(file, was.data, was.body);
+      const saved = await api.save(file, was.data, was.body, version);
+      if (saved?.version) version = saved.version;
       return true;
     },
     async remove() {
-      if (!(await confirmBox(t("Move “{title}” to the Trash? It goes into the .cms-trash folder in your site, so you can get it back.", { title: data.title || file }), t("Move to Trash")))) return false;
+      if (!(await confirmBox(t("Move “{title}” to the Trash? It goes into the .cms-trash folder in your site, so you can get it back.", { title: data[primary] || data.title || file }), t("Move to Trash")))) return false;
       clearTimeout(timer); pending = false;
       await api.remove(file);
       toast(t("Moved to .cms-trash"));

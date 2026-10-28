@@ -14,6 +14,7 @@
       const root = document.documentElement;
       if (t) { root.dataset.theme = t.kind; root.dataset.code = t.code; for (const k in t.vars) root.style.setProperty(k, t.vars[k]); }
       else root.dataset.theme = dark ? "dark" : "light";
+      root.style.setProperty("--ui-scale", String((Number(localStorage.getItem("wip-ui-scale")) || 100) / 100));
     } catch {}
   </script>
   <link rel="icon" type="image/png" href="/favicon.png">

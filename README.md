@@ -110,10 +110,15 @@ line, for big reshuffles.)
   monospace font, color-coded with the ayu colors. HTML blocks are color-coded too.
   wip cms remembers whether you last used Write or Source.
 
-**Japanese:** ⋯ → Language → 日本語 switches all of wip cms to Japanese (your section and
-field names from .pages.yml too, for the common ones). ⋯ → Dates picks how dates are
-written: October 28, 2026 · 2026年10月28日. Translations live in
-`public/js/i18n.js`; anything without one stays in English.
+**Settings:** ⋯ → **Settings…** has how wip cms works for you (Customize is how it looks):
+
+- **Language:** English or 日本語. Japanese switches all of wip cms (your section and field
+  names from .pages.yml too, for the common ones). Translations live in
+  `public/js/i18n.js`; anything without one stays in English.
+- **Dates:** October 28, 2026 · 2026年10月28日.
+- **Interface Size:** makes the sidebar, list, toolbar and inspector bigger or smaller
+  (85–130%). The writing has its own size, in Customize → Typography.
+- **Site:** which site is open, and opening another.
 
 **Customize:** ⋯ → **Customize…** has three tabs. **Themes**: match your Mac or pick
 light or dark, and choose a theme for each (Light, Paper and Dark come built in);
@@ -122,8 +127,7 @@ duplicate one to make your own. **Export** saves the theme you're on as a
 or move it to another Mac). **Colors** and **Typography** change the theme you're on: its
 colors; fonts (System, EB Garamond, SF Mono, Menlo, Zen Old Mincho, Zen Kaku Gothic New,
 or any other font on your Mac or on Google Fonts); writing size, weight, line, letter and
-word spacing; the interface's font, weight and **size** (scales the sidebar, list, toolbar
-and inspector, 85–130%); and code colors (ayu dark or ayu light), with a preview at the
+word spacing; the interface's font and weight; and code colors (ayu dark or ayu light), with a preview at the
 top as you go. "Match my Mac" switches between your light and dark theme. Themes are kept
 in this browser.
 
@@ -136,7 +140,7 @@ in this browser.
   (each block shrinks to one line you can drag).
 - **Open on your site** in a new tab, and **show / hide the inspector**.
 - **⋯** has **Revert to when opened**, **Move to Trash**, **Appearance** (match your
-  Mac, light or dark) and **Open another site…**
+  Mac, light or dark), **Customize…**, **Settings…**, **Open another site…** and **Quit**.
 - The sidebar button (top of the sidebar) hides the sidebar and list for more room.
 
 In a narrower window the list, then the sidebar, step aside while you write. On a phone
@@ -188,6 +192,45 @@ from the fields:
 Things that are specific to one site should go in that site's `.pages.yml`, not in wip
 cms's code.
 
+**Sites that keep everything in data files** (like dosa, whose projects are a list in
+`src/_data/projects.json`): describe the file the Pages CMS way, `type: file` with
+`list: true`, and wip cms shows each item as an entry of its own, like a blog post.
+
+- The list's order is the order on the site, so these lists start in that order (**Order on
+  the site** under ⇅) and you can **drag an item** to move it. New items go at the top.
+- Its permalink comes from the site's own Eleventy template (the one with
+  `pagination: data: projects` and a `permalink:`), so the preview and "Open on your site"
+  go to the right page. Or say it in .pages.yml: `url: "/projects/{slug}/"`.
+- The name shown is the `title` field, or whatever `view: { primary: style }` says.
+- Saving changes only that item, keeping the file's own formatting, so GitHub Desktop
+  shows just the lines you changed. If the list was changed somewhere else since you
+  opened the item, wip cms says so rather than saving over it.
+- A long text field (`type: rich-text`) is written in the document like a post; a list of
+  pictures with captions shows as the gallery, with **Add pictures** to add several at once.
+- **Move to Trash** takes the item out of the list and keeps it as a small file in
+  `.cms-trash`, with its own image folder.
+- A year that's a number or text ("2016–2019") groups by its first year.
+
+**Pictures saved as just a file name**, for templates that add the folder themselves
+(`<img src="/img/projects/{{ project.slug }}/{{ image.src }}">`):
+
+```yaml
+- name: src
+  type: image
+  options:
+    path: "src/img/projects/{slug}"   # where its pictures live; {slug} comes from the entry
+    store: filename                   # save "photo.jpg", not the full address
+    links: true                       # also allow a web address, e.g. a video on Google Drive
+```
+
+Uploads go into that folder, and a picture chosen from elsewhere in the library is copied
+in. `path` is Pages CMS's own option (the folder its picker opens in); `store` and `links`
+are wip cms's.
+
+`examples/dosa.pages.yml` is a complete one for the dosa site: copy it into that site's
+folder as `.pages.yml` to use it there. The preview runs a site's Eleventy the way its
+package.json does (dosa's uses `--config=config.js`).
+
 ## How the live preview works
 
 When a site opens, wip cms:
@@ -209,12 +252,15 @@ site folder). For other sites, everything except the preview still works.
 
 ```
 wip cms.app          the Mac app: double-click to start (Contents/MacOS/wip-cms is the script)
+examples/            .pages.yml files for other sites (dosa)
 mac/make-icon.py     draws the app's icon (AppIcon.icns, and the browser tab icons)
 server.js            the switchboard: each web address hands off to a module below
 lib/
   site.js            which site is open; turning paths into files and back
   config.js          reads .pages.yml (sections, fields)
   entries.js         list / read / save / create / delete posts and pages
+  listfile.js        sections kept as one list in a data file (dosa's projects.json)
+  permalinks.js      a list item's page address, from the site's Eleventy templates
   frontmatter.js     the --- YAML --- at the top of .md files
   media.js           the image library: listing folders, saving uploads
   tags.js            keeps the tag suggestions in .pages.yml up to date
@@ -235,6 +281,7 @@ public/
     rich.js          the writing box: Markdown shown formatted, and turned back into Markdown
     code.js          color-coded Source view
     theme.js         themes and the Customize window
+    settings.js      the Settings window (language, dates, interface size)
     i18n.js          English / Japanese words, and date styles
     api.js           talking to server.js
     util.js          small helpers and the icons

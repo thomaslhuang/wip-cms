@@ -17,8 +17,10 @@ import { h, fill, icon, toast } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
 import { libraryBrowser, setMediaRoot } from "./media.js";
+import { ghost, autoScroll } from "./drag.js";
 import { openSetup } from "./setup.js";
-import { t, t2, tl, fmtDate, lang, setLang, dateStyle, setDateStyle } from "./i18n.js";
+import { openSettings } from "./settings.js";
+import { t, t2, tl, fmtDate, lang } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
 applyTheme();
@@ -87,7 +89,7 @@ function drawSidebar() {
       tbtn("sidebar", t("Hide sidebar"), () => toggleSidebar(), { cls: "side-hide" })),
     h("nav", { class: "side-scroll" },
       h("div", { class: "side-group" }, t("Library")),
-      collections.map((s) => item("#/s/" + s.name, s.name === "projects" ? "grid" : "text", tl(s.label), lists[s.name]?.length, route.section === s.name)),
+      collections.map((s) => item("#/s/" + s.name, s.name === "projects" ? "grid" : s.store === "list" ? "list" : "text", tl(s.label), lists[s.name]?.length, route.section === s.name)),
       item("#/images", "images", t("Images"), null, route.page === "images"),
       Object.entries(groups).map(([g, items]) => [
         h("div", { class: "side-group" }, tl(g)),
@@ -137,7 +139,13 @@ function drawList() {
   const open = (key) => filter || !isFolded(s.name, key);
   const head = (key, label, count, level) => h("button", { class: `tree-head ${level}`, "aria-expanded": String(open(key)), onclick: () => toggleFold(s.name, key) },
     icon("chevron", "tree-chev"), h("span", { class: "tree-label" }, label), h("span", { class: "tree-count" }, count));
-  const box = (entries) => h("div", { class: "list-items " + mode }, entries.map(items));
+  // a list kept in one data file, shown in its own order: drag items to reorder the site
+  const canReorder = s.store === "list" && view.sort === "order" && view.group === "none" && !filter && all.length > 1;
+  const box = (entries) => {
+    const el = h("div", { class: "list-items " + mode + (canReorder ? " reorderable" : "") }, entries.map(items));
+    if (canReorder) reorderable(el, s);
+    return el;
+  };
   const rows = view.group === "none" ? [box(groups[0]?.entries || [])] : groups.map((g) => h("div", { class: "tree-year" },
     head(g.key, g.label, g.count, "year"),
     !open(g.key) ? null
@@ -174,13 +182,24 @@ function setListMode(name, mode) { listModes[name] = mode; pref.set("list-modes"
 //   sort:  "newest", "oldest" or "title"
 // Sections whose files are filed by month (a {month} in the filename template, like blog
 // posts) start grouped by month; other dated sections by year; the rest not at all.
+// Sections kept as one list in a data file (dosa's projects.json) also have "order": the
+// order on the site, which you can change by dragging. They start in that order.
+// A section's view.default in .pages.yml (sort: date or title, order: asc or desc) sets
+// where it starts too.
 const listViews = pref.get("list-views", {});
+const hasDates = (s) => s.fields.some((f) => f.type === "date");
+const hasYears = (s) => hasDates(s) || s.fields.some((f) => f.name === "year" && ["number", "string", undefined].includes(f.type));
 function listView(s) {
-  const dated = s.fields.some((f) => f.type === "date");
-  const fallback = { group: dated ? (/\{month\}/.test(s.filename || "") ? "month" : "year") : "none", sort: dated ? "newest" : "title" };
+  const dated = hasYears(s);
+  const d = s.view?.default || {};
+  const configured = d.sort ? (s.fields.find((f) => f.name === d.sort)?.type === "date" || d.sort === "year" ? (d.order === "asc" ? "oldest" : "newest") : "title") : null;
+  const fallback = s.store === "list" ? { group: "none", sort: configured || "order" }
+    : { group: hasDates(s) ? (/\{month\}/.test(s.filename || "") ? "month" : "year") : "none", sort: configured || (dated ? "newest" : "title") };
   const v = { ...fallback, ...listViews[s.name] };
   if (v.group.startsWith("field:") && !choiceFields(s).some((f) => "field:" + f.name === v.group)) v.group = fallback.group;
-  if (!dated && (v.group === "month" || v.group === "year")) v.group = "none";
+  if (!hasDates(s) && v.group === "month") v.group = dated ? "year" : "none";
+  if (!dated && v.group === "year") v.group = "none";
+  if (v.sort === "order" && s.store !== "list") v.sort = fallback.sort;
   return v;
 }
 function setListView(s, change) { listViews[s.name] = { ...listView(s), ...change }; pref.set("list-views", listViews); drawList(); }
@@ -190,6 +209,7 @@ function sortEntries(entries, sort) {
   const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" });
   const byDate = (a, b) => String(a.date || "").localeCompare(String(b.date || ""));
   const list = [...entries];
+  if (sort === "order") return list.sort((a, b) => a.order - b.order);
   if (sort === "title") return list.sort(byTitle);
   // undated entries go last either way
   return list.sort((a, b) => (!a.date) - (!b.date) || (sort === "oldest" ? byDate(a, b) : byDate(b, a)) || byTitle(a, b));
@@ -213,7 +233,8 @@ function groupEntries(s, entries, view) {
   }
   // by date: years (newest first unless sorted oldest first), and months inside for "month"
   for (const e of sorted) {
-    const d = e.date ? asDate(e.date) : null;
+    let d = e.date ? asDate(/^\d{4}$/.test(e.date) ? e.date + "-07-01" : e.date) : null;   // "2023": a year only
+    if (d && isNaN(d)) d = null;
     const g = into(d ? String(d.getFullYear()) : "none", d ? fmtDate(d, "year") : t("No date"));
     g.entries.push(e); g.count++;
     if (view.group === "month" && d) {
@@ -225,21 +246,21 @@ function groupEntries(s, entries, view) {
     }
   }
   const dir = view.sort === "oldest" ? 1 : -1;
-  groups.sort((a, b) => (a.key === "none") - (b.key === "none") || dir * a.key.localeCompare(b.key));
+  if (view.sort !== "order") groups.sort((a, b) => (a.key === "none") - (b.key === "none") || dir * a.key.localeCompare(b.key));
   for (const g of groups) g.children?.sort((a, b) => dir * a.key.localeCompare(b.key));
   return groups;
 }
 
 // the button beside the view switch: Group By / Sort By
 function viewButton(s, view) {
-  const dated = s.fields.some((f) => f.type === "date");
+  const dated = hasYears(s);
   const btn = tbtn("sort", t("Group and sort"), () => popMenu(btn, [
     { heading: tl("Group by") },
-    ...(dated ? [["month", tl("Month")], ["year", tl("Year")]] : []).concat(choiceFields(s).map((f) => ["field:" + f.name, tl(f.label || f.name)]), [["none", tl("Nothing")]])
+    ...(hasDates(s) ? [["month", tl("Month")]] : []).concat(dated ? [["year", tl("Year")]] : [], choiceFields(s).map((f) => ["field:" + f.name, tl(f.label || f.name)]), [["none", tl("Nothing")]])
       .map(([g, label]) => ({ label, checked: view.group === g, run: () => setListView(s, { group: g }) })),
     "-",
     { heading: tl("Sort by") },
-    ...(dated ? [["newest", tl("Newest first")], ["oldest", tl("Oldest first")]] : []).concat([["title", tl("Title")]])
+    ...(s.store === "list" ? [["order", tl("Order on the site")]] : []).concat(dated ? [["newest", tl("Newest first")], ["oldest", tl("Oldest first")]] : [], [["title", tl("Title")]])
       .map(([o, label]) => ({ label, checked: view.sort === o, run: () => setListView(s, { sort: o }) })),
   ]), { cls: "view-btn" });
   return btn;
@@ -249,10 +270,12 @@ const segmentedIcons = (label, options, current, onpick) => h("div", { class: "s
   options.map(([value, ic, text]) => h("button", { class: value === current ? "on" : "", "aria-pressed": String(value === current), "aria-label": text, title: text, onclick: () => onpick(value) }, icon(ic))));
 
 const isActive = (e) => (route.file === e.file ? " active" : "");
+// a list item's id has a # in it (projects.json#3), which can't go in the address as it is
+const editHref = (file) => "#/edit/" + String(file).replace(/#/g, "%23");
 const titleOf = (e) => (e.isBook ? h("i", {}, e.title) : e.title);
 const draftBadge = (e) => (e.draft ? h("span", { class: "badge" }, t("Draft")) : null);
 function rowItem(e, date) {
-  return h("a", { class: "row-item" + isActive(e), href: "#/edit/" + e.file },
+  return h("a", { class: "row-item" + isActive(e), href: editHref(e.file) },
     e.featuredImage ? h("img", { class: "row-thumb", src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "row-thumb empty" }),
     h("span", { class: "row-text" },
       h("span", { class: "row-title" }, titleOf(e)),
@@ -261,15 +284,88 @@ function rowItem(e, date) {
 }
 // the grid: square pictures edge to edge; the title shows when you point at one
 function tileItem(e) {
-  return h("a", { class: "tile" + isActive(e) + (e.featuredImage ? "" : " no-pic"), href: "#/edit/" + e.file, title: e.title, "aria-label": e.title },
+  return h("a", { class: "tile" + isActive(e) + (e.featuredImage ? "" : " no-pic"), href: editHref(e.file), title: e.title, "aria-label": e.title },
     e.featuredImage ? h("img", { src: e.featuredImage, alt: "", loading: "lazy" }) : null,
     h("span", { class: "tile-title" }, titleOf(e)),
     draftBadge(e));
 }
 function textItem(e, date) {
-  return h("a", { class: "text-item" + isActive(e), href: "#/edit/" + e.file },
+  return h("a", { class: "text-item" + isActive(e), href: editHref(e.file) },
     h("span", { class: "text-title" }, titleOf(e)), draftBadge(e),
     date ? h("span", { class: "text-date" }, date) : null);
+}
+
+// Dragging an item to a new place in a list section. The item itself moves as you drag (a
+// copy follows the pointer); letting go saves the new order into the data file.
+function reorderable(container, s) {
+  container.addEventListener("pointerdown", (e) => {
+    const el = e.target.closest("a");
+    if (!el || e.button > 0 || !container.contains(el)) return;
+    const from = [...container.children].indexOf(el);
+    const x0 = e.clientX, y0 = e.clientY;
+    let dragging = false, copy = null, scroller = null, last = e;
+    const grid = container.classList.contains("grid");
+    const place = (ev) => {
+      const over = [...container.children].find((c) => {
+        if (c === el) return false;
+        const r = c.getBoundingClientRect();
+        return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
+      });
+      if (!over) return;
+      const r = over.getBoundingClientRect();
+      const before = grid ? ev.clientX < r.left + r.width / 2 : ev.clientY < r.top + r.height / 2;
+      if (before) { if (over.previousSibling !== el) container.insertBefore(el, over); }
+      else if (over.nextSibling !== el) container.insertBefore(el, over.nextSibling);
+    };
+    const move = (ev) => {
+      last = ev;
+      if (!dragging) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        dragging = true;
+        const r = el.getBoundingClientRect();
+        copy = ghost(el.cloneNode(true), Math.min(r.width, 260), ev, { x: Math.min(r.width, 260) / 2, y: r.height / 2 });
+        el.classList.add("placeholder");
+        container.classList.add("reordering");
+        scroller = autoScroll([container.closest(".list-scroll")], () => place(last));
+      }
+      ev.preventDefault();
+      copy.move(ev); scroller.at(ev); place(ev);
+    };
+    const up = async () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      if (!dragging) return;
+      copy.remove(); scroller.stop();
+      el.classList.remove("placeholder");
+      container.classList.remove("reordering");
+      // the click that ends a drag isn't a click on the item
+      const eat = (c) => { c.preventDefault(); c.stopPropagation(); };
+      window.addEventListener("click", eat, { capture: true, once: true });
+      setTimeout(() => window.removeEventListener("click", eat, { capture: true }), 100);
+      const to = [...container.children].indexOf(el);
+      if (to === from) return;
+      try {
+        await editor?.flush();
+        await api.move(s.name, from, to);
+        // the open item (if it's in this list) has a new place: follow it
+        const open = route.file && /#(\d+)$/.exec(route.file);
+        if (open && route.file.startsWith(s.path + "#")) {
+          const i = Number(open[1]);
+          const j = i === from ? to : from < i && i <= to ? i - 1 : to <= i && i < from ? i + 1 : i;
+          if (j !== i) { history.replaceState(null, "", editHref(`${s.path}#${j}`)); await loadList(s.name, true); return reopen(); }
+        }
+        await loadList(s.name, true);
+        drawList();
+        refreshChanges();
+      } catch (err) { toast(err.message, "error"); await loadList(s.name, true); drawList(); }
+    };
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  });
+  // links and pictures in the list mustn't start the browser's own dragging
+  container.addEventListener("dragstart", (e) => e.preventDefault());
 }
 
 // drag the list's right edge to make it wider (handy for the grid)
@@ -294,10 +390,17 @@ function newEntry(section) {
   // its filename template, e.g. blog/{year}/{month}/<permalink>/
   const now = new Date();
   const root = config.site.contentRoot === "." ? "" : config.site.contentRoot + "/";
-  const base = "/" + (section.path.startsWith(root) ? section.path.slice(root.length) : section.path) + "/" +
+  // a list in a data file: the address of an existing item, without its last part
+  // (/projects/blurring-boundaries/ -> /projects/); no permalink box if items have no slug
+  const isList = section.store === "list";
+  const hasLink = !isList || section.fields.some((f) => f.name === "slug");
+  const sample = isList && (lists[section.name] || []).find((e) => e.url);
+  const base = isList ? (sample ? sample.url.replace(/[^/]+\/?$/, "") : "/") : "/" + (section.path.startsWith(root) ? section.path.slice(root.length) : section.path) + "/" +
     (section.filename || "{primary}/index.md").replace("{year}", now.getFullYear()).replace("{month}", String(now.getMonth() + 1).padStart(2, "0")).replace("{day}", String(now.getDate()).padStart(2, "0")).replace(/\{primary\}\/index\.md$/, "").replace(/\{primary\}.*$/, "");
   let edited = false;
-  const title = h("input", { class: "field-input", placeholder: t("Title"), "aria-label": t("Title"), oninput: () => { if (!edited) link.value = slugify(title.value); } });
+  const nameField = section.fields.find((f) => f.name === (section.primary || "title"));
+  const nameLabel = nameField?.label ? tl(nameField.label) : t("Title");
+  const title = h("input", { class: "field-input", placeholder: nameLabel, "aria-label": nameLabel, oninput: () => { if (!edited) link.value = slugify(title.value); } });
   const link = h("input", { class: "field-input permalink-input", placeholder: t("made from the title"), "aria-label": t("Permalink"),
     oninput: () => { edited = link.value.trim() !== ""; },
     onblur: () => { link.value = slugify(link.value); if (!link.value) { edited = false; link.value = slugify(title.value); } } });
@@ -308,16 +411,17 @@ function newEntry(section) {
     try {
       const created = await api.create(section.name, name, slugify(link.value) || slugify(name));
       await loadList(section.name, true);
-      location.hash = "#/edit/" + created.file;
+      location.hash = editHref(created.file);
     } catch (e) { toast(e.message, "error"); }
   };
   for (const el of [title, link]) el.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); if (e.key === "Escape") overlay.remove(); });
   const overlay = h("div", { class: "overlay", onclick: (e) => { if (e.target === overlay) overlay.remove(); } },
     h("div", { class: "dialog" }, h("p", { class: "dialog-title" }, t("New {kind}", { kind: singular })),
       title,
-      h("label", { class: "permalink" }, h("span", { class: "field-label" }, t("Permalink")),
-        h("span", { class: "permalink-row" }, h("span", { class: "permalink-base" }, base), link, h("span", { class: "permalink-base" }, "/"))),
-      h("p", { class: "muted small" }, t("The permalink follows the title unless you change it. New posts start as drafts.")),
+      hasLink ? h("label", { class: "permalink" }, h("span", { class: "field-label" }, t("Permalink")),
+        h("span", { class: "permalink-row" }, h("span", { class: "permalink-base" }, base), link, h("span", { class: "permalink-base" }, "/"))) : null,
+      h("p", { class: "muted small" }, isList ? t("It goes at the top of the list; drag it to where it belongs.") + (hasLink ? " " + t("The permalink follows the title unless you change it.") : "")
+        : t("The permalink follows the title unless you change it. New posts start as drafts.")),
       h("div", { class: "dialog-buttons" }, h("button", { class: "btn", onclick: () => overlay.remove() }, t("Cancel")), h("button", { class: "btn primary", onclick: go }, t("Create")))));
   document.body.append(overlay);
   title.focus();
@@ -343,7 +447,7 @@ function drawToolbar() {
       if (b.hasPhotos()) right.push(tbtn("images", t("Add photos"), () => b.addPhotos()));
       right.push(tbtn("arrows", b.isRearranging() ? t("Done rearranging") : t("Rearrange blocks"), () => b.toggleRearrange(), { on: b.isRearranging() }));
     }
-    if (!narrow()) right.push(h("a", { class: "tbtn", href: `http://localhost:${config.preview.port}${editor.url}`, target: "_blank", rel: "noopener", "aria-label": t("Open on your site"), title: t("Open on your site (new tab)") }, icon("external")));
+    if (!narrow() && editor.url) right.push(h("a", { class: "tbtn", href: `http://localhost:${config.preview.port}${editor.url}`, target: "_blank", rel: "noopener", "aria-label": t("Open on your site"), title: t("Open on your site (new tab)") }, icon("external")));
     right.push(tbtn(narrow() ? "info" : "inspector", showInspector ? t("Hide details") : t("Show details"), () => toggleInspector(), { on: showInspector && !narrow() }));
   }
   const more = tbtn("more", t("More"), () => popMenu(more, [
@@ -359,13 +463,8 @@ function drawToolbar() {
     ...[["system", tl("Match my Mac")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
     { label: tl("Customize…"), run: () => openAppearance() },
     "-",
-    // the whole app in English or Japanese (reloads to switch)
-    { heading: t("Language") },
-    ...[["en", "English"], ["ja", "日本語"]].map(([l, label]) => ({ label, checked: lang() === l, run: async () => { if (lang() !== l) { await editor?.flush(); setLang(l); location.reload(); } } })),
-    // how dates are written, shown with today's date as the example
-    { heading: t("Dates") },
-    ...["western", "japanese"].map((style) => ({ label: fmtDate(new Date(), "long", style), checked: dateStyle() === style, run: () => { setDateStyle(style); drawList(); editor?.redrawMeta?.(); } })),
-    "-",
+    // language, how dates are written, interface size
+    { label: tl("Settings…"), run: showSettings },
     { label: tl("Open another site…"), run: () => chooseSite(true) },
     { label: t("Quit wip cms"), run: quit },
   ]));
@@ -436,7 +535,7 @@ const LIVE = t("Live: shows changes as you type");
 let draftTimer = null;
 function wirePreview() {
   if (!editor) return;
-  const url = `http://localhost:${config.preview.port}${editor.url}`;
+  const url = `http://localhost:${config.preview.port}${editor.url || "/"}`;
   if (previewFrame.dataset.url !== url) { previewFrame.dataset.url = url; previewFrame.src = url; }
   previewNote.textContent = config.preview.status === "unavailable" ? config.preview.message
     : config.preview.status === "starting" ? t("Starting the preview…") : LIVE;
@@ -482,7 +581,7 @@ function parseRoute() {
   const [, page = "", ...rest] = (location.hash || "").slice(1).split("/");
   const value = decodeURIComponent(rest.join("/"));
   if (page === "edit") {
-    const section = config.sections.find((s) => s.kind === "collection" && value.startsWith(s.path + "/"));
+    const section = config.sections.find((s) => s.kind === "collection" && (s.store === "list" ? value.startsWith(s.path + "#") : value.startsWith(s.path + "/")));
     return { page, file: value, section: section ? section.name : null };
   }
   if (page === "s") return { page, section: value, file: null };
@@ -576,6 +675,15 @@ window.addEventListener("drop", (e) => {
   b.addFiles([...e.dataTransfer.files], at);
 });
 
+function showSettings() {
+  openSettings({
+    beforeReload: () => editor?.flush(),
+    onDates: () => { drawList(); editor?.redrawMeta?.(); },
+    site: config.site,
+    openSite: () => chooseSite(true),
+  });
+}
+
 // ---------- quitting ----------
 // saves, stops the editor (and its preview), and says so; open the Mac app again to restart
 async function quit() {
@@ -627,7 +735,7 @@ async function chooseSite(canCancel) {
   if (!site) { app.hidden = true; await chooseSite(false); return; }
   // the site's settings can't be read (moved, or .pages.yml deleted): pick a site again
   try { config = await api.config(); } catch (e) { app.hidden = true; await chooseSite(false); toast(t("Couldn't read that site's settings (.pages.yml), so pick a site to open."), "error"); return; }
-  setMediaRoot(config.site.mediaInput);
+  setMediaRoot(config.site.mediaInput, config.site.mediaSources);
   if (narrow()) showInspector = false;
   await Promise.all(config.sections.filter((s) => s.kind === "collection").map((s) => loadList(s.name).catch(() => {})));
   window.addEventListener("hashchange", go);

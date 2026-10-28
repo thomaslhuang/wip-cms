@@ -39,8 +39,8 @@ const BUILT_IN = [
 
 // ---------- stored settings ----------
 
-const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } };
-const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private window */ } };
+export const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } };
+export const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private window */ } };
 export const mode = () => { try { return localStorage.getItem("wip-theme") || "system"; } catch { return "system"; } };
 const customThemes = () => read("wip-themes", []);
 const allThemes = () => [...BUILT_IN, ...customThemes()];
@@ -72,7 +72,6 @@ function varsFor(t) {
   v["--writing-weight"] = String(writingWeight(t));
   v["--writing-word-spacing"] = (t.wordSpacing || 0) + "em";
   v["--ui-weight"] = String(t.uiWeight || 400);
-  v["--ui-scale"] = String((t.uiScale || 100) / 100);
   return v;
 }
 // the writing's weight: the theme's choice, else the font's own (Zen Old Mincho reads best at medium)
@@ -90,8 +89,14 @@ const googleFonts = (t) => {
   return [...out.values()];
 };
 
+// Interface Size (in Settings): scales the sidebar, list, toolbar and inspector. Not part of
+// a theme, since it's about your screen rather than a look.
+export const uiScale = () => Number(read("wip-ui-scale", 100)) || 100;
+export function setUiScale(pct) { write("wip-ui-scale", pct); document.documentElement.style.setProperty("--ui-scale", String(pct / 100)); }
+
 export function applyTheme(t = activeTheme()) {
   const root = document.documentElement;
+  root.style.setProperty("--ui-scale", String(uiScale() / 100));
   root.dataset.theme = t.kind;
   root.dataset.code = t.code || (t.kind === "dark" ? "ayu-dark" : "ayu-light");
   for (const [k, val] of Object.entries(varsFor(t))) root.style.setProperty(k, val);
@@ -266,8 +271,7 @@ export function openAppearance() {
     return [
       group("Interface",
         row(tl("Font"), fontPicker("font", "system")),
-        row(tl("Weight"), weightPicker("uiWeight", t.uiWeight || 400)),
-        row(tl("Size"), ...slider("uiScale", "%", 85, 130, 5, 100))),
+        row(tl("Weight"), weightPicker("uiWeight", t.uiWeight || 400))),
       group("Writing",
         row(tl("Font"), fontPicker("writing", "system")),
         row(tl("Weight"), weightPicker("weight", writingWeight(t))),
@@ -307,7 +311,7 @@ export function importTheme(onDone) {
       const hex = /^#[0-9a-f]{6}$/i;
       if (!data || !data.colors || !COLORS.every(([k]) => hex.test(data.colors[k] || ""))) throw new Error();
       const theme = {
-        ...Object.fromEntries(Object.entries(data).filter(([k]) => ["code", "font", "writing", "mono", "size", "leading", "tracking", "wordSpacing", "weight", "uiWeight", "uiScale"].includes(k))),
+        ...Object.fromEntries(Object.entries(data).filter(([k]) => ["code", "font", "writing", "mono", "size", "leading", "tracking", "wordSpacing", "weight", "uiWeight"].includes(k))),
         id: "custom-" + Date.now().toString(36),
         name: String(data.name || file.name.replace(/\.wiptheme\.json$|\.json$/, "")).slice(0, 60),
         kind: data.kind === "dark" ? "dark" : "light",

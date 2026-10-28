@@ -40,6 +40,7 @@ const TYPES = {
 
 // after anything changes a file, keep the preview and tag suggestions in step
 function afterChange(file) {
+  file = String(file).replace(/#\d+$/, "");   // a list item: the list's file
   try { preview.syncFromSite(file); } catch { /* preview is optional */ }
   try { syncTagSuggestions(); } catch { /* sites without tags */ }
 }
@@ -61,14 +62,16 @@ const routes = {
   // posts, projects, pages
   "GET /api/entries": (q) => entries.listEntries(q.section),
   "GET /api/entry": (q) => entries.readEntry(q.file),
-  "PUT /api/entry": (q, body) => { const saved = entries.writeEntry(body.file, body.data, body.body); afterChange(saved.file); return saved; },
+  "PUT /api/entry": (q, body) => { const saved = entries.writeEntry(body.file, body.data, body.body, body.version); afterChange(saved.file); return saved; },
+  // lists kept in one data file: drag an item to a new place
+  "POST /api/move": (q, body) => { const r = entries.moveEntry(body.section, body.from, body.to); afterChange(entries.listFileOf(body.section)); return r; },
   "POST /api/entry": (q, body) => { const made = entries.createEntry(body.section, body.title, body.slug); afterChange(made.file); return made; },
   "DELETE /api/entry": (q) => { const result = entries.deleteEntry(q.file); afterChange(q.file); return result; },
 
   // unsaved edits -> the live preview only (your files are untouched)
-  "PUT /api/draft": (q, body) => ({ ok: preview.writeDraft(body.file, entries.serialize(body.file, body.data, body.body)) }),
+  "PUT /api/draft": (q, body) => ({ ok: preview.writeDraft(String(body.file).replace(/#\d+$/, ""), entries.serialize(body.file, body.data, body.body)) }),
   // forget unsaved edits: the preview goes back to what's saved
-  "DELETE /api/draft": (q) => { preview.syncFromSite(q.file); return { ok: true }; },
+  "DELETE /api/draft": (q) => { preview.syncFromSite(String(q.file).replace(/#\d+$/, "")); return { ok: true }; },
 
   // how many files changed since the last commit (the "ready to publish" count)
   "GET /api/changes": () => changes(),
@@ -79,8 +82,13 @@ const routes = {
   "GET /api/version": () => ({ version: VERSION }),
 
   // images
-  "GET /api/image-folder": (q) => ({ folder: site.rel(site.imageFolderFor(q.file)) }),
+  // where a post's uploads go (a list item's image fields usually say for themselves; see entries.js)
+  "GET /api/image-folder": (q) => ({ folder: /#\d+$/.test(q.file)
+    ? site.requireSite().mediaInput + "/" + require("path").basename(q.file.replace(/#\d+$/, "")).replace(/\.\w+$/, "")
+    : site.rel(site.imageFolderFor(q.file)) }),
   "GET /api/media": (q) => media.listFolder(q.folder),
+  // a picture from elsewhere in the library, copied into a field's own folder
+  "POST /api/media/copy": (q, body) => media.copyInto(body.url, body.folder),
   "GET /api/phone-link": (q) => phone.phoneLink(PORT, q.folder || site.rel(site.imagesDir())),
 };
 
@@ -139,7 +147,7 @@ const server = http.createServer(async (req, res) => {
     }
     // the open site's images, so thumbnails show (e.g. /images/blog/x.webp)
     const s = site.info();
-    if (s && url.pathname.startsWith(s.mediaOutput + "/")) {
+    if (s && s.mediaSources.some((m) => url.pathname.startsWith(m.output.replace(/\/$/, "") + "/"))) {
       return serveFile(res, site.imageUrlToFile(url.pathname));
     }
     // markdown -> HTML in the browser

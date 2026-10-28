@@ -4,7 +4,8 @@
 // back into obj, then calls ctx.changed() so the Save button lights up.
 // To support a new field type, add a function to EDITORS below.
 import { h, fill, icon, autosize, isPlainObject, toast } from "./util.js";
-import { openPicker, chooseFiles, uploadFiles, kindOf } from "./media.js";
+import { openPicker, chooseFiles, uploadFiles, kindOf, folderUrl } from "./media.js";
+import { api } from "./api.js";
 import { ghost, autoScroll } from "./drag.js";
 import { renderBlocks } from "./blocks.js";
 import { richBox } from "./rich.js";
@@ -265,34 +266,88 @@ function htmlBox(value, onChange) {
 }
 
 // ---------- images ----------
+//
+// Where an image field's pictures live, and what it saves:
+//   most fields save the picture's address (/images/blog/x/photo.webp), and uploads go
+//     into the post's own image folder (ctx.imageFolder)
+//   options.path: "src/img/projects/{slug}" puts uploads (and opens the picker) in that
+//     folder instead; {slug} or any other field in braces is filled from the post
+//   options.store: filename saves just "photo.webp", for sites whose templates add the
+//     folder themselves. A picture chosen from another folder is copied in first.
+//   options.links: true also allows a web address (a video on Google Drive, say)
+
+const fillPath = (tpl, entry) => {
+  let missing = false;
+  const out = String(tpl).replace(/^\/+|\/+$/g, "").replace(/\{(\w+)\}/g, (m, n) => { const v = entry?.[n]; if (v == null || v === "") missing = true; return String(v ?? ""); });
+  return missing ? null : out;
+};
+const isLink = (v) => /^https?:\/\//i.test(String(v || ""));
+function imageSpot(field, ctx) {
+  const folder = (field.options?.path && fillPath(field.options.path, ctx.entry)) || ctx.imageFolder;
+  const byName = field.options?.store === "filename";
+  const base = byName ? folderUrl(folder) : null;
+  return {
+    folder,
+    // the stored value -> an address to show it
+    show: (v) => !v || isLink(v) || !byName || /^\//.test(String(v)) ? v : base ? `${base}/${String(v).split("/").map(encodeURIComponent).join("/")}` : null,
+    // picked or uploaded addresses -> what to store (copying pictures in from elsewhere)
+    async keep(urls) {
+      if (!byName) return urls;
+      const out = [];
+      for (const url of urls) {
+        const u = decodeURI(url);
+        if (base && u.startsWith(base + "/") && !u.slice(base.length + 1).includes("/")) out.push(u.slice(base.length + 1));
+        else { try { out.push((await api.copyMedia(url, folder)).name); } catch (e) { toast(e.message, "error"); } }
+      }
+      return out;
+    },
+  };
+}
 
 function thumb(url, onRemove, extra = []) {
+  if (isLink(url) && !/\.(webp|jpe?g|png|gif|avif|svg)(\?|$)/i.test(url)) return linkThumb(url, onRemove);
   return h("div", { class: "thumb" }, h("img", { src: url, alt: "", loading: "lazy" }),
     h("div", { class: "thumb-tools" }, ...extra, h("button", { class: "icon-btn", title: tr("Remove image"), onclick: onRemove }, icon("trash"))));
 }
 
+// a web address in an image field (a video on Google Drive): shown as the address, editable
+function linkThumb(url, onRemove, onEdit) {
+  const input = h("input", { class: "input link-input", value: url, "aria-label": tr("Web address"), readonly: !onEdit,
+    onchange: () => onEdit?.(input.value.trim()) });
+  return h("div", { class: "thumb link-thumb" }, icon("link"), input,
+    h("button", { class: "icon-btn", title: tr("Remove"), onclick: onRemove }, icon("trash")));
+}
+
 // the buttons under an image field:
-//   Choose from [Library]   or upload from [Computer] [Phone]
+//   Choose from [Library]   or upload from [Computer] [Phone]   (or [Paste a link])
 // onPicked(urls) gets the chosen or uploaded /images/... addresses
-function imageButtons(ctx, multiple, onPicked) {
+function imageButtons(folder, multiple, onPicked, links = false) {
+  const linkBtn = links ? h("button", { class: "btn small", title: tr("A web address, e.g. a video on Google Drive"), onclick: () => {
+    const input = h("input", { class: "input link-input", placeholder: "https://…", "aria-label": tr("Web address"),
+      onkeydown: (e) => { if (e.key === "Enter") done(); if (e.key === "Escape") input.replaceWith(linkBtn); }, onblur: () => done() });
+    const done = () => { const v = input.value.trim(); if (isLink(v)) onPicked([v], true); else if (input.isConnected) input.replaceWith(linkBtn); };
+    linkBtn.replaceWith(input);
+    input.focus();
+  } }, icon("link"), tr("Link")) : null;
   return h("div", { class: "image-buttons" },
     h("span", { class: "image-buttons-label" }, tr("Choose from")),
     h("button", { class: "btn small", onclick: async () => {
-      const picked = await openPicker({ multiple, folder: ctx.imageFolder });
+      const picked = await openPicker({ multiple, folder });
       if (picked && picked.length) onPicked(picked);
     } }, icon("folder"), tr("Library")),
     h("span", { class: "image-buttons-label" }, tr("or upload from")),
     h("button", { class: "btn small", title: tr("Upload from this computer"), onclick: () => chooseFiles(multiple, async (files) => {
-      try { onPicked(await uploadFiles(ctx.imageFolder, files)); } catch (e) { toast(e.message, "error"); }
+      try { onPicked(await uploadFiles(folder, files)); } catch (e) { toast(e.message, "error"); }
     }) }, icon("laptop"), tr("Computer")),
     h("button", { class: "btn small", title: tr("Upload from your phone"), onclick: async () => {
-      const picked = await openPicker({ multiple, folder: ctx.imageFolder, phone: true });
+      const picked = await openPicker({ multiple, folder, phone: true });
       if (picked && picked.length) onPicked(picked);
-    } }, icon("phone"), tr("Phone")));
+    } }, icon("phone"), tr("Phone")),
+    links ? h("span", { class: "image-buttons-label" }, tr("or")) : null, linkBtn);
 }
 
 // pictures dragged in from Finder onto an image field go straight into it
-function acceptDrops(el, ctx, onPicked) {
+function acceptDrops(el, folder, onPicked) {
   const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
   el.addEventListener("dragover", (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.stopPropagation(); el.classList.add("drop-here"); });
   el.addEventListener("dragleave", (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove("drop-here"); });
@@ -302,7 +357,7 @@ function acceptDrops(el, ctx, onPicked) {
     el.classList.remove("drop-here");
     const files = [...e.dataTransfer.files].filter((f) => kindOf(f) === "image");
     if (!files.length) return toast(tr("Only pictures can go here."), "error");
-    try { onPicked(await uploadFiles(ctx.imageFolder, files)); } catch (err) { toast(err.message, "error"); }
+    try { onPicked(await uploadFiles(folder, files)); } catch (err) { toast(err.message, "error"); }
   });
 }
 
@@ -311,18 +366,24 @@ function acceptDrops(el, ctx, onPicked) {
 function imageOne(field, obj, ctx) {
   const box = h("div", { class: "image-one" });
   const many = !!ctx.splitImages;
-  const set = (urls) => {
-    obj[field.name] = urls[0];
+  const spot = imageSpot(field, ctx);
+  const set = async (urls, asIs) => {
+    const kept = asIs ? urls : await spot.keep(urls);
+    if (!kept.length) return;
+    obj[field.name] = kept[0];
     ctx.changed();
-    if (many && urls.length > 1) ctx.splitImages(urls.slice(1)); else draw();
+    if (many && kept.length > 1) ctx.splitImages(kept.slice(1)); else draw();
   };
+  const remove = () => { delete obj[field.name]; ctx.changed(); draw(); };
   const draw = () => {
-    const url = obj[field.name];
+    const value = obj[field.name];
+    const shown = spot.show(value);
     fill(box,
-      url ? thumb(url, () => { delete obj[field.name]; ctx.changed(); draw(); }) : null,
-      url ? null : imageButtons(ctx, many, set));
+      !value ? imageButtons(spot.folder, many, set, !!field.options?.links)
+        : isLink(value) ? linkThumb(value, remove, (v) => { if (v) { obj[field.name] = v; ctx.changed(); } })
+        : thumb(shown, remove));
   };
-  acceptDrops(box, ctx, set);
+  acceptDrops(box, spot.folder, set);
   draw();
   return box;
 }
@@ -335,10 +396,12 @@ function imageMany(field, obj, ctx) {
   if (!Array.isArray(obj[field.name])) obj[field.name] = obj[field.name] ? [obj[field.name]] : [];
   const list = obj[field.name];
   const box = h("div", { class: "image-many" });
+  const spot = imageSpot(field, ctx);
+  const add = async (urls, asIs) => { const kept = asIs ? urls : await spot.keep(urls); list.push(...kept); ctx.changed(); draw(); };
   let strip;
   const draw = () => {
     strip = h("div", { class: "thumbs" }, list.map((url, i) => {
-      const el = thumb(url, () => { list.splice(i, 1); ctx.changed(); draw(); });
+      const el = thumb(spot.show(url), () => { list.splice(i, 1); ctx.changed(); draw(); });
       el.dataset.index = i;
       el.dataset.total = list.length;
       el.title = tr("Drag to move");
@@ -346,9 +409,9 @@ function imageMany(field, obj, ctx) {
       el.addEventListener("dragstart", (e) => e.preventDefault());   // no browser image dragging
       return el;
     }));
-    fill(box, strip, imageButtons(ctx, true, (urls) => { list.push(...urls); ctx.changed(); draw(); }));
+    fill(box, strip, imageButtons(spot.folder, true, add, !!field.options?.links));
   };
-  acceptDrops(box, ctx, (urls) => { list.push(...urls); ctx.changed(); draw(); });
+  acceptDrops(box, spot.folder, add);
 
   function startDrag(e, el) {
     if (e.button > 0 || e.target.closest("button")) return;
@@ -416,31 +479,60 @@ function imageMany(field, obj, ctx) {
   return box;
 }
 
-// ---------- lists of objects (home page spots, education, exhibitions) ----------
+// ---------- lists of objects (home page spots, exhibitions, a gallery of pictures with captions) ----------
+// Each item is a card you can fold. Long lists start folded, showing each item's picture and
+// name. When the items have a picture, "Add pictures" adds several at once, one item each.
 
 function objectList(field, obj, ctx) {
   if (!Array.isArray(obj[field.name])) obj[field.name] = [];
   const list = obj[field.name];
-  const box = h("div", { class: "object-list" });
+  const fields = field.fields || [];
+  const picField = fields.find((f) => f.type === "image" && !f.options?.multiple);
+  const spot = picField ? imageSpot(picField, ctx) : null;
+  const box = h("div", { class: "object-list" + (picField ? " has-pics" : "") });
+  const opened = new WeakSet(), closed = new WeakSet();
+  const startClosed = list.length > 4;
+  const isOpen = (item) => opened.has(item) || (!startClosed && !closed.has(item));
+  const plain = (v) => String(v).replace(/[*_`#>\\]|<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   const titleOf = (item, i) => {
-    const first = (field.fields || []).find((f) => ["string", "text"].includes(f.type) && item[f.name]);
-    return first ? String(item[first.name]) : tr("Item {n}", { n: i + 1 });
+    const first = fields.find((f) => ["string", "text", undefined].includes(f.type) && item[f.name] && typeof item[f.name] !== "object");
+    if (first) return plain(item[first.name]).slice(0, 80);
+    if (picField && item[picField.name]) return String(item[picField.name]).split("/").pop();
+    return tr("Item {n}", { n: i + 1 });
   };
+  const fresh = () => Object.fromEntries(fields.filter((f) => f.default !== undefined).map((f) => [f.name, f.default]));
+  const addPictures = async (urls, asIs) => {
+    const kept = asIs ? urls : await spot.keep(urls);
+    for (const v of kept) { const item = { ...fresh(), [picField.name]: v }; opened.add(item); list.push(item); }
+    if (kept.length) { ctx.changed(); draw(); }
+  };
+  const move = (i, j) => { [list[i], list[j]] = [list[j], list[i]]; ctx.changed(); draw(); };
   const draw = () => {
-    fill(box, 
+    fill(box,
       ...list.map((item, i) => {
-        const body = h("div", { class: "object-body" }, renderFields(field.fields || [], item, ctx));
-        const card = h("div", { class: "object-card" },
+        const pic = picField && item[picField.name];
+        const card = h("div", { class: "object-card" + (isOpen(item) ? "" : " closed") },
           h("div", { class: "object-head" },
-            h("button", { class: "object-toggle", onclick: () => card.classList.toggle("closed") }, icon("chevron", "chev"), h("span", { class: "object-title" }, titleOf(item, i))),
-            h("button", { class: "icon-btn", title: tr("Move up"), disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; ctx.changed(); draw(); } }, icon("up")),
-            h("button", { class: "icon-btn", title: tr("Move down"), disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; ctx.changed(); draw(); } }, icon("down")),
+            h("button", { class: "object-toggle", "aria-expanded": String(isOpen(item)), onclick: () => {
+              if (isOpen(item)) { opened.delete(item); closed.add(item); } else { closed.delete(item); opened.add(item); }
+              draw();
+            } }, icon("chevron", "chev"),
+              picField ? (pic && !isLink(pic) ? h("img", { class: "object-pic", src: spot.show(pic), alt: "", loading: "lazy" }) : h("span", { class: "object-pic empty" }, pic ? icon("link") : null)) : null,
+              h("span", { class: "object-title" }, titleOf(item, i))),
+            h("button", { class: "icon-btn", title: tr("Move up"), disabled: i === 0, onclick: () => move(i, i - 1) }, icon("up")),
+            h("button", { class: "icon-btn", title: tr("Move down"), disabled: i === list.length - 1, onclick: () => move(i, i + 1) }, icon("down")),
             h("button", { class: "icon-btn", title: tr("Remove"), onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash"))),
-          body);
+          isOpen(item) ? h("div", { class: "object-body" }, renderFields(fields, item, ctx)) : null);
         return card;
       }),
-      h("button", { class: "btn small", onclick: () => { list.push({}); ctx.changed(); draw(); } }, icon("plus"), tr("Add")));
+      h("div", { class: "object-add" },
+        picField ? [h("span", { class: "image-buttons-label" }, tr("Add pictures:")), imageButtons(spot.folder, true, addPictures, !!picField.options?.links)] : null,
+        h("button", { class: "btn small", onclick: () => { const item = fresh(); opened.add(item); list.push(item); ctx.changed(); draw(); } }, icon("plus"), picField ? tr("Add an empty one") : tr("Add"))),
+      list.length > 4 ? h("div", { class: "object-fold" },
+        h("button", { class: "link-btn", onclick: () => { list.forEach((x) => { closed.delete(x); opened.add(x); }); draw(); } }, tr("Open all")),
+        h("button", { class: "link-btn", onclick: () => { list.forEach((x) => { opened.delete(x); closed.add(x); }); draw(); } }, tr("Fold all"))) : null);
   };
+  if (picField) acceptDrops(box, spot.folder, addPictures);
   draw();
   return box;
 }

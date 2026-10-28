@@ -1,0 +1,185 @@
+# .pages.yml for the dosa site (github.com/thomaslhuang/dosainc)
+#
+# To use it: copy this file into the dosa site's main folder as .pages.yml, then open that
+# folder in wip cms. Nothing else in the dosa site needs to change.
+#
+# Everything on that site is kept as lists in src/_data/*.json, so each section here is a
+# "file" with list: true (the Pages CMS way of describing that). wip cms shows each item
+# as an entry of its own, works out its page address from the site's templates, and keeps
+# the list's order, which is the order on the site.
+#
+# Pictures are saved as just their file name, the way the site's templates expect, in the
+# folder given by "path" ({slug} is filled in from the entry). "store: filename" is a
+# wip cms option; Pages CMS uses "path" as the folder its picker opens in.
+
+media:
+  input: src/img
+  output: /img
+
+content:
+  - name: projects
+    label: Projects
+    type: file
+    path: src/_data/projects.json
+    format: json
+    list: true
+    fields:
+      - { name: title, label: Title, type: string, required: true }
+      - { name: navtitle, label: Menu title, type: string }
+      - { name: slug, label: Permalink, type: string }
+      - { name: year, label: Year, type: string }
+      - { name: location, label: Location, type: string }
+      - { name: description, label: Description, type: rich-text, options: { format: markdown } }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/projects/thumbs, store: filename } }
+      - name: images
+        label: Gallery
+        type: object
+        list: true
+        fields:
+          - { name: type, label: Type, type: select, default: image, options: { values: [image, video] } }
+          - { name: src, label: Picture, type: image, options: { path: "src/img/projects/{slug}", store: filename, links: true } }
+          - { name: caption, label: Caption, type: text }
+          - { name: orientation, label: Video shape, type: select, options: { values: [vertical, horizontal] } }
+
+  - name: recycling
+    label: Recycling
+    type: file
+    path: src/_data/recycling.json
+    format: json
+    list: true
+    fields:
+      - { name: title, label: Title, type: string, required: true }
+      - { name: navtitle, label: Menu title, type: string }
+      - { name: slug, label: Permalink, type: string }
+      - { name: year, label: Year, type: string }
+      - { name: location, label: Location, type: string }
+      - { name: description, label: Description, type: rich-text, options: { format: markdown } }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/recycling/thumbs, store: filename } }
+      - name: images
+        label: Gallery
+        type: object
+        list: true
+        fields:
+          - { name: type, label: Type, type: select, default: image, options: { values: [image, video] } }
+          - { name: src, label: Picture, type: image, options: { path: "src/img/recycling/{slug}", store: filename, links: true } }
+          - { name: caption, label: Caption, type: text }
+          - { name: orientation, label: Video shape, type: select, options: { values: [vertical, horizontal] } }
+
+  - name: standard-issue
+    label: Standard Issue
+    type: file
+    path: src/_data/stdissue.json
+    format: json
+    list: true
+    view: { primary: style }
+    fields:
+      - { name: style, label: Style, type: string, required: true }
+      - { name: slug, label: Permalink, type: string }
+      - { name: number, label: Style number, type: string }
+      - { name: material, label: Material, type: string }
+      - { name: colors, label: Colors, type: string }
+      - { name: dimensions, label: Dimensions, type: string }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/standard-issue/thumbs, store: filename } }
+      - name: images
+        label: Pictures
+        type: object
+        list: true
+        fields:
+          - { name: src, label: Picture, type: image, options: { path: "src/img/standard-issue/{slug}", store: filename } }
+          - { name: color, label: Color, type: string }
+
+  - name: printed-matter
+    label: Printed Matter
+    type: file
+    path: src/_data/printedmatter.json
+    format: json
+    list: true
+    fields:
+      - { name: title, label: Title, type: string, required: true }
+      - { name: slug, label: Permalink, type: string }
+      - { name: image, label: Picture, type: image, options: { path: src/img/printed-matter, store: filename } }
+      - { name: caption, label: Caption, type: text }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/printed-matter/thumbs, store: filename } }
+
+  - name: glossary
+    label: Glossary
+    type: file
+    path: src/_data/glossary.json
+    format: json
+    list: true
+    fields:
+      - { name: title, label: Letter, type: string, required: true }
+      - { name: navtitle, label: Menu title, type: string }
+      - { name: slug, label: Permalink, type: string }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/glossary, store: filename } }
+      - name: images
+        label: Pictures
+        type: object
+        list: true
+        fields:
+          - { name: src, label: Picture, type: image, options: { path: "src/img/glossary/{slug}", store: filename } }
+          - { name: caption, label: Caption, type: text }
+
+  - name: press
+    label: Press
+    type: file
+    path: src/_data/press.json
+    format: json
+    list: true
+    fields:
+      - { name: title, label: Title, type: string, required: true }
+      - { name: publication, label: Publication, type: string }
+      - { name: slug, label: Permalink, type: string }
+      - { name: date, label: Issue, type: string }
+      - { name: description, label: Text, type: rich-text, options: { format: markdown } }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: "src/img/press/{slug}", store: filename } }
+      - name: images
+        label: Pages
+        type: object
+        list: true
+        fields:
+          - { name: src, label: Picture, type: image, options: { path: "src/img/press/{slug}", store: filename } }
+          - { name: caption, label: Caption, type: text }
+
+  - name: stockists
+    label: Stockists
+    type: file
+    path: src/_data/stockists.json
+    format: json
+    list: true
+    view: { primary: continent }
+    fields:
+      - { name: continent, label: Continent, type: string, required: true }
+      - name: countries
+        label: Countries
+        type: object
+        list: true
+        fields:
+          - { name: country, label: Country, type: string }
+          - name: stores
+            label: Stores
+            type: object
+            list: true
+            fields: &store
+              - { name: name, label: Name, type: string }
+              - { name: address1, label: Address, type: string }
+              - { name: address2, label: City and postcode, type: string }
+              - { name: phone, label: Phone, type: string }
+          - name: states
+            label: States
+            type: object
+            list: true
+            fields:
+              - { name: state, label: State, type: string }
+              - { name: stores, label: Stores, type: object, list: true, fields: *store }
+
+  - name: menu
+    label: Menu
+    type: file
+    path: src/_data/navs.json
+    format: json
+    list: true
+    view: { primary: name }
+    fields:
+      - { name: name, label: Name, type: string, required: true }
+      - { name: permalink, label: Links to, type: string }

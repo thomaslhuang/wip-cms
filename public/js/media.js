@@ -72,7 +72,14 @@ export function chooseFiles(multiple, onFiles) {
 
 // where the image library is (from .pages.yml media.input, e.g. "src/images"); set by app.js
 let ROOT = "src/images";
-export function setMediaRoot(root) { ROOT = root.replace(/\/$/, ""); }
+export function setMediaRoot(root, sources = []) { ROOT = root.replace(/\/$/, ""); SOURCES = sources; }
+let SOURCES = [];
+// the web address of a library folder: "src/img/projects/x" -> "/img/projects/x"
+export function folderUrl(folder) {
+  const f = String(folder).replace(/^\/+|\/+$/g, "");
+  const m = SOURCES.find((s) => f === s.input || f.startsWith(s.input + "/"));
+  return m ? (m.output.replace(/\/$/, "") + f.slice(m.input.length)) : null;
+}
 
 // A folder browser for the image library, used by both the picker window and the Images panel.
 //   multiple:  allow picking several
