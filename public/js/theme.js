@@ -6,6 +6,10 @@
 // Built-in themes can't be changed, but "Duplicate" makes an editable copy.
 // Everything is kept in this browser (localStorage).
 import { h, fill, icon } from "./util.js";
+import { t as tr } from "./i18n.js";
+
+// built-in themes have translated names; your own keep the name you gave them
+const nameOf = (theme) => (BUILT_IN.some((b) => b.id === theme.id) ? tr(theme.name) : theme.name);
 
 const FONTS = {
   system: { label: "System (San Francisco)", family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif' },
@@ -95,8 +99,8 @@ export function openAppearance() {
   const body = h("div", { class: "appearance" });
   const close = () => { overlay.remove(); applyTheme(); };
   const overlay = h("div", { class: "overlay", onclick: (e) => { if (e.target === overlay) close(); } },
-    h("div", { class: "dialog appearance-dialog", role: "dialog", "aria-label": "Appearance" },
-      h("div", { class: "appearance-head" }, h("p", { class: "dialog-title" }, "Appearance"), h("button", { class: "btn primary", onclick: close }, "Done")),
+    h("div", { class: "dialog appearance-dialog", role: "dialog", "aria-label": tr("Appearance") },
+      h("div", { class: "appearance-head" }, h("p", { class: "dialog-title" }, tr("Appearance")), h("button", { class: "btn primary", onclick: close }, tr("Done"))),
       body));
   document.body.append(overlay);
   const onKey = (e) => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", onKey); } };
@@ -108,9 +112,9 @@ export function openAppearance() {
     const themes = allThemes();
     const current = themes.find((t) => t.id === editing) || themes[0];
     const lightId = read("wip-theme-light", "light"), darkId = read("wip-theme-dark", "dark");
-    const pickFor = (kind) => h("select", { class: "field-input", "aria-label": kind === "dark" ? "Dark theme" : "Light theme",
+    const pickFor = (kind) => h("select", { class: "field-input", "aria-label": kind === "dark" ? tr("Dark theme") : tr("Light theme"),
       onchange: (e) => { write(kind === "dark" ? "wip-theme-dark" : "wip-theme-light", e.target.value); editing = e.target.value; applyTheme(); draw(); } },
-      themes.filter((t) => t.kind === kind).map((t) => h("option", { value: t.id, selected: t.id === (kind === "dark" ? darkId : lightId) }, t.name)));
+      themes.filter((t) => t.kind === kind).map((t) => h("option", { value: t.id, selected: t.id === (kind === "dark" ? darkId : lightId) }, nameOf(t))));
 
     const swatch = (t) => h("button", { class: "theme-card" + (t.id === editing ? " on" : ""), onclick: () => { editing = t.id; applyTheme(t); draw(); }, "aria-pressed": String(t.id === editing) },
       h("span", { class: "theme-mini", style: { background: t.colors.window } },
@@ -118,13 +122,13 @@ export function openAppearance() {
         h("span", { class: "theme-mini-lines" },
           h("span", { style: { background: t.colors.text } }), h("span", { style: { background: t.colors.muted, width: "60%" } }),
           h("span", { class: "theme-mini-dot", style: { background: t.colors.accent } }))),
-      h("span", { class: "theme-name" }, t.name), h("span", { class: "theme-kind" }, t.kind === "dark" ? "Dark" : "Light"));
+      h("span", { class: "theme-name" }, nameOf(t)), h("span", { class: "theme-kind" }, t.kind === "dark" ? tr("Dark") : tr("Light")));
 
     const builtIn = BUILT_IN.some((t) => t.id === current.id);
     const duplicate = () => {
       const copy = JSON.parse(JSON.stringify(current));
       copy.id = "custom-" + Date.now().toString(36);
-      copy.name = current.name + " copy";
+      copy.name = nameOf(current) + " copy";
       write("wip-themes", [...customThemes(), copy]);
       write(copy.kind === "dark" ? "wip-theme-dark" : "wip-theme-light", copy.id);
       editing = copy.id;
@@ -134,71 +138,71 @@ export function openAppearance() {
 
     fill(body,
       h("div", { class: "appearance-row" },
-        h("span", { class: "appearance-label" }, "Mode"),
-        h("div", { class: "segmented", role: "group", "aria-label": "Mode" },
-          [["system", "Match my Mac"], ["light", "Light"], ["dark", "Dark"]].map(([m, label]) =>
+        h("span", { class: "appearance-label" }, tr("Mode")),
+        h("div", { class: "segmented", role: "group", "aria-label": tr("Mode") },
+          [["system", tr("Match my Mac")], ["light", tr("Light")], ["dark", tr("Dark")]].map(([m, label]) =>
             h("button", { class: mode() === m ? "on" : "", "aria-pressed": String(mode() === m), onclick: () => { setMode(m); editing = activeTheme().id; draw(); } }, label)))),
       h("div", { class: "appearance-row two" },
-        h("label", {}, h("span", { class: "appearance-label" }, "Light theme"), pickFor("light")),
-        h("label", {}, h("span", { class: "appearance-label" }, "Dark theme"), pickFor("dark"))),
+        h("label", {}, h("span", { class: "appearance-label" }, tr("Light theme")), pickFor("light")),
+        h("label", {}, h("span", { class: "appearance-label" }, tr("Dark theme")), pickFor("dark"))),
       h("div", { class: "theme-cards" }, themes.map(swatch)),
       h("div", { class: "theme-actions" },
-        h("button", { class: "btn small", onclick: duplicate }, icon("plus"), builtIn ? `Duplicate “${current.name}” to customise` : "Duplicate"),
+        h("button", { class: "btn small", onclick: duplicate }, icon("plus"), builtIn ? tr("Duplicate “{name}” to customise", { name: nameOf(current) }) : tr("Duplicate")),
         builtIn ? null : h("button", { class: "btn small", onclick: () => {
           write("wip-themes", customThemes().filter((t) => t.id !== current.id));
           for (const k of ["wip-theme-light", "wip-theme-dark"]) if (read(k) === current.id) write(k, k.endsWith("dark") ? "dark" : "light");
           editing = activeTheme().id; applyTheme(); draw();
-        } }, icon("trash"), "Delete theme")),
-      builtIn ? h("p", { class: "muted small" }, "Built-in themes can't be changed. Duplicate one to make your own: colours, fonts and code colours.") : editor(current));
+        } }, icon("trash"), tr("Delete theme"))),
+      builtIn ? h("p", { class: "muted small" }, tr("Built-in themes can't be changed. Duplicate one to make your own: colours, fonts and code colours.")) : editor(current));
   }
 
   function editor(t) {
     const update = (fn) => { fn(t); saveCustom(t); };
     const colourRow = ([key, label]) => {
-      const text = h("input", { class: "field-input hex", value: t.colors[key], "aria-label": label + " (hex)", onchange: (e) => {
+      const text = h("input", { class: "field-input hex", value: t.colors[key], "aria-label": tr(label) + " (hex)", onchange: (e) => {
         if (/^#[0-9a-f]{6}$/i.test(e.target.value)) { update((x) => { x.colors[key] = e.target.value.toLowerCase(); }); picker.value = e.target.value; }
         else e.target.value = t.colors[key];
       } });
-      const picker = h("input", { type: "color", value: t.colors[key], "aria-label": label, oninput: (e) => { text.value = e.target.value; update((x) => { x.colors[key] = e.target.value; }); } });
-      return h("label", { class: "colour-row" }, picker, h("span", {}, label), text);
+      const picker = h("input", { type: "color", value: t.colors[key], "aria-label": tr(label), oninput: (e) => { text.value = e.target.value; update((x) => { x.colors[key] = e.target.value; }); } });
+      return h("label", { class: "colour-row" }, picker, h("span", {}, tr(label)), text);
     };
     const fontRow = (which, label, fallback) => {
       const f = font(t[which], fallback);
-      const custom = h("input", { class: "field-input", placeholder: "Font name, e.g. Inter", value: f.custom || "", hidden: !!f.preset,
+      const custom = h("input", { class: "field-input", placeholder: tr("Font name, e.g. Inter"), value: f.custom || "", hidden: !!f.preset,
         onchange: (e) => update((x) => { x[which] = { custom: e.target.value.trim(), google: !!google.checked }; }) });
       const google = h("input", { type: "checkbox", checked: !!f.google, onchange: () => update((x) => { x[which] = { custom: custom.value.trim(), google: google.checked }; }) });
-      const googleRow = h("label", { class: "check-row", hidden: !!f.preset }, google, "Load it from Google Fonts (otherwise it must be installed on this Mac)");
+      const googleRow = h("label", { class: "check-row", hidden: !!f.preset }, google, tr("Load it from Google Fonts (otherwise it must be installed on this Mac)"));
       return h("div", { class: "font-row" },
-        h("span", { class: "appearance-label" }, label),
-        h("select", { class: "field-input", "aria-label": label, onchange: (e) => {
+        h("span", { class: "appearance-label" }, tr(label)),
+        h("select", { class: "field-input", "aria-label": tr(label), onchange: (e) => {
           if (e.target.value === "custom") { custom.hidden = false; googleRow.hidden = false; custom.focus(); return; }
           custom.hidden = true; googleRow.hidden = true;
           update((x) => { x[which] = e.target.value; });
         } },
           Object.entries(FONTS).map(([k, v]) => h("option", { value: k, selected: f.preset === k }, v.label)),
-          h("option", { value: "custom", selected: !f.preset }, "Other font…")),
+          h("option", { value: "custom", selected: !f.preset }, tr("Other font…"))),
         custom, googleRow);
     };
     return h("div", { class: "theme-editor" },
       h("div", { class: "appearance-row two" },
-        h("label", {}, h("span", { class: "appearance-label" }, "Name"), h("input", { class: "field-input", value: t.name, onchange: (e) => { update((x) => { x.name = e.target.value || "Untitled"; }); draw(); } })),
-        h("div", {}, h("span", { class: "appearance-label" }, "Used for"),
-          h("div", { class: "segmented", role: "group", "aria-label": "Light or dark" },
-            [["light", "Light mode"], ["dark", "Dark mode"]].map(([k, label]) => h("button", { class: t.kind === k ? "on" : "", onclick: () => {
+        h("label", {}, h("span", { class: "appearance-label" }, tr("Name")), h("input", { class: "field-input", value: t.name, onchange: (e) => { update((x) => { x.name = e.target.value || tr("Untitled"); }); draw(); } })),
+        h("div", {}, h("span", { class: "appearance-label" }, tr("Used for")),
+          h("div", { class: "segmented", role: "group", "aria-label": tr("Light or dark") },
+            [["light", tr("Light mode")], ["dark", tr("Dark mode")]].map(([k, label]) => h("button", { class: t.kind === k ? "on" : "", onclick: () => {
               const was = t.kind === "dark" ? "wip-theme-dark" : "wip-theme-light";
               if (read(was) === t.id) write(was, t.kind);   // its old mode goes back to the built-in theme
               update((x) => { x.kind = k; });
               write(k === "dark" ? "wip-theme-dark" : "wip-theme-light", t.id);
               draw();
             } }, label))))),
-      h("div", { class: "appearance-label" }, "Colours"),
+      h("div", { class: "appearance-label" }, tr("Colours")),
       h("div", { class: "colour-grid" }, COLOURS.map(colourRow)),
       h("div", { class: "appearance-row two" },
-        h("label", {}, h("span", { class: "appearance-label" }, "Code colours (Source view and HTML)"),
+        h("label", {}, h("span", { class: "appearance-label" }, tr("Code colours (Source view and HTML)")),
           h("select", { class: "field-input", onchange: (e) => update((x) => { x.code = e.target.value; }) },
             [["ayu-dark", "Ayu Dark"], ["ayu-light", "Ayu Light"]].map(([v, l]) => h("option", { value: v, selected: (t.code || "ayu-dark") === v }, l)))),
-        h("label", {}, h("span", { class: "appearance-label" }, `Writing size: ${t.size || 16}px`),
-          h("input", { type: "range", min: 14, max: 22, step: 1, value: t.size || 16, oninput: (e) => { update((x) => { x.size = Number(e.target.value); }); e.target.previousSibling.textContent = `Writing size: ${e.target.value}px`; } }))),
+        h("label", {}, h("span", { class: "appearance-label" }, tr("Writing size: {n}px", { n: t.size || 16 })),
+          h("input", { type: "range", min: 14, max: 22, step: 1, value: t.size || 16, oninput: (e) => { update((x) => { x.size = Number(e.target.value); }); e.target.previousSibling.textContent = tr("Writing size: {n}px", { n: e.target.value }); } }))),
       fontRow("font", "Interface font", "system"),
       fontRow("writing", "Writing font (titles and text)", "system"),
       fontRow("mono", "Code font (Source view)", "mono"));

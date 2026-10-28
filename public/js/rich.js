@@ -7,6 +7,7 @@
 //
 // Typing *word* or **word** formats it as you go. ⌘B / ⌘I work too. Pasting pastes plain text.
 import { h } from "./util.js";
+import { t as tr } from "./i18n.js";
 
 const md = () => (window.markdownit ? window.markdownit({ html: true }) : null);
 
@@ -169,7 +170,7 @@ export function richBox({ value = "", inline: isInline = false, placeholder = ""
       if (cmd === "bold" || cmd === "italic") document.execCommand(cmd);
       else if (cmd === "break") document.execCommand("insertLineBreak");
       else if (cmd === "link") {
-        const url = window.prompt("Link to (web address):", "https://");
+        const url = window.prompt(tr("Link to (web address):"), "https://");
         if (url && url !== "https://") document.execCommand("createLink", false, url);
       }
       changed();

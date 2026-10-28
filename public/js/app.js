@@ -18,6 +18,7 @@ import { api } from "./api.js";
 import { openEditor } from "./editor.js";
 import { libraryBrowser, setMediaRoot } from "./media.js";
 import { openSetup } from "./setup.js";
+import { t, t2, fmtDate, lang, setLang, dateStyle, setDateStyle } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
 applyTheme();
@@ -80,30 +81,39 @@ function drawSidebar() {
     icon(iconName, "side-icon"), h("span", { class: "side-label" }, label), count != null ? h("span", { class: "side-count" }, count) : null);
   fill(sidebarEl,
     h("div", { class: "side-head" },
-      h("button", { class: "site-btn", title: "Open another site", onclick: () => chooseSite(true) }, h("span", {}, config.site.name), icon("chevrons")),
-      tbtn("sidebar", "Hide sidebar", () => toggleSidebar(), { cls: "side-hide" })),
+      h("button", { class: "site-btn", title: t("Open another site"), onclick: () => chooseSite(true) }, h("span", {}, config.site.name), icon("chevrons")),
+      tbtn("sidebar", t("Hide sidebar"), () => toggleSidebar(), { cls: "side-hide" })),
     h("nav", { class: "side-scroll" },
-      h("div", { class: "side-group" }, "Library"),
-      collections.map((s) => item("#/s/" + s.name, s.name === "projects" ? "grid" : "text", s.label, lists[s.name]?.length, route.section === s.name)),
-      item("#/images", "images", "Images", null, route.page === "images"),
+      h("div", { class: "side-group" }, t("Library")),
+      collections.map((s) => item("#/s/" + s.name, s.name === "projects" ? "grid" : "text", t(s.label), lists[s.name]?.length, route.section === s.name)),
+      item("#/images", "images", t("Images"), null, route.page === "images"),
       Object.entries(groups).map(([g, items]) => [
-        h("div", { class: "side-group" }, g[0].toUpperCase() + g.slice(1)),
-        items.map((s) => item("#/edit/" + s.path, g === "pages" ? (s.name === "home" ? "house" : "text") : "gear", s.label, null, route.file === s.path)),
+        h("div", { class: "side-group" }, lang() === "ja" ? t(g) : g[0].toUpperCase() + g.slice(1)),
+        items.map((s) => item("#/edit/" + s.path, g === "pages" ? (s.name === "home" ? "house" : "text") : "gear", t(s.label), null, route.file === s.path)),
       ])),
     h("div", { class: "side-foot" },
       changesCount == null ? null : h("span", { class: "dot" + (changesCount ? " on" : "") }),
-      changesCount == null ? "" : changesCount ? `${changesCount} change${changesCount > 1 ? "s" : ""} ready to publish` : "Everything is published"));
+      changesCount == null ? "" : changesCount ? t2(changesCount, "{n} change ready to publish", "{n} changes ready to publish") : t("Everything is published")));
 }
 
 // ---------- the post list ----------
 
 const asDate = (d) => new Date(String(d).slice(0, 10) + "T12:00:00");
-const MONTH = (d) => asDate(d).toLocaleDateString(undefined, { month: "long", year: "numeric" });
-const SHORT = (d) => asDate(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
 async function loadList(name, force) {
   if (!lists[name] || force) lists[name] = await api.list(name);
   return lists[name];
+}
+
+// which years and months are folded away, remembered for each section
+const folded = pref.get("list-folded", {});
+const isFolded = (section, key) => (folded[section] || []).includes(key);
+function toggleFold(section, key) {
+  const set = new Set(folded[section] || []);
+  set.has(key) ? set.delete(key) : set.add(key);
+  folded[section] = [...set];
+  pref.set("list-folded", folded);
+  drawList();
 }
 
 function drawList() {
@@ -115,32 +125,49 @@ function drawList() {
   const drafts = all.filter((e) => e.draft).length;
   const mode = listMode(s.name);
   const items = { rows: rowItem, grid: tileItem, text: textItem }[mode];
-  // grouped by month; each group's items sit in their own box so the grid can lay them out
-  const groups = [];
+
+  // years, then (except in the grid) months inside them; each can be folded away.
+  // While searching everything is open, so nothing that matches is hidden.
+  const years = [];
   for (const e of shown) {
-    // the grid groups by year, so there's a row of pictures to look at rather than one per month
-    const name = !e.date ? "No date" : mode === "grid" ? String(asDate(e.date).getFullYear()) : MONTH(e.date);
-    if (!groups.length || groups[groups.length - 1].name !== name) groups.push({ name, entries: [] });
-    groups[groups.length - 1].entries.push(e);
+    const d = e.date ? asDate(e.date) : null;
+    const yKey = d ? String(d.getFullYear()) : "none";
+    const mKey = d ? `${yKey}-${String(d.getMonth() + 1).padStart(2, "0")}` : "none";
+    let y = years[years.length - 1];
+    if (!y || y.key !== yKey) years.push(y = { key: yKey, date: d, months: [], count: 0 });
+    let m = y.months[y.months.length - 1];
+    if (!m || m.key !== mKey) y.months.push(m = { key: mKey, date: d, entries: [] });
+    m.entries.push(e);
+    y.count++;
   }
-  const rows = groups.map((g) => [h("div", { class: "list-group" }, g.name), h("div", { class: "list-items " + mode }, g.entries.map(items))]);
-  const search = h("input", { class: "search-input", type: "search", placeholder: "Search", "aria-label": `Search ${s.label}`, value: filter,
+  const open = (key) => filter || !isFolded(s.name, key);
+  const head = (key, label, count, level) => h("button", { class: `tree-head ${level}`, "aria-expanded": String(open(key)), onclick: () => toggleFold(s.name, key) },
+    icon("chevron", "tree-chev"), h("span", { class: "tree-label" }, label), h("span", { class: "tree-count" }, count));
+  const rows = years.map((y) => h("div", { class: "tree-year" },
+    head(y.key, y.date ? fmtDate(y.date, "year") : t("No date"), y.count, "year"),
+    !open(y.key) ? null
+      : mode === "grid" || !y.date ? h("div", { class: "list-items " + mode }, y.months.flatMap((m) => m.entries).map(items))
+      : h("div", { class: "tree-body" }, y.months.map((m) => h("div", { class: "tree-month" },
+          head(m.key, fmtDate(m.date, "monthName"), m.entries.length, "month"),
+          open(m.key) ? h("div", { class: "list-items " + mode }, m.entries.map(items)) : null)))));
+
+  const search = h("input", { class: "search-input", type: "search", placeholder: t("Search"), "aria-label": t("Search {label}", { label: t(s.label) }), value: filter,
     oninput: () => { filter = search.value.toLowerCase(); drawList(); const el = listEl.querySelector(".search-input"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); } });
   fill(listEl,
     h("div", { class: "list-head" },
-      h("a", { class: "tbtn back-btn", href: "#/", "aria-label": "Sections" }, icon("back")),
-      h("div", { class: "list-title" }, h("div", { class: "list-name" }, s.label),
-        h("div", { class: "list-count" }, `${all.length} ${all.length === 1 ? "item" : "items"}${drafts ? `, ${drafts} draft${drafts > 1 ? "s" : ""}` : ""}`)),
-      tbtn("compose", `New in ${s.label}`, () => newEntry(s))),
+      h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
+      h("div", { class: "list-title" }, h("div", { class: "list-name" }, t(s.label)),
+        h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
+      tbtn("compose", t("New in {label}", { label: t(s.label) }), () => newEntry(s))),
     h("div", { class: "list-tools" },
       h("label", { class: "search" }, icon("search"), search),
-      segmentedIcons("Show as", [["rows", "rows", "List"], ["grid", "grid", "Grid"], ["text", "text", "Titles only"]], mode, (m) => setListMode(s.name, m))),
-    h("div", { class: "list-scroll" }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? "Nothing matches." : "Nothing here yet.")),
-    h("div", { class: "list-resize", role: "separator", "aria-label": "Resize list", onpointerdown: resizeList }));
+      segmentedIcons(t("Show as"), [["rows", "rows", t("List")], ["grid", "grid", t("Grid")], ["text", "text", t("Titles only")]], mode, (m) => setListMode(s.name, m))),
+    h("div", { class: "list-scroll" }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
+    h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
 }
 
 // three ways to show a section, remembered for each one: list (picture, title, first
-// words), grid (pictures), titles only
+// words), grid (pictures only, three across), titles only
 const listModes = pref.get("list-modes", {});
 const listMode = (name) => listModes[name] || "rows";
 function setListMode(name, mode) { listModes[name] = mode; pref.set("list-modes", listModes); drawList(); }
@@ -149,27 +176,26 @@ const segmentedIcons = (label, options, current, onpick) => h("div", { class: "s
 
 const isActive = (e) => (route.file === e.file ? " active" : "");
 const titleOf = (e) => (e.isBook ? h("i", {}, e.title) : e.title);
-const draftBadge = (e) => (e.draft ? h("span", { class: "badge" }, "Draft") : null);
+const draftBadge = (e) => (e.draft ? h("span", { class: "badge" }, t("Draft")) : null);
 function rowItem(e) {
   return h("a", { class: "row-item" + isActive(e), href: "#/edit/" + e.file },
     e.featuredImage ? h("img", { class: "row-thumb", src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "row-thumb empty" }),
     h("span", { class: "row-text" },
       h("span", { class: "row-title" }, titleOf(e)),
-      h("span", { class: "row-sub" }, e.date ? SHORT(e.date) : "", draftBadge(e)),
+      h("span", { class: "row-sub" }, e.date ? fmtDate(e.date, "day") : "", draftBadge(e)),
       e.excerpt ? h("span", { class: "row-excerpt" }, e.excerpt) : null));
 }
+// the grid: square pictures edge to edge; the title shows when you point at one
 function tileItem(e) {
-  return h("a", { class: "tile" + isActive(e), href: "#/edit/" + e.file, title: e.title },
-    h("span", { class: "tile-pic" },
-      e.featuredImage ? h("img", { src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "tile-letter", "aria-hidden": "true" }, (e.title || "?").trim()[0]),
-      draftBadge(e)),
+  return h("a", { class: "tile" + isActive(e) + (e.featuredImage ? "" : " no-pic"), href: "#/edit/" + e.file, title: e.title, "aria-label": e.title },
+    e.featuredImage ? h("img", { src: e.featuredImage, alt: "", loading: "lazy" }) : null,
     h("span", { class: "tile-title" }, titleOf(e)),
-    h("span", { class: "tile-date" }, e.date ? SHORT(e.date) : ""));
+    draftBadge(e));
 }
 function textItem(e) {
   return h("a", { class: "text-item" + isActive(e), href: "#/edit/" + e.file },
     h("span", { class: "text-title" }, titleOf(e)), draftBadge(e),
-    h("span", { class: "text-date" }, e.date ? asDate(e.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""));
+    h("span", { class: "text-date" }, e.date ? fmtDate(e.date, "day") : ""));
 }
 
 // drag the list's right edge to make it wider (handy for the grid)
@@ -189,7 +215,7 @@ function resizeList(e) {
 const slugify = (t) => String(t || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 function newEntry(section) {
-  const singular = section.label.replace(/s$/, "").replace(/ posts?$/, " post").toLowerCase();
+  const singular = lang() === "ja" ? t(section.label) : section.label.replace(/s$/, "").replace(/ posts?$/, " post").toLowerCase();
   // where it will live on the site: the section's folder (inside the site's pages folder) plus
   // its filename template, e.g. blog/{year}/{month}/<permalink>/
   const now = new Date();
@@ -197,28 +223,28 @@ function newEntry(section) {
   const base = "/" + (section.path.startsWith(root) ? section.path.slice(root.length) : section.path) + "/" +
     (section.filename || "{primary}/index.md").replace("{year}", now.getFullYear()).replace("{month}", String(now.getMonth() + 1).padStart(2, "0")).replace(/\{primary\}\/index\.md$/, "").replace(/\{primary\}.*$/, "");
   let edited = false;
-  const title = h("input", { class: "field-input", placeholder: "Title", "aria-label": "Title", oninput: () => { if (!edited) link.value = slugify(title.value); } });
-  const link = h("input", { class: "field-input permalink-input", placeholder: "made from the title", "aria-label": "Permalink",
+  const title = h("input", { class: "field-input", placeholder: t("Title"), "aria-label": t("Title"), oninput: () => { if (!edited) link.value = slugify(title.value); } });
+  const link = h("input", { class: "field-input permalink-input", placeholder: t("made from the title"), "aria-label": t("Permalink"),
     oninput: () => { edited = link.value.trim() !== ""; },
     onblur: () => { link.value = slugify(link.value); if (!link.value) { edited = false; link.value = slugify(title.value); } } });
   const go = async () => {
-    const t = title.value.trim();
-    if (!t) return title.focus();
+    const name = title.value.trim();
+    if (!name) return title.focus();
     overlay.remove();
     try {
-      const created = await api.create(section.name, t, slugify(link.value) || slugify(t));
+      const created = await api.create(section.name, name, slugify(link.value) || slugify(name));
       await loadList(section.name, true);
       location.hash = "#/edit/" + created.file;
     } catch (e) { toast(e.message, "error"); }
   };
   for (const el of [title, link]) el.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); if (e.key === "Escape") overlay.remove(); });
   const overlay = h("div", { class: "overlay", onclick: (e) => { if (e.target === overlay) overlay.remove(); } },
-    h("div", { class: "dialog" }, h("p", { class: "dialog-title" }, `New ${singular}`),
+    h("div", { class: "dialog" }, h("p", { class: "dialog-title" }, t("New {kind}", { kind: singular })),
       title,
-      h("label", { class: "permalink" }, h("span", { class: "field-label" }, "Permalink"),
+      h("label", { class: "permalink" }, h("span", { class: "field-label" }, t("Permalink")),
         h("span", { class: "permalink-row" }, h("span", { class: "permalink-base" }, base), link, h("span", { class: "permalink-base" }, "/"))),
-      h("p", { class: "muted small" }, "The permalink follows the title unless you change it. New posts start as drafts."),
-      h("div", { class: "dialog-buttons" }, h("button", { class: "btn", onclick: () => overlay.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: go }, "Create"))));
+      h("p", { class: "muted small" }, t("The permalink follows the title unless you change it. New posts start as drafts.")),
+      h("div", { class: "dialog-buttons" }, h("button", { class: "btn", onclick: () => overlay.remove() }, t("Cancel")), h("button", { class: "btn primary", onclick: go }, t("Create")))));
   document.body.append(overlay);
   title.focus();
 }
@@ -228,50 +254,57 @@ function newEntry(section) {
 let statusEl = null;
 function drawToolbar() {
   const left = [];
-  if (narrow()) left.push(h("a", { class: "tbtn", href: route.section ? "#/s/" + route.section : "#/", "aria-label": "Back" }, icon("back")));
-  else if (!showSidebar) left.push(tbtn("sidebar", "Show sidebar", () => toggleSidebar()));
-  statusEl = h("div", { class: "doc-status" }, editor ? editor.status() : "");
+  if (narrow()) left.push(h("a", { class: "tbtn", href: route.section ? "#/s/" + route.section : "#/", "aria-label": t("Back") }, icon("back")));
+  else if (!showSidebar) left.push(tbtn("sidebar", t("Show sidebar"), () => toggleSidebar()));
+  statusEl = h("div", { class: "doc-status" }, editor ? t(editor.status()) : "");
   const title = h("div", { class: "toolbar-title" },
-    h("div", { class: "toolbar-name" }, route.page === "images" ? "Images" : editor ? editor.title : ""), editor ? statusEl : null);
+    h("div", { class: "toolbar-name" }, route.page === "images" ? t("Images") : editor ? editor.title : ""), editor ? statusEl : null);
 
   const right = [];
   const v = currentView();
   if (editor) {
     const b = editor.blocks;
     if (b && v !== "preview" && !narrow()) {
-      right.push(tbtn("insert", "Insert a block", () => b.insert()));
-      if (b.hasPhotos()) right.push(tbtn("images", "Add photos", () => b.addPhotos()));
-      right.push(tbtn("arrows", b.isRearranging() ? "Done rearranging" : "Rearrange blocks", () => b.toggleRearrange(), { on: b.isRearranging() }));
+      right.push(tbtn("insert", t("Insert a block"), () => b.insert()));
+      if (b.hasPhotos()) right.push(tbtn("images", t("Add photos"), () => b.addPhotos()));
+      right.push(tbtn("arrows", b.isRearranging() ? t("Done rearranging") : t("Rearrange blocks"), () => b.toggleRearrange(), { on: b.isRearranging() }));
     }
-    if (!narrow()) right.push(h("a", { class: "tbtn", href: `http://localhost:${config.preview.port}${editor.url}`, target: "_blank", rel: "noopener", "aria-label": "Open on your site", title: "Open on your site (new tab)" }, icon("external")));
-    right.push(tbtn(narrow() ? "info" : "inspector", showInspector ? "Hide details" : "Show details", () => toggleInspector(), { on: showInspector && !narrow() }));
+    if (!narrow()) right.push(h("a", { class: "tbtn", href: `http://localhost:${config.preview.port}${editor.url}`, target: "_blank", rel: "noopener", "aria-label": t("Open on your site"), title: t("Open on your site (new tab)") }, icon("external")));
+    right.push(tbtn(narrow() ? "info" : "inspector", showInspector ? t("Hide details") : t("Show details"), () => toggleInspector(), { on: showInspector && !narrow() }));
   }
-  const more = tbtn("more", "More", () => popMenu(more, [
+  const more = tbtn("more", t("More"), () => popMenu(more, [
     ...(editor ? [
-      { label: "Revert to when opened", run: async () => { if (await editor.revert()) reopen(); } },
-      ...(editor.section ? [{ label: "Move to Trash", danger: true, run: async () => {
+      { label: t("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
+      ...(editor.section ? [{ label: t("Move to Trash"), danger: true, run: async () => {
         const section = editor.section.name;
         if (await editor.remove()) { editor.destroy(); editor = null; await loadList(section, true); location.hash = "#/s/" + section; }
       } }] : []),
       "-",
     ] : []),
-    { heading: "Appearance" },
-    ...[["system", "Match my Mac"], ["light", "Light"], ["dark", "Dark"]].map(([t, label]) => ({ label, checked: theme() === t, run: () => setTheme(t) })),
-    { label: "Themes, colours and fonts…", run: () => openAppearance() },
+    { heading: t("Appearance") },
+    ...[["system", t("Match my Mac")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
+    { label: t("Themes, colours and fonts…"), run: () => openAppearance() },
     "-",
-    { label: "Open another site…", run: () => chooseSite(true) },
+    // the whole app in English or Japanese (reloads to switch)
+    { heading: t("Language") },
+    ...[["en", "English"], ["ja", "日本語"]].map(([l, label]) => ({ label, checked: lang() === l, run: async () => { if (lang() !== l) { await editor?.flush(); setLang(l); location.reload(); } } })),
+    // how dates are written, shown with today's date as the example
+    { heading: t("Dates") },
+    ...["western", "japanese", "era"].map((style) => ({ label: fmtDate(new Date(), "long", style), checked: dateStyle() === style, run: () => { setDateStyle(style); drawList(); editor?.redrawMeta?.(); } })),
+    "-",
+    { label: t("Open another site…"), run: () => chooseSite(true) },
   ]));
   right.push(more);
 
-  const views = editor ? segmented("View", narrow() ? [["write", "Write"], ["preview", "Preview"]] : [["write", "Write"], ["split", "Split"], ["preview", "Preview"]], v, setView) : null;
+  const views = editor ? segmented(t("View"), narrow() ? [["write", t("Write")], ["preview", t("Preview")]] : [["write", t("Write")], ["split", t("Split")], ["preview", t("Preview")]], v, setView) : null;
   fill(toolbarEl, h("div", { class: "toolbar-side" }, left, title), views, h("div", { class: "toolbar-side end" }, right));
 
   // phone: the most-used block actions float at the bottom
   const b = editor?.blocks;
   fill(phonebar, narrow() && b && v === "write" ? [
-    b.hasPhotos() ? h("button", { "aria-label": "Add photos", onclick: () => b.addPhotos() }, icon("images")) : null,
-    h("button", { "aria-label": "Rearrange blocks", class: b.isRearranging() ? "on" : "", onclick: () => b.toggleRearrange() }, icon("arrows")),
-    h("button", { "aria-label": "Insert a block", class: "primary", onclick: () => b.insert() }, icon("plus")),
+    b.hasPhotos() ? h("button", { "aria-label": t("Add photos"), onclick: () => b.addPhotos() }, icon("images")) : null,
+    h("button", { "aria-label": t("Rearrange blocks"), class: b.isRearranging() ? "on" : "", onclick: () => b.toggleRearrange() }, icon("arrows")),
+    h("button", { "aria-label": t("Insert a block"), class: "primary", onclick: () => b.insert() }, icon("plus")),
   ] : []);
 }
 
@@ -310,28 +343,28 @@ $("divider").addEventListener("pointerdown", (e) => {
 
 // ---------- preview ----------
 
-const previewFrame = h("iframe", { class: "preview-frame", title: "Live preview" });
+const previewFrame = h("iframe", { class: "preview-frame", title: t("Live preview") });
 const previewNote = h("span", { class: "preview-note" });
 function drawPreviewBar() {
   fill(previewpane,
     h("div", { class: "preview-bar" },
       h("span", { class: "live-dot", "aria-hidden": "true" }), previewNote,
-      h("div", { class: "segmented icons", role: "group", "aria-label": "Preview size" },
-        [["full", "laptop", "Computer"], ["phone", "phone", "Phone"]].map(([v, ic, label]) =>
+      h("div", { class: "segmented icons", role: "group", "aria-label": t("Preview size") },
+        [["full", "laptop", t("Computer")], ["phone", "phone", t("Phone")]].map(([v, ic, label]) =>
           h("button", { class: v === previewSize ? "on" : "", "aria-label": label, title: label, onclick: () => { previewSize = v; pref.set("preview-size", v); drawPreviewBar(); } }, icon(ic)))),
-      tbtn("refresh", "Reload preview", () => { if (previewFrame.dataset.url) previewFrame.src = previewFrame.dataset.url; })),
+      tbtn("refresh", t("Reload preview"), () => { if (previewFrame.dataset.url) previewFrame.src = previewFrame.dataset.url; })),
     h("div", { class: "preview-stage" + (previewSize === "phone" ? " phone" : "") }, previewFrame));
 }
 drawPreviewBar();
 
-const LIVE = "Live: shows changes as you type";
+const LIVE = t("Live: shows changes as you type");
 let draftTimer = null;
 function wirePreview() {
   if (!editor) return;
   const url = `http://localhost:${config.preview.port}${editor.url}`;
   if (previewFrame.dataset.url !== url) { previewFrame.dataset.url = url; previewFrame.src = url; }
   previewNote.textContent = config.preview.status === "unavailable" ? config.preview.message
-    : config.preview.status === "starting" ? "Starting the preview…" : LIVE;
+    : config.preview.status === "starting" ? t("Starting the preview…") : LIVE;
 }
 function watchForPreview(ed) {
   // the preview might still show edits from last time that were never saved: go back to the file
@@ -339,13 +372,13 @@ function watchForPreview(ed) {
   ed.onChange(() => {
     clearTimeout(draftTimer);
     if (currentView() === "write") return; // saving a moment later updates the preview anyway
-    previewNote.textContent = "Updating…";
+    previewNote.textContent = t("Updating…");
     draftTimer = setTimeout(async () => {
       try { const p = ed.payload(); await api.draft(ed.file, p.data, p.body); previewNote.textContent = LIVE; }
       catch (e) { previewNote.textContent = e.message; }
     }, 400);
   });
-  ed.onStatus((t) => { if (statusEl) statusEl.textContent = t; if (t === "Saved") afterSave(); });
+  ed.onStatus((st) => { if (statusEl) statusEl.textContent = t(st); if (st === "Saved") afterSave(); });
 }
 async function waitForPreview() {
   for (let i = 0; i < 60 && config.preview.status === "starting"; i++) {
@@ -413,12 +446,12 @@ async function go() {
     fill(inspectorEl);
   } else if (editor) {
     fill(docpane, h("div", { class: "doc-scroll" }, editor.doc));
-    fill(inspectorEl, h("div", { class: "sheet-head" }, h("span", {}, "Details"), h("button", { class: "link-btn", onclick: () => toggleInspector() }, "Done")), editor.inspector);
+    fill(inspectorEl, h("div", { class: "sheet-head" }, h("span", {}, t("Details")), h("button", { class: "link-btn", onclick: () => toggleInspector() }, t("Done"))), editor.inspector);
   } else {
     const s = config.sections.find((x) => x.name === route.section);
     fill(docpane, h("div", { class: "doc-empty" },
-      h("p", {}, s ? `Choose one of your ${s.label.toLowerCase()}, or start a new one.` : "Choose something from the sidebar."),
-      s && s.kind === "collection" ? h("button", { class: "btn", onclick: () => newEntry(s) }, icon("compose"), "New") : null));
+      h("p", {}, s ? t("Choose one of your {label}, or start a new one.", { label: lang() === "ja" ? t(s.label) : s.label.toLowerCase() }) : t("Choose something from the sidebar.")),
+      s && s.kind === "collection" ? h("button", { class: "btn", onclick: () => newEntry(s) }, icon("compose"), t("New")) : null));
     fill(inspectorEl);
   }
   app.classList.toggle("images-open", route.page === "images");
@@ -440,7 +473,7 @@ async function chooseSite(canCancel) {
     try {
       if (!path) return input.focus();
       const info = await api.inspectSite(path);
-      if (!info.exists) { err.textContent = `There's no folder at ${info.root}.`; return; }
+      if (!info.exists) { err.textContent = t("There's no folder at {path}.", { path: info.root }); return; }
       // not set up for wip cms yet: offer to set it up
       if (!info.hasConfig) { overlay.remove(); openSetup(info, () => chooseSite(canCancel)); return; }
       await editor?.flush();
@@ -450,14 +483,14 @@ async function chooseSite(canCancel) {
     } catch (e) { err.textContent = e.message; }
   };
   const overlay = h("div", { class: "overlay" }, h("div", { class: "dialog wide" },
-    h("p", { class: "dialog-title" }, "Open a site"),
-    h("p", { class: "muted small" }, "The site's main folder. In Finder, select the folder and press ⌥⌘C to copy its path, then paste it here. A folder that isn't set up for wip cms yet (a new client site, say) gets a few questions first."),
+    h("p", { class: "dialog-title" }, t("Open a site")),
+    h("p", { class: "muted small" }, t("The site's main folder. In Finder, select the folder and press ⌥⌘C to copy its path, then paste it here. A folder that isn't set up for wip cms yet (a new client site, say) gets a few questions first.")),
     input, err,
-    recent.length ? h("div", { class: "recent" }, h("p", { class: "muted small" }, "Recent"),
+    recent.length ? h("div", { class: "recent" }, h("p", { class: "muted small" }, t("Recent")),
       recent.map((p) => h("button", { class: "recent-site", onclick: () => open(p) }, icon("folder"), h("span", {}, p)))) : null,
     h("div", { class: "dialog-buttons" },
-      canCancel ? h("button", { class: "btn", onclick: () => overlay.remove() }, "Cancel") : null,
-      h("button", { class: "btn primary", onclick: () => open(input.value.trim()) }, "Open"))));
+      canCancel ? h("button", { class: "btn", onclick: () => overlay.remove() }, t("Cancel")) : null,
+      h("button", { class: "btn primary", onclick: () => open(input.value.trim()) }, t("Open")))));
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") open(input.value.trim()); });
   document.body.append(overlay);
   input.focus();
@@ -469,7 +502,7 @@ async function chooseSite(canCancel) {
   const { site } = await api.site();
   if (!site) { app.hidden = true; await chooseSite(false); return; }
   // the site's settings can't be read (moved, or .pages.yml deleted): pick a site again
-  try { config = await api.config(); } catch (e) { app.hidden = true; await chooseSite(false); toast("Couldn't read that site's settings (.pages.yml), so pick a site to open.", "error"); return; }
+  try { config = await api.config(); } catch (e) { app.hidden = true; await chooseSite(false); toast(t("Couldn't read that site's settings (.pages.yml), so pick a site to open."), "error"); return; }
   setMediaRoot(config.site.mediaInput);
   if (narrow()) showInspector = false;
   await Promise.all(config.sections.filter((s) => s.kind === "collection").map((s) => loadList(s.name).catch(() => {})));

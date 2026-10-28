@@ -3,6 +3,7 @@
 // .pages.yml and makes the folders.
 import { h, fill, icon } from "./util.js";
 import { api } from "./api.js";
+import { t as tr } from "./i18n.js";
 
 const POSTY = ["blog", "posts", "news", "journal", "work", "projects", "case-studies", "portfolio"];
 
@@ -23,24 +24,24 @@ export function openSetup(info, back) {
   const list = h("div", { class: "setup-rows" });
   const draw = () => {
     fill(list,
-      h("div", { class: "setup-row setup-row-head", "aria-hidden": "true" }, h("span", {}, "Name in the sidebar"), h("span", {}, "Folder"), h("span", {}, "Kind"), h("span", {}, "Writing"), h("span", {}, "Template"), h("span", {})),
+      h("div", { class: "setup-row setup-row-head", "aria-hidden": "true" }, h("span", {}, tr("Name in the sidebar")), h("span", {}, tr("Folder")), h("span", {}, tr("Kind")), h("span", {}, tr("Writing")), h("span", {}, tr("Template")), h("span", {})),
       rows.map((r, i) => {
-        const folder = h("input", { class: "field-input", value: r.folder, "aria-label": "Folder", oninput: () => { r.folder = folder.value; r.folderEdited = true; } });
-        const label = h("input", { class: "field-input", value: r.label, "aria-label": "Name in the sidebar", oninput: () => {
+        const folder = h("input", { class: "field-input", value: r.folder, "aria-label": tr("Folder"), oninput: () => { r.folder = folder.value; r.folderEdited = true; } });
+        const label = h("input", { class: "field-input", value: r.label, "aria-label": tr("Name in the sidebar"), oninput: () => {
           r.label = label.value;
           if (!r.folderEdited) { r.folder = label.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); folder.value = r.folder; }
         } });
         const pick = (field, value) => { r[field] = value; draw(); };
         return h("div", { class: "setup-row" },
           label, folder,
-          h("div", { class: "segmented small", role: "group", "aria-label": "Kind" },
-            [["dated", "Posts"], ["pages", "Pages"]].map(([v, t]) => h("button", { class: r.kind === v ? "on" : "", "aria-pressed": String(r.kind === v), title: v === "dated" ? "Title, featured image, date, draft, tags" : "Title and a short description", onclick: () => pick("kind", v) }, t))),
-          h("div", { class: "segmented small", role: "group", "aria-label": "Writing" },
-            [["text", "Text"], ["blocks", "Blocks"]].map(([v, t]) => h("button", { class: r.content === v ? "on" : "", "aria-pressed": String(r.content === v), title: v === "text" ? "One piece of writing under the title (Markdown)" : "Text, images, carousels, collages… (the site's templates must show blocks)", onclick: () => pick("content", v) }, t))),
-          h("input", { class: "field-input", value: r.template, placeholder: "optional", "aria-label": "Template", oninput: (e) => { r.template = e.target.value; } }),
-          h("button", { class: "icon-btn", "aria-label": `Remove ${r.label}`, onclick: () => { rows.splice(i, 1); draw(); } }, icon("x")));
+          h("div", { class: "segmented small", role: "group", "aria-label": tr("Kind") },
+            [["dated", tr("Posts")], ["pages", tr("Pages")]].map(([v, text]) => h("button", { class: r.kind === v ? "on" : "", "aria-pressed": String(r.kind === v), title: v === "dated" ? tr("Title, featured image, date, draft, tags") : tr("Title and a short description"), onclick: () => pick("kind", v) }, text))),
+          h("div", { class: "segmented small", role: "group", "aria-label": tr("Writing") },
+            [["text", tr("Text")], ["blocks", tr("Blocks")]].map(([v, text]) => h("button", { class: r.content === v ? "on" : "", "aria-pressed": String(r.content === v), title: v === "text" ? tr("One piece of writing under the title (Markdown)") : tr("Text, images, carousels, collages… (the site's templates must show blocks)"), onclick: () => pick("content", v) }, text))),
+          h("input", { class: "field-input", value: r.template, placeholder: tr("optional"), "aria-label": tr("Template"), oninput: (e) => { r.template = e.target.value; } }),
+          h("button", { class: "icon-btn", "aria-label": tr("Remove {label}", { label: r.label }), onclick: () => { rows.splice(i, 1); draw(); } }, icon("x")));
       }),
-      h("button", { class: "btn small", onclick: () => { rows.push({ label: "", folder: "", kind: "dated", content: "text", template: "" }); draw(); list.querySelector(".setup-row:last-of-type input")?.focus(); } }, icon("plus"), "Add a section"));
+      h("button", { class: "btn small", onclick: () => { rows.push({ label: "", folder: "", kind: "dated", content: "text", template: "" }); draw(); list.querySelector(".setup-row:last-of-type input")?.focus(); } }, icon("plus"), tr("Add a section")));
   };
   draw();
 
@@ -54,21 +55,21 @@ export function openSetup(info, back) {
   };
 
   const overlay = h("div", { class: "overlay" }, h("div", { class: "dialog setup" },
-    h("p", { class: "dialog-title" }, `Set up “${name}”`),
+    h("p", { class: "dialog-title" }, tr("Set up “{name}”", { name })),
     h("p", { class: "muted small" },
-      info.generator ? `This looks like ${/^[AEIOU]/.test(info.generator) ? "an" : "a"} ${info.generator} site. ` : "",
-      "wip cms will write a .pages.yml file describing the sections below, and make their folders. Each post or page becomes its own folder with an index.md inside. You can change all of this later in .pages.yml."),
+      info.generator ? tr(/^[AEIOU]/.test(info.generator) ? "This looks like an {generator} site. " : "This looks like a {generator} site. ", { generator: info.generator }) : "",
+      tr("wip cms will write a .pages.yml file describing the sections below, and make their folders. Each post or page becomes its own folder with an index.md inside. You can change all of this later in .pages.yml.")),
     h("div", { class: "setup-paths" },
-      h("label", {}, h("span", { class: "field-label" }, "Pages folder (the site generator's input)"), source),
-      h("label", {}, h("span", { class: "field-label" }, "Images folder, inside it"), images)),
-    info.folders.length ? h("p", { class: "muted small" }, "Folders already there: ", info.folders.join(", ")) : null,
-    h("div", { class: "field-label" }, "Sections"),
+      h("label", {}, h("span", { class: "field-label" }, tr("Pages folder (the site generator's input)")), source),
+      h("label", {}, h("span", { class: "field-label" }, tr("Images folder, inside it")), images)),
+    info.folders.length ? h("p", { class: "muted small" }, tr("Folders already there: {list}", { list: info.folders.join(", ") })) : null,
+    h("div", { class: "field-label" }, tr("Sections")),
     list,
     h("p", { class: "muted small" },
-      "Posts get a title, featured image, date, draft switch and tags; pages get a title and a description. “Blocks” lets you mix text, images, carousels and collages, like your own site, but the client site's templates need to be able to show them. “Template” fills in the layout field (for Eleventy, e.g. post.njk)."),
+      tr("Posts get a title, featured image, date, draft switch and tags; pages get a title and a description. “Blocks” lets you mix text, images, carousels and collages, like your own site, but the client site's templates need to be able to show them. “Template” fills in the layout field (for Eleventy, e.g. post.njk).")),
     err,
     h("div", { class: "dialog-buttons" },
-      h("button", { class: "btn", onclick: () => { overlay.remove(); back(); } }, "Back"),
-      h("button", { class: "btn primary", onclick: create }, "Set up"))));
+      h("button", { class: "btn", onclick: () => { overlay.remove(); back(); } }, tr("Back")),
+      h("button", { class: "btn primary", onclick: create }, tr("Set up")))));
   document.body.append(overlay);
 }

@@ -8,10 +8,11 @@ import { openPicker, chooseFiles, uploadFiles } from "./media.js";
 import { renderBlocks } from "./blocks.js";
 import { richBox } from "./rich.js";
 import { codeArea } from "./code.js";
+import { t as tr, t2 } from "./i18n.js";
 
 // ---------- shared bits ----------
 
-const labelOf = (f) => f.label === false ? null : (f.label || f.name);
+const labelOf = (f) => f.label === false ? null : tr(f.label || f.name);
 
 function wrap(field, ...content) {
   return h("div", { class: `field field-${field.type}${field.list ? " field-list" : ""}`, "data-name": field.name },
@@ -32,7 +33,7 @@ const EDITORS = {
   text(field, obj, ctx) {
     // captions are Markdown on the site, so they show their formatting while you write
     if (/^caption/i.test(field.name)) {
-      const box = richBox({ value: obj[field.name] ?? "", inline: true, placeholder: `Add ${String(field.label || field.name).toLowerCase()}`,
+      const box = richBox({ value: obj[field.name] ?? "", inline: true, placeholder: tr("Add {label}", { label: tr(String(field.label || field.name)).toLowerCase() }),
         onChange: (v) => { obj[field.name] = v; ctx.changed(); } });
       return wrap(field, box.el);
     }
@@ -73,7 +74,7 @@ const EDITORS = {
     if (obj[field.name] === undefined && field.default !== undefined) obj[field.name] = field.default;
     const sel = h("select", { class: "input", onchange: () => { obj[field.name] = sel.value || undefined; ctx.changed(); } },
       field.default === undefined ? h("option", { value: "" }, "—") : null,
-      values.map((v) => h("option", { value: v.value, selected: String(obj[field.name] ?? "") === v.value }, v.label)));
+      values.map((v) => h("option", { value: v.value, selected: String(obj[field.name] ?? "") === v.value }, tr(String(v.label)))));
     return wrap(field, sel);
   },
 
@@ -152,10 +153,10 @@ function stringList(field, obj, ctx) {
     fill(box, 
       ...list.map((value, i) => h("div", { class: "string-row" },
         h("input", { type: "text", class: "input", value, oninput: (e) => { list[i] = e.target.value; ctx.changed(); } }),
-        h("button", { class: "icon-btn", title: "Move up", disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; ctx.changed(); draw(); } }, icon("up")),
-        h("button", { class: "icon-btn", title: "Move down", disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; ctx.changed(); draw(); } }, icon("down")),
-        h("button", { class: "icon-btn", title: "Remove", onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash")))),
-      h("button", { class: "btn small", onclick: () => { list.push(""); ctx.changed(); draw(); box.querySelector(".string-row:last-of-type input")?.focus(); } }, icon("plus"), "Add"));
+        h("button", { class: "icon-btn", title: tr("Move up"), disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; ctx.changed(); draw(); } }, icon("up")),
+        h("button", { class: "icon-btn", title: tr("Move down"), disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; ctx.changed(); draw(); } }, icon("down")),
+        h("button", { class: "icon-btn", title: tr("Remove"), onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash")))),
+      h("button", { class: "btn small", onclick: () => { list.push(""); ctx.changed(); draw(); box.querySelector(".string-row:last-of-type input")?.focus(); } }, icon("plus"), tr("Add")));
   };
   draw();
   return box;
@@ -167,7 +168,7 @@ function chips(field, obj, ctx, values) {
   const list = obj[field.name];
   const suggestions = [...new Set([...values.map((v) => v.value), ...(field.name === "tags" ? ctx.tags || [] : [])])];
   const listId = "dl-" + Math.random().toString(36).slice(2);
-  const input = h("input", { type: "text", class: "chip-input", list: listId, placeholder: field.options?.placeholder || "add…" });
+  const input = h("input", { type: "text", class: "chip-input", list: listId, placeholder: tr(field.options?.placeholder || "add…") });
   const box = h("div", { class: "chips input", onclick: () => input.focus() });
   const add = (raw, keepFocus = false) => {
     const v = raw.trim();
@@ -185,7 +186,7 @@ function chips(field, obj, ctx, values) {
   input.addEventListener("blur", () => add(input.value));
   const draw = (keepFocus = false) => {
     fill(box, 
-      ...list.map((t, i) => h("span", { class: "chip" }, t, h("button", { class: "chip-x", title: "Remove", onclick: (e) => { e.stopPropagation(); list.splice(i, 1); ctx.changed(); draw(); } }, "×"))),
+      ...list.map((t, i) => h("span", { class: "chip" }, t, h("button", { class: "chip-x", title: tr("Remove"), onclick: (e) => { e.stopPropagation(); list.splice(i, 1); ctx.changed(); draw(); } }, "×"))),
       input,
       h("datalist", { id: listId }, suggestions.filter((s) => !list.includes(s)).map((s) => h("option", { value: s }))));
     if (keepFocus) input.focus({ preventScroll: true });
@@ -210,7 +211,7 @@ function richText(field, obj, ctx) {
   const t = autosize(h("textarea", { class: "input textarea prose source", rows: 3, spellcheck: !isHtml, value: value(), oninput: () => set(t.value) }));
   const source = codeArea(t, isHtml ? "html" : "markdown");
   // Write: formatted
-  const box = isHtml ? htmlBox(value(), set) : richBox({ value: value(), placeholder: "Write something…", onChange: set });
+  const box = isHtml ? htmlBox(value(), set) : richBox({ value: value(), placeholder: tr("Write something…"), onChange: set });
 
   const insert = (before, after = "", placeholder = "") => {
     const { selectionStart: s, selectionEnd: e, value: v } = t;
@@ -234,14 +235,14 @@ function richText(field, obj, ctx) {
     tabs.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
     if (remember) putMode(m);
   };
-  tabs.append(h("button", { "data-mode": "write", onclick: () => setMode("write", true) }, "Write"),
-              h("button", { "data-mode": "source", onclick: () => setMode("source", true) }, "Source"));
+  tabs.append(h("button", { "data-mode": "write", onclick: () => setMode("write", true) }, tr("Write")),
+              h("button", { "data-mode": "source", onclick: () => setMode("source", true) }, tr("Source")));
   const act = (cmd, md) => () => (mode === "source" ? md() : box.command(cmd));
   const tools = isHtml ? [] : [
-    h("button", { class: "tool", title: "Bold (⌘B)", onclick: act("bold", () => insert("**", "**", "bold")) }, h("b", {}, "B")),
-    h("button", { class: "tool", title: "Italic (⌘I)", onclick: act("italic", () => insert("*", "*", "italic")) }, h("i", {}, "I")),
-    h("button", { class: "tool", title: "Link", onclick: act("link", () => insert("[", "](https://)", "link text")) }, "link"),
-    h("button", { class: "tool", title: "Line break: a new line in the same paragraph (⇧↩)", onclick: act("break", () => insert("\\\n")) }, icon("linebreak"), "line break"),
+    h("button", { class: "tool", title: tr("Bold (⌘B)"), onclick: act("bold", () => insert("**", "**", "bold")) }, h("b", {}, "B")),
+    h("button", { class: "tool", title: tr("Italic (⌘I)"), onclick: act("italic", () => insert("*", "*", "italic")) }, h("i", {}, "I")),
+    h("button", { class: "tool", title: tr("Link"), onclick: act("link", () => insert("[", "](https://)", tr("link text"))) }, tr("link")),
+    h("button", { class: "tool", title: tr("Line break: a new line in the same paragraph (⇧↩)"), onclick: act("break", () => insert("\\\n")) }, icon("linebreak"), tr("line break")),
   ];
   const el = h("div", { class: "rich" }, h("div", { class: "rich-bar" }, ...tools, tabs), box.el, source);
   setMode(mode);
@@ -259,7 +260,7 @@ function htmlBox(value, onChange) {
 
 function thumb(url, onRemove, extra = []) {
   return h("div", { class: "thumb" }, h("img", { src: url, alt: "", loading: "lazy" }),
-    h("div", { class: "thumb-tools" }, ...extra, h("button", { class: "icon-btn", title: "Remove image", onclick: onRemove }, icon("trash"))));
+    h("div", { class: "thumb-tools" }, ...extra, h("button", { class: "icon-btn", title: tr("Remove image"), onclick: onRemove }, icon("trash"))));
 }
 
 function imageOne(field, obj, ctx) {
@@ -272,14 +273,14 @@ function imageOne(field, obj, ctx) {
         h("button", { class: "btn small", onclick: async () => {
           const picked = await openPicker({ folder: ctx.imageFolder });
           if (picked && picked[0]) { obj[field.name] = picked[0]; ctx.changed(); draw(); }
-        } }, icon("folder"), "Choose"),
+        } }, icon("folder"), tr("Choose")),
         h("button", { class: "btn small", onclick: () => chooseFiles(false, async (files) => {
           try { const [u] = await uploadFiles(ctx.imageFolder, files); obj[field.name] = u; ctx.changed(); draw(); } catch (e) { toast(e.message, "error"); }
-        }) }, icon("upload"), "Upload"),
-        h("button", { class: "btn small", title: "Upload from your phone", onclick: async () => {
+        }) }, icon("upload"), tr("Upload")),
+        h("button", { class: "btn small", title: tr("Upload from your phone"), onclick: async () => {
           const picked = await openPicker({ folder: ctx.imageFolder, phone: true });
           if (picked && picked[0]) { obj[field.name] = picked[0]; ctx.changed(); draw(); }
-        } }, icon("phone"), "Phone")));
+        } }, icon("phone"), tr("Phone"))));
   };
   draw();
   return box;
@@ -292,21 +293,21 @@ function imageMany(field, obj, ctx) {
   const draw = () => {
     fill(box, 
       h("div", { class: "thumbs" }, list.map((url, i) => thumb(url, () => { list.splice(i, 1); ctx.changed(); draw(); }, [
-        h("button", { class: "icon-btn", title: "Move earlier", disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; ctx.changed(); draw(); } }, icon("chevron", "flip")),
-        h("button", { class: "icon-btn", title: "Move later", disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; ctx.changed(); draw(); } }, icon("chevron")),
+        h("button", { class: "icon-btn", title: tr("Move earlier"), disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; ctx.changed(); draw(); } }, icon("chevron", "flip")),
+        h("button", { class: "icon-btn", title: tr("Move later"), disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; ctx.changed(); draw(); } }, icon("chevron")),
       ]))),
       h("div", { class: "image-buttons" },
         h("button", { class: "btn small", onclick: async () => {
           const picked = await openPicker({ multiple: true, folder: ctx.imageFolder });
           if (picked && picked.length) { list.push(...picked); ctx.changed(); draw(); }
-        } }, icon("folder"), "Choose"),
+        } }, icon("folder"), tr("Choose")),
         h("button", { class: "btn small", onclick: () => chooseFiles(true, async (files) => {
           try { list.push(...await uploadFiles(ctx.imageFolder, files)); ctx.changed(); draw(); } catch (e) { toast(e.message, "error"); }
-        }) }, icon("upload"), "Upload"),
-        h("button", { class: "btn small", title: "Upload from your phone", onclick: async () => {
+        }) }, icon("upload"), tr("Upload")),
+        h("button", { class: "btn small", title: tr("Upload from your phone"), onclick: async () => {
           const picked = await openPicker({ multiple: true, folder: ctx.imageFolder, phone: true });
           if (picked && picked.length) { list.push(...picked); ctx.changed(); draw(); }
-        } }, icon("phone"), "Phone")));
+        } }, icon("phone"), tr("Phone"))));
   };
   draw();
   return box;
@@ -320,7 +321,7 @@ function objectList(field, obj, ctx) {
   const box = h("div", { class: "object-list" });
   const titleOf = (item, i) => {
     const first = (field.fields || []).find((f) => ["string", "text"].includes(f.type) && item[f.name]);
-    return first ? String(item[first.name]) : `Item #${i + 1}`;
+    return first ? String(item[first.name]) : tr("Item {n}", { n: i + 1 });
   };
   const draw = () => {
     fill(box, 
@@ -329,13 +330,13 @@ function objectList(field, obj, ctx) {
         const card = h("div", { class: "object-card" },
           h("div", { class: "object-head" },
             h("button", { class: "object-toggle", onclick: () => card.classList.toggle("closed") }, icon("chevron", "chev"), h("span", { class: "object-title" }, titleOf(item, i))),
-            h("button", { class: "icon-btn", title: "Move up", disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; ctx.changed(); draw(); } }, icon("up")),
-            h("button", { class: "icon-btn", title: "Move down", disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; ctx.changed(); draw(); } }, icon("down")),
-            h("button", { class: "icon-btn", title: "Remove", onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash"))),
+            h("button", { class: "icon-btn", title: tr("Move up"), disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; ctx.changed(); draw(); } }, icon("up")),
+            h("button", { class: "icon-btn", title: tr("Move down"), disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; ctx.changed(); draw(); } }, icon("down")),
+            h("button", { class: "icon-btn", title: tr("Remove"), onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash"))),
           body);
         return card;
       }),
-      h("button", { class: "btn small", onclick: () => { list.push({}); ctx.changed(); draw(); } }, icon("plus"), "Add"));
+      h("button", { class: "btn small", onclick: () => { list.push({}); ctx.changed(); draw(); } }, icon("plus"), tr("Add")));
   };
   draw();
   return box;

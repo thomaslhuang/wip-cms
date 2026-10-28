@@ -56,7 +56,7 @@ Options:
 | | |
 |---|---|
 | **Sidebar** | Your sections (blog posts, projects), Images, pages and settings. At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site. |
-| **List** | The posts in that section, newest first. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** of pictures (grouped by year) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
+| **List** | The posts in that section, newest first, under their year and month; click a year or month to fold it away. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** (square pictures, three across, edge to edge; point at one for its title) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
 | **Inspector** | The post's details: featured image, date, switches, tags, and its web address. |
 
@@ -87,6 +87,11 @@ the same and stays in step.
 - **Source** (top right of a selected text block) shows the Markdown itself in a
   monospace font, colour-coded with the ayu colours. HTML blocks are colour-coded too.
   wip cms remembers whether you last used Write or Source.
+
+**Japanese:** ⋯ → Language → 日本語 switches all of wip cms to Japanese (your section and
+field names from .pages.yml too, for the common ones). ⋯ → Dates picks how dates are
+written: October 28, 2026 · 2026年10月28日 · 令和8年10月28日. Translations live in
+`public/js/i18n.js`; anything without one stays in English.
 
 **Themes:** ⋯ → **Themes, colours and fonts…** Pick light and dark themes (Light, Dark,
 Paper, Ayu, Ink), or duplicate one and change its colours, fonts (any font on your Mac,
@@ -174,6 +179,7 @@ public/
     rich.js          the writing box: Markdown shown formatted, and turned back into Markdown
     code.js          colour-coded Source view
     theme.js         themes and the Appearance window
+    i18n.js          English / Japanese words, and date styles
     api.js           talking to server.js
     util.js          small helpers and the icons
 ```

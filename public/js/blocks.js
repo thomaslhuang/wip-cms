@@ -14,6 +14,7 @@
 import { h, fill, icon, firstWords, confirmBox } from "./util.js";
 import { renderFields } from "./fields.js";
 import { openPicker } from "./media.js";
+import { t as tr, t2 } from "./i18n.js";
 
 // options that only show while a block is selected
 const isSecondary = (f) => ["boolean", "select", "number"].includes(f.type) || f.name === "alt";
@@ -23,7 +24,7 @@ export function renderBlocks(field, list, ctx) {
   const key = field.blockKey || "type";
   const defs = field.blocks || [];
   const defOf = (b) => defs.find((d) => d.name === b?.[key]);
-  const labelOf = (b) => (defOf(b)?.label || b?.[key] || "block");
+  const labelOf = (b) => tr(defOf(b)?.label || b?.[key] || "block");
 
   let rearranging = false;
   let selected = null;                 // the selected block (one of list)
@@ -85,10 +86,10 @@ export function renderBlocks(field, list, ctx) {
   }
   function chooser(at) {
     return h("div", { class: "chooser", role: "menu" },
-      h("div", { class: "chooser-head" }, h("span", {}, "Insert"),
-        h("button", { class: "icon-btn", "aria-label": "Cancel", onclick: () => { choosing = null; draw(); } }, icon("x"))),
+      h("div", { class: "chooser-head" }, h("span", {}, tr("Insert")),
+        h("button", { class: "icon-btn", "aria-label": tr("Cancel"), onclick: () => { choosing = null; draw(); } }, icon("x"))),
       h("div", { class: "chooser-options" }, defs.map((d) =>
-        h("button", { class: "chooser-option", role: "menuitem", onclick: () => choose(d, at) }, icon(TYPE_ICONS[d.name] || "plus"), d.label || d.name))));
+        h("button", { class: "chooser-option", role: "menuitem", onclick: () => choose(d, at) }, icon(TYPE_ICONS[d.name] || "plus"), tr(d.label || d.name)))));
   }
   function openChooser(at) {
     if (rearranging) toggleRearrange();
@@ -103,7 +104,7 @@ export function renderBlocks(field, list, ctx) {
     return Array.isArray(v) ? v.length > 0 : typeof v === "string" ? v.trim() !== "" : false;
   });
   async function remove(b) {
-    if (hasContent(b) && !(await confirmBox(`Delete this ${labelOf(b).toLowerCase()} block?`, "Delete"))) return;
+    if (hasContent(b) && !(await confirmBox(tr("Delete this {type} block?", { type: labelOf(b).toLowerCase() }), tr("Delete")))) return;
     const i = list.indexOf(b);
     list.splice(i, 1);
     if (selected === b) selected = null;
@@ -129,16 +130,16 @@ export function renderBlocks(field, list, ctx) {
   const blockCtx = { ...ctx, changed: () => { ctx.changed(); if (layoutKey() !== drawnLayout) draw(); } };
 
   // ----- one block -----
-  const previewOf = (b) => firstWords(b.text || b.caption || b.alt || "", 8) || (Array.isArray(b.images) ? `${b.images.length} photos` : "empty");
+  const previewOf = (b) => firstWords(b.text || b.caption || b.alt || "", 8) || (Array.isArray(b.images) ? t2(b.images.length, "{n} photo", "{n} photos") : tr("empty"));
 
   function blockEl(b, i) {
     const def = defOf(b);
     if (rearranging) {
       const el = h("div", { class: "block compact" },
-        h("button", { class: "grip", "aria-label": "Drag to move", onpointerdown: (e) => startDrag(e, el) }, icon("grip")),
+        h("button", { class: "grip", "aria-label": tr("Drag to move"), onpointerdown: (e) => startDrag(e, el) }, icon("grip")),
         h("span", { class: "block-type" }, icon(TYPE_ICONS[b[key]] || "text"), labelOf(b)),
         h("span", { class: "block-preview" }, previewOf(b)),
-        h("button", { class: "icon-btn", "aria-label": "Delete block", onclick: () => remove(b) }, icon("x")));
+        h("button", { class: "icon-btn", "aria-label": tr("Delete block"), onclick: () => remove(b) }, icon("x")));
       el.blockRef = b;
       return el;
     }
@@ -153,16 +154,16 @@ export function renderBlocks(field, list, ctx) {
         else {
           fieldEl.classList.add("primary");
           const t = fieldEl.querySelector(":scope > textarea, :scope > input");
-          if (t && !t.placeholder) t.placeholder = `Add ${String(f.label || f.name).toLowerCase()}`;
+          if (t && !t.placeholder) t.placeholder = tr("Add {label}", { label: tr(String(f.label || f.name)).toLowerCase() });
         }
       }
-    } else body = h("p", { class: "muted" }, `Unknown block type "${b[key]}"`);
+    } else body = h("p", { class: "muted" }, tr("Unknown block type “{type}”", { type: b[key] }));
     const el = h("div", { class: "block block-" + b[key] + (selected === b ? " selected" : "") },
       h("div", { class: "block-bar" },
         h("span", { class: "block-type" }, icon(TYPE_ICONS[b[key]] || "text"), labelOf(b)),
-        h("button", { class: "icon-btn", "aria-label": "Move up", disabled: i === 0, onclick: () => move(b, -1) }, icon("up")),
-        h("button", { class: "icon-btn", "aria-label": "Move down", disabled: i === list.length - 1, onclick: () => move(b, 1) }, icon("down")),
-        h("button", { class: "icon-btn danger", "aria-label": "Delete block", onclick: () => remove(b) }, icon("trash"))),
+        h("button", { class: "icon-btn", "aria-label": tr("Move up"), disabled: i === 0, onclick: () => move(b, -1) }, icon("up")),
+        h("button", { class: "icon-btn", "aria-label": tr("Move down"), disabled: i === list.length - 1, onclick: () => move(b, 1) }, icon("down")),
+        h("button", { class: "icon-btn danger", "aria-label": tr("Delete block"), onclick: () => remove(b) }, icon("trash"))),
       h("div", { class: "block-body" }, body),
       kindNote(b));
     el.blockRef = b;
@@ -170,12 +171,12 @@ export function renderBlocks(field, list, ctx) {
   }
   // a line under carousels and collages saying which is which, even when not selected
   function kindNote(b) {
-    if (b[key] === "carousel") return h("div", { class: "carousel-note" }, icon("carousel"), `carousel · one at a time, changes every ${b.seconds || 3} seconds`);
-    if (b[key] === "collage") return h("div", { class: "carousel-note" }, icon("grid"), "collage · all at once, staggered");
+    if (b[key] === "carousel") return h("div", { class: "carousel-note" }, icon("carousel"), tr("carousel · one at a time, changes every {s} seconds", { s: b.seconds || 3 }));
+    if (b[key] === "collage") return h("div", { class: "carousel-note" }, icon("grid"), tr("collage · all at once, staggered"));
     return null;
   }
   const insertLine = (at) => h("div", { class: "insert-line" },
-    h("button", { "aria-label": "Insert a block here", title: "Insert a block here", onclick: () => openChooser(at) }, icon("plus")));
+    h("button", { "aria-label": tr("Insert a block here"), title: tr("Insert a block here"), onclick: () => openChooser(at) }, icon("plus")));
 
   // ----- drag to reorder (Rearrange) -----
   function startDrag(e, el) {
@@ -226,8 +227,8 @@ export function renderBlocks(field, list, ctx) {
     else if (!rearranging) items.push(insertLine(list.length));
     fill(listEl, items);
     if (!list.length && choosing === null) {
-      listEl.prepend(h("div", { class: "blocks-empty" }, h("p", { class: "muted" }, "Nothing here yet."),
-        h("button", { class: "btn", onclick: () => openChooser(0) }, icon("plus"), "Insert a block")));
+      listEl.prepend(h("div", { class: "blocks-empty" }, h("p", { class: "muted" }, tr("Nothing here yet.")),
+        h("button", { class: "btn", onclick: () => openChooser(0) }, icon("plus"), tr("Insert a block"))));
     }
   }
 

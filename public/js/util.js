@@ -1,4 +1,5 @@
 // Small helpers used everywhere in the editor.
+import { t as tr } from "./i18n.js";
 
 // h("div", { class: "x", onclick: fn }, "text", childEl, [more, children])
 export function h(tag, attrs = {}, ...children) {
@@ -115,14 +116,14 @@ export function toast(message, kind = "") {
 }
 
 // confirm box in the page's style; resolves true/false
-export function confirmBox(message, yes = "Remove") {
+export function confirmBox(message, yes = tr("Remove")) {
   return new Promise((resolve) => {
     const close = (v) => { overlay.remove(); resolve(v); };
     const overlay = h("div", { class: "overlay", onclick: (e) => { if (e.target === overlay) close(false); } },
       h("div", { class: "dialog" },
         h("p", {}, message),
         h("div", { class: "dialog-buttons" },
-          h("button", { class: "btn", onclick: () => close(false) }, "Cancel"),
+          h("button", { class: "btn", onclick: () => close(false) }, tr("Cancel")),
           h("button", { class: "btn danger", onclick: () => close(true) }, yes))));
     document.body.append(overlay);
   });

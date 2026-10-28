@@ -15,6 +15,7 @@ function localOffset() {
 }
 import { api } from "./api.js";
 import { renderField } from "./fields.js";
+import { t, t2, fmtDate } from "./i18n.js";
 
 const SAVE_AFTER = 1200;            // ms after the last change
 const SKIP = new Set(["newTags"]);   // Pages CMS-only helpers
@@ -96,7 +97,7 @@ export async function openEditor({ file, section, config }) {
     const parts = [];
     if (has("date")) {
       const d = data.date ? new Date(String(data.date).slice(0, 10) + "T12:00:00") : null;
-      const picker = h("input", { type: "date", class: "meta-date-input", "aria-label": "Date", value: data.date ? String(data.date).slice(0, 10) : "",
+      const picker = h("input", { type: "date", class: "meta-date-input", "aria-label": t("Date"), value: data.date ? String(data.date).slice(0, 10) : "",
         onchange: () => {
           if (!picker.value) return;
           const rest = /^\d{4}-\d{2}-\d{2}(T.*)$/.exec(String(data.date || ""));
@@ -104,21 +105,21 @@ export async function openEditor({ file, section, config }) {
           changed(); refreshInspector();
         } });
       picker.addEventListener("click", () => { try { picker.showPicker(); } catch { /* opens by itself */ } });
-      parts.push(h("label", { class: "meta-date", title: "Change the date" },
-        icon("calendar"), h("span", {}, d && !isNaN(d) ? d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "Add a date"), picker));
+      parts.push(h("label", { class: "meta-date", title: t("Change the date") },
+        icon("calendar"), h("span", {}, d && !isNaN(d) ? fmtDate(d, "long") : t("Add a date")), picker));
     }
     if (has("draft")) {
       parts.push(h("button", { class: "meta-status " + (data.draft ? "is-draft" : "is-live"), "aria-pressed": String(!!data.draft),
-        title: data.draft ? "A draft: not on the site. Click to publish it when you next push." : "On the site. Click to make it a draft.",
+        title: data.draft ? t("A draft: not on the site. Click to publish it when you next push.") : t("On the site. Click to make it a draft."),
         onclick: () => { data.draft = !data.draft; changed(); refreshInspector(); } },
-        h("span", { class: "meta-dot", "aria-hidden": "true" }), data.draft ? "Draft" : "Published"));
+        h("span", { class: "meta-dot", "aria-hidden": "true" }), data.draft ? t("Draft") : t("Published")));
     }
     if (has("tags")) {
       if (!Array.isArray(data.tags)) data.tags = data.tags ? [data.tags] : [];
       const tags = data.tags;
       const suggestions = [...new Set([...(fields.find((f) => f.name === "tags")?.options?.values || []).map((v) => (typeof v === "object" ? String(v.value) : String(v))), ...(config.tags || [])])];
       const listId = "meta-tags-" + Math.random().toString(36).slice(2);
-      const adder = h("input", { class: "meta-tag-input", list: listId, placeholder: "add tag", "aria-label": "Add a tag", size: 7 });
+      const adder = h("input", { class: "meta-tag-input", list: listId, placeholder: t("add tag"), "aria-label": t("Add a tag"), size: 7 });
       const add = (raw) => {
         const v = raw.trim();
         if (!v) return;
@@ -134,8 +135,8 @@ export async function openEditor({ file, section, config }) {
       adder.addEventListener("change", () => { if (suggestions.includes(adder.value)) { add(adder.value); drawMeta(true); meta.querySelector(".meta-tag-input")?.focus(); } });
       adder.addEventListener("blur", () => { if (adder.value.trim()) { add(adder.value); } setTimeout(() => { if (!meta.contains(document.activeElement)) drawMeta(true); }, 0); });
       parts.push(h("span", { class: "meta-tags" },
-        tags.map((t, i) => h("span", { class: "meta-tag" }, t,
-          h("button", { class: "meta-tag-x", "aria-label": `Remove tag ${t}`, onclick: () => { tags.splice(i, 1); changed(); refreshInspector(); drawMeta(true); } }, "×"))),
+        tags.map((tag, i) => h("span", { class: "meta-tag" }, tag,
+          h("button", { class: "meta-tag-x", "aria-label": t("Remove tag {tag}", { tag }), onclick: () => { tags.splice(i, 1); changed(); refreshInspector(); drawMeta(true); } }, "×"))),
         adder,
         h("datalist", { id: listId }, suggestions.filter((x) => !tags.includes(x)).map((x) => h("option", { value: x })))));
     }
@@ -145,14 +146,14 @@ export async function openEditor({ file, section, config }) {
   let blocksEl = null;
   const doc = h("div", { class: "doc" });
   if (titleField) {
-    const title = autosize(h("textarea", { class: "doc-title", rows: 1, placeholder: "Title", "aria-label": "Title", value: data.title ?? "",
+    const title = autosize(h("textarea", { class: "doc-title", rows: 1, placeholder: t("Title"), "aria-label": t("Title"), value: data.title ?? "",
       oninput: () => { data.title = title.value.replace(/\n/g, " "); changed(); },
       onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); doc.querySelector(".block .rich-box:not([hidden]), .block textarea:not([hidden]), .doc-body .rich-box:not([hidden]), .doc-body textarea")?.focus(); } } }));
     doc.append(title);
     // a longer title (projects' "full title") sits right under the title, as a subtitle
     if (subtitleField) {
       const sub = autosize(h("textarea", { class: "doc-subtitle", rows: 1, "aria-label": subtitleField.label || subtitleField.name,
-        placeholder: `${subtitleField.label || subtitleField.name} (optional)`, value: data[subtitleField.name] ?? "",
+        placeholder: t("{label} (optional)", { label: t(subtitleField.label || subtitleField.name) }), value: data[subtitleField.name] ?? "",
         oninput: () => { data[subtitleField.name] = sub.value.replace(/\n/g, " "); changed(); },
         onkeydown: (e) => { if (e.key === "Enter") e.preventDefault(); } }));
       doc.append(sub);
@@ -171,7 +172,7 @@ export async function openEditor({ file, section, config }) {
     for (const f of galleryFields) {
       const el = renderField(f, data, ctx);
       if (el) doc.append(h("section", { class: "doc-gallery" },
-        h("div", { class: "doc-section-head" }, h("span", {}, f.label || f.name), Array.isArray(data[f.name]) ? h("span", { class: "muted" }, `${data[f.name].length} images`) : null),
+        h("div", { class: "doc-section-head" }, h("span", {}, t(f.label || f.name)), Array.isArray(data[f.name]) ? h("span", { class: "muted" }, t2(data[f.name].length, "{n} image", "{n} images")) : null),
         el));
     }
   } else {
@@ -201,14 +202,14 @@ export async function openEditor({ file, section, config }) {
       } else {
         rows = null;
         inspector.append(h("div", { class: "group-wrap" },
-          h("div", { class: "group-label" }, el.querySelector(".field-label")?.textContent || f.label || f.name),
+          h("div", { class: "group-label" }, el.querySelector(".field-label")?.textContent || t(f.label || f.name)),
           h("div", { class: "group" + (f.type === "image" ? " image-group" : "") }, el)));
       }
     }
   } else {
-    inspector.append(h("p", { class: "muted small inspector-empty" }, "This page's fields are all in the document."));
+    inspector.append(h("p", { class: "muted small inspector-empty" }, t("This page's fields are all in the document.")));
   }
-  inspector.append(h("div", { class: "group-wrap" }, h("div", { class: "group-label" }, "Address"), h("div", { class: "address" }, url)));
+  inspector.append(h("div", { class: "group-wrap" }, h("div", { class: "group-label" }, t("Address")), h("div", { class: "address" }, url)));
   if (scroll && inspector.parentNode) inspector.parentNode.scrollTop = scroll;
   }
   refreshInspector();
@@ -228,6 +229,7 @@ export async function openEditor({ file, section, config }) {
     get title() { return data.title || config.sections.find((s) => s.path === file)?.label || file; },
     data, payload,
     doc, inspector,
+    redrawMeta: () => drawMeta(true),
     blocks: blocksEl?.api || null,  // only block fields have one
     status: () => statusText,
     onStatus: (fn) => statusListeners.add(fn),
@@ -235,17 +237,17 @@ export async function openEditor({ file, section, config }) {
     flush: () => { pending = pending || failed; return save(); },
     isChanged: () => JSON.stringify(payload()) !== original,
     async revert() {
-      if (!(await confirmBox("Put this back the way it was when you opened it? Your changes since then will be lost.", "Revert"))) return false;
+      if (!(await confirmBox(t("Put this back the way it was when you opened it? Your changes since then will be lost."), t("Revert")))) return false;
       const was = JSON.parse(original);
       clearTimeout(timer); pending = false;
       await api.save(file, was.data, was.body);
       return true;
     },
     async remove() {
-      if (!(await confirmBox(`Move "${data.title || file}" to the Trash? It goes into the .cms-trash folder in your site, so you can get it back.`, "Move to Trash"))) return false;
+      if (!(await confirmBox(t("Move “{title}” to the Trash? It goes into the .cms-trash folder in your site, so you can get it back.", { title: data.title || file }), t("Move to Trash")))) return false;
       clearTimeout(timer); pending = false;
       await api.remove(file);
-      toast("Moved to .cms-trash");
+      toast(t("Moved to .cms-trash"));
       return true;
     },
     destroy: () => { document.removeEventListener("keydown", onKey); window.removeEventListener("pagehide", onLeave); },

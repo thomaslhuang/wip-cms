@@ -5,6 +5,7 @@
 // (Safari) send a 1500px JPEG instead; the GitHub Action converts it after you push.
 import { h, fill, icon, toast } from "./util.js";
 import { api } from "./api.js";
+import { t as tr, t2 } from "./i18n.js";
 
 const LONGEST_EDGE = 1500;
 
@@ -37,7 +38,7 @@ export async function uploadFiles(folder, files) {
     const saved = await api.upload(folder, name, blob);
     urls.push(saved.url);
   }
-  if (urls.length) toast(`Uploaded ${urls.length} image${urls.length > 1 ? "s" : ""}`);
+  if (urls.length) toast(t2(urls.length, "Uploaded {n} image", "Uploaded {n} images"));
   return urls;
 }
 
@@ -71,9 +72,9 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     fill(crumbs);
     const parts = path.slice(ROOT.length).split("/").filter(Boolean);
     const link = (label, target) => h("button", { class: "crumb", onclick: () => show(target) }, label);
-    crumbs.append(link("images", ROOT));
+    crumbs.append(link(tr("images"), ROOT));
     parts.forEach((p, i) => crumbs.append(" / ", link(p, ROOT + "/" + parts.slice(0, i + 1).join("/"))));
-    if (!list.exists) crumbs.append(h("span", { class: "muted" }, "  (new folder: made when you upload)"));
+    if (!list.exists) crumbs.append(h("span", { class: "muted" }, "  " + tr("(new folder: made when you upload)")));
 
     fill(grid,
       ...list.folders.map((f) => h("button", { class: "picker-folder", onclick: () => show(f.folder) }, icon("folder"), h("span", {}, f.name))),
@@ -82,7 +83,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
           ondragstart: (e) => e.dataTransfer.setData("text/plain", img.url),
           onclick: () => {
             if (!pickable) {
-              navigator.clipboard?.writeText(img.url).then(() => toast("Copied " + img.url), () => toast(img.url));
+              navigator.clipboard?.writeText(img.url).then(() => toast(tr("Copied {url}", { url: img.url })), () => toast(img.url));
               return;
             }
             const i = selected.indexOf(img.url);
@@ -95,7 +96,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
         return tile;
       }),
     );
-    if (!list.folders.length && !list.images.length) grid.append(h("p", { class: "muted picker-empty" }, "No images here yet. Upload some, or go up a folder."));
+    if (!list.folders.length && !list.images.length) grid.append(h("p", { class: "muted picker-empty" }, tr("No images here yet. Upload some, or go up a folder.")));
     onPick(selected.slice(), false);
   }
 
@@ -108,12 +109,12 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     const link = await api.phoneLink(current);
     phoneBtn.classList.add("on");
     phonePanel.hidden = false;
-    if (!link.links.length) { fill(phonePanel, h("p", { class: "muted" }, link.error || "No network found.")); return; }
+    if (!link.links.length) { fill(phonePanel, h("p", { class: "muted" }, link.error || tr("No network found."))); return; }
     fill(phonePanel, h("div", { class: "phone-qr", html: link.qr }), h("div", { class: "phone-steps" },
-      h("p", {}, "Scan with your phone's camera (same Wi‑Fi as this Mac), choose photos, and they'll appear here."),
-      h("p", { class: "muted small" }, "Saving into: " + current),
-      h("p", { class: "muted small" }, "Or open: ", h("span", { class: "phone-url" }, link.links[0])),
-      h("p", { class: "muted small" }, "If your phone can't connect, macOS may be asking to allow incoming connections for “node”: click Allow.")));
+      h("p", {}, tr("Scan with your phone's camera (same Wi‑Fi as this Mac), choose photos, and they'll appear here.")),
+      h("p", { class: "muted small" }, tr("Saving into: {folder}", { folder: current })),
+      h("p", { class: "muted small" }, tr("Or open: "), h("span", { class: "phone-url" }, link.links[0])),
+      h("p", { class: "muted small" }, tr("If your phone can't connect, macOS may be asking to allow incoming connections for “node”: click Allow."))));
     const folderAtStart = current;
     const known = new Set((await api.media(current)).images.map((i) => i.url));
     phoneTimer = setInterval(async () => {
@@ -126,12 +127,12 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
         if (multiple) selected.push(...fresh.map((i) => i.url));
         else { selected.length = 0; selected.push(fresh[fresh.length - 1].url); }
       }
-      toast(`${fresh.length} photo${fresh.length > 1 ? "s" : ""} from your phone`);
+      toast(t2(fresh.length, "{n} photo from your phone", "{n} photos from your phone"));
       await show(current);
       if (pickable && !multiple) onPick(selected.slice(), true);
     }, 1500);
   }
-  const phoneBtn = h("button", { class: "btn", onclick: () => startPhone() }, icon("phone"), h("span", { class: "label" }, "From phone"));
+  const phoneBtn = h("button", { class: "btn", onclick: () => startPhone() }, icon("phone"), h("span", { class: "label" }, tr("From phone")));
 
   async function upload(files) {
     try {
@@ -146,9 +147,9 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     ondrop: (e) => { if (e.dataTransfer.files.length) { e.preventDefault(); upload([...e.dataTransfer.files]); } } },
     h("div", { class: "picker-head" }, crumbs,
       phoneBtn,
-      h("button", { class: "btn", onclick: () => chooseFiles(multiple || !pickable, upload) }, icon("upload"), h("span", { class: "label" }, "Upload")),
-      h("button", { class: "icon-btn", title: "Refresh", onclick: () => show(current) }, icon("refresh")),
-      onClose ? h("button", { class: "btn ghost", title: "Close", onclick: onClose }, icon("x")) : null),
+      h("button", { class: "btn", onclick: () => chooseFiles(multiple || !pickable, upload) }, icon("upload"), h("span", { class: "label" }, tr("Upload"))),
+      h("button", { class: "icon-btn", title: tr("Refresh"), onclick: () => show(current) }, icon("refresh")),
+      onClose ? h("button", { class: "btn ghost", title: tr("Close"), onclick: onClose }, icon("x")) : null),
     phonePanel,
     grid);
   return { el, show: (p) => show(p ?? current), stopPhone, get folder() { return current; } };
@@ -158,7 +159,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
 export function libraryBrowser({ folder } = {}) {
   const view = libraryView({ folder, pickable: false });
   view.show(folder || ROOT);
-  view.el.append(h("p", { class: "muted small picker-tip" }, "Drop images here to upload into this folder. Click one to copy its address."));
+  view.el.append(h("p", { class: "muted small picker-tip" }, tr("Drop images here to upload into this folder. Click one to copy its address.")));
   return view;
 }
 
@@ -169,20 +170,20 @@ export function libraryBrowser({ folder } = {}) {
 export function openPicker({ multiple = false, folder, phone = false } = {}) {
   return new Promise((resolve) => {
     const count = h("span", { class: "muted" });
-    const chooseBtn = h("button", { class: "btn primary", onclick: () => finish(current.slice()) }, "Use selected");
+    const chooseBtn = h("button", { class: "btn primary", onclick: () => finish(current.slice()) }, tr("Use selected"));
     let current = [];
     const finish = (value) => { view.stopPhone(); overlay.remove(); document.removeEventListener("keydown", onKey); resolve(value); };
     const onKey = (e) => { if (e.key === "Escape") finish(null); };
     document.addEventListener("keydown", onKey);
     const view = libraryView({ folder, multiple, onClose: () => finish(null), onPick: (urls, done) => {
       current = urls;
-      count.textContent = urls.length ? `${urls.length} selected` : (multiple ? "Pick one or more images" : "Pick an image");
+      count.textContent = urls.length ? tr("{n} selected", { n: urls.length }) : (multiple ? tr("Pick one or more images") : tr("Pick an image"));
       chooseBtn.disabled = !urls.length;
       if (done) finish(urls);
     } });
     const overlay = h("div", { class: "overlay", onclick: (e) => { if (e.target === overlay) finish(null); } },
       h("div", { class: "dialog picker" }, view.el,
-        h("div", { class: "picker-foot" }, count, h("span", { class: "muted small" }, "Tip: drop images onto this window to upload"),
+        h("div", { class: "picker-foot" }, count, h("span", { class: "muted small" }, tr("Tip: drop images onto this window to upload")),
           multiple ? chooseBtn : null)));
     document.body.append(overlay);
     view.show(folder || ROOT).then(() => { if (phone) view.el.querySelector(".picker-head .btn").click(); });
