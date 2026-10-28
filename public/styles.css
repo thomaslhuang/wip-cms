@@ -288,7 +288,7 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
 @media (hover: none) { .block-grip { opacity: .6; left: -26px; } }
 .block-pair .block > .block-grip { left: -26px; }
 .block-pair .block + .block > .block-grip { left: auto; right: 4px; top: 10px; background: var(--pop); box-shadow: var(--shadow); }
-.block.drag-source { opacity: .55; box-shadow: 0 0 0 2px var(--accent); background: var(--accent-soft); }
+.block.drag-source { opacity: .55; box-shadow: 0 0 0 1px var(--accent); background: var(--accent-soft); }
 /* while dragging, the + lines step aside and the same space goes around each block, so
    nothing jumps when the block moves */
 .block-dragging .insert-line { display: none; }
@@ -316,9 +316,9 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
   padding: 10px 16px; border-radius: 12px; box-shadow: var(--pop-shadow); text-align: center; pointer-events: none; font-size: 12px; }
 .file-drop-hint b { display: block; font-size: 14px; margin-bottom: 2px; }
 .app.file-over .docpane { box-shadow: inset 0 0 0 3px var(--accent); }
-.block { position: relative; border-radius: 12px; padding: 6px 10px; margin: 0 -10px; }
+.block { position: relative; border-radius: 12px; padding: 10px; margin: 0 -10px; }   /* the same space on every side inside the outline */
 @media (hover: hover) { .block:hover:not(.selected):not(.compact) { box-shadow: 0 0 0 1px var(--line); } }
-.block.selected { box-shadow: 0 0 0 2px var(--accent); }
+.block.selected { box-shadow: 0 0 0 1px var(--accent); }
 .block-bar { display: none; position: absolute; top: -40px; right: 6px; z-index: 6; align-items: center; gap: 1px; padding: 3px 4px 3px 10px;
   background: var(--pop); border-radius: 9px; box-shadow: var(--pop-shadow); }
 .block.selected .block-bar { display: flex; }
