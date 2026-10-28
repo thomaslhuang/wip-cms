@@ -19,6 +19,9 @@ const FONTS = {
   rounded: { label: "SF Rounded", family: 'ui-rounded, "SF Pro Rounded", -apple-system, sans-serif' },
   mono: { label: "SF Mono", family: 'ui-monospace, "SF Mono", Menlo, monospace' },
   menlo: { label: "Menlo", family: 'Menlo, ui-monospace, monospace' },
+  // from Google Fonts (loaded when a theme uses them)
+  zenMincho: { label: "Zen Old Mincho", google: "Zen Old Mincho:wght@400;500;700", family: '"Zen Old Mincho", ui-serif, "Hiragino Mincho ProN", serif' },
+  zenGothic: { label: "Zen Kaku Gothic New", google: "Zen Kaku Gothic New:wght@400;500;700", family: '"Zen Kaku Gothic New", -apple-system, "Hiragino Sans", sans-serif' },
 };
 const font = (key, d) => (typeof key === "object" && key ? key : FONTS[key] ? { preset: key } : { preset: d });
 const familyOf = (f) => (f.preset ? FONTS[f.preset]?.family : `"${f.custom}", ${FONTS.system.family}`);
@@ -69,7 +72,13 @@ function varsFor(t) {
   v["--writing-size"] = (t.size || 16) + "px";
   return v;
 }
-const googleFonts = (t) => [t.font, t.writing, t.mono].filter((f) => f && typeof f === "object" && f.custom && f.google).map((f) => f.custom);
+// "Zen Old Mincho:wght@400;700" -> Zen+Old+Mincho:wght@400;700. Fonts typed in by name ask
+// for the regular weight only, which every Google font has (bold is then drawn by the browser).
+const googleSpec = (name) => { const [fam, axes] = name.split(":"); return encodeURIComponent(fam).replace(/%20/g, "+") + (axes ? ":" + axes : ""); };
+const googleFonts = (t) => [...new Set([t.font, t.writing, t.mono].filter(Boolean).map((x) => {
+  const f = font(x);
+  return f.preset ? FONTS[f.preset]?.google : f.google ? f.custom : null;
+}).filter(Boolean))];
 
 export function applyTheme(t = activeTheme()) {
   const root = document.documentElement;
@@ -79,7 +88,7 @@ export function applyTheme(t = activeTheme()) {
   // custom fonts from Google Fonts
   document.querySelectorAll("link[data-theme-font]").forEach((l) => l.remove());
   for (const name of googleFonts(t)) {
-    document.head.append(h("link", { rel: "stylesheet", "data-theme-font": "", href: `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name).replace(/%20/g, "+")}:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap` }));
+    document.head.append(h("link", { rel: "stylesheet", "data-theme-font": "", href: `https://fonts.googleapis.com/css2?family=${googleSpec(name)}&display=swap` }));
   }
   // remembered so index.html can paint the right colours before anything loads
   write("wip-theme-boot", { light: bootFor(themeById(read("wip-theme-light", "light"), "light")), dark: bootFor(themeById(read("wip-theme-dark", "dark"), "dark")) });
