@@ -82,6 +82,9 @@ export async function openEditor({ file, section, config }) {
   // the document's main part: the blocks, or else the body text of a plain post
   const blockField = fields.find((f) => f.type === "block") || (hasBody ? fields.find((f) => f.name === "body") : null);
   const titleField = blockField && fields.find((f) => f.name === "title");
+  // also in the document rather than the inspector: a long title, and galleries (several images)
+  const subtitleField = titleField && fields.find((f) => ["longTitle", "subtitle", "fullTitle"].includes(f.name) && f.type === "string");
+  const galleryFields = blockField ? fields.filter((f) => f.type === "image" && f.options?.multiple) : [];
 
   // under the title: the date, draft and tags, each editable right there
   const meta = h("div", { class: "doc-meta" });
@@ -145,7 +148,16 @@ export async function openEditor({ file, section, config }) {
     const title = autosize(h("textarea", { class: "doc-title", rows: 1, placeholder: "Title", "aria-label": "Title", value: data.title ?? "",
       oninput: () => { data.title = title.value.replace(/\n/g, " "); changed(); },
       onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); doc.querySelector(".block .rich-box:not([hidden]), .block textarea:not([hidden]), .doc-body .rich-box:not([hidden]), .doc-body textarea")?.focus(); } } }));
-    doc.append(title, meta);
+    doc.append(title);
+    // a longer title (projects' "full title") sits right under the title, as a subtitle
+    if (subtitleField) {
+      const sub = autosize(h("textarea", { class: "doc-subtitle", rows: 1, "aria-label": subtitleField.label || subtitleField.name,
+        placeholder: `${subtitleField.label || subtitleField.name} (optional)`, value: data[subtitleField.name] ?? "",
+        oninput: () => { data[subtitleField.name] = sub.value.replace(/\n/g, " "); changed(); },
+        onkeydown: (e) => { if (e.key === "Enter") e.preventDefault(); } }));
+      doc.append(sub);
+    }
+    doc.append(meta);
     drawMeta();
   }
   if (blockField) {
@@ -155,6 +167,13 @@ export async function openEditor({ file, section, config }) {
       blocksEl.classList.add("doc-body");
     }
     doc.append(blocksEl);
+    // big picture content (a project's gallery) belongs with the writing, not in the inspector
+    for (const f of galleryFields) {
+      const el = renderField(f, data, ctx);
+      if (el) doc.append(h("section", { class: "doc-gallery" },
+        h("div", { class: "doc-section-head" }, h("span", {}, f.label || f.name), Array.isArray(data[f.name]) ? h("span", { class: "muted" }, `${data[f.name].length} images`) : null),
+        el));
+    }
   } else {
     // a page without blocks: its fields, in grouped cards
     doc.classList.add("doc-form");
@@ -172,7 +191,7 @@ export async function openEditor({ file, section, config }) {
   if (blockField) {
     let rows = null; // consecutive date / switch fields share one card
     for (const f of fields) {
-      if (f === blockField || f === titleField) continue;
+      if (f === blockField || f === titleField || f === subtitleField || galleryFields.includes(f)) continue;
       const el = renderField(f, data, ctx);
       if (!el) continue;
       if (ROW_TYPES.has(f.type)) {
