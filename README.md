@@ -60,6 +60,15 @@ Options:
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
 | **Inspector** | The post's details: featured image, date, switches, tags, and its web address. |
 
+**New posts:** the pencil above the list asks for a title and a **permalink** (the end of
+its web address, e.g. `/blog/2026/10/cafe-opening/`). The permalink follows the title as
+you type; change it and it stays as you set it.
+
+**Under the title:** the date, **Draft / Published** and the tags can be changed right
+there. Click the date for a date picker, click Draft or Published to switch, and type in
+"add tag" (Return adds it, suggestions come from tags you've used). The inspector shows
+the same and stays in step.
+
 **Writing**
 
 - Text shows its formatting as you write: *italic* looks italic, **bold** looks bold,

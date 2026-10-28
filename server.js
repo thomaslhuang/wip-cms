@@ -59,7 +59,7 @@ const routes = {
   "GET /api/entries": (q) => entries.listEntries(q.section),
   "GET /api/entry": (q) => entries.readEntry(q.file),
   "PUT /api/entry": (q, body) => { const saved = entries.writeEntry(body.file, body.data, body.body); afterChange(saved.file); return saved; },
-  "POST /api/entry": (q, body) => { const made = entries.createEntry(body.section, body.title); afterChange(made.file); return made; },
+  "POST /api/entry": (q, body) => { const made = entries.createEntry(body.section, body.title, body.slug); afterChange(made.file); return made; },
   "DELETE /api/entry": (q) => { const result = entries.deleteEntry(q.file); afterChange(q.file); return result; },
 
   // unsaved edits -> the live preview only (your files are untouched)

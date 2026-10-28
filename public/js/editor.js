@@ -8,6 +8,11 @@
 // Saving is automatic, a moment after you stop typing (and straight away with ⌘S).
 // "Revert to when opened" puts back what the post was when you opened it.
 import { h, fill, icon, toast, confirmBox, autosize } from "./util.js";
+
+function localOffset() {
+  const off = -new Date().getTimezoneOffset(), pad = (n) => String(n).padStart(2, "0");
+  return (off >= 0 ? "+" : "-") + pad(Math.floor(Math.abs(off) / 60)) + ":" + pad(Math.abs(off) % 60);
+}
 import { api } from "./api.js";
 import { renderField } from "./fields.js";
 
@@ -78,17 +83,60 @@ export async function openEditor({ file, section, config }) {
   const blockField = fields.find((f) => f.type === "block") || (hasBody ? fields.find((f) => f.name === "body") : null);
   const titleField = blockField && fields.find((f) => f.name === "title");
 
+  // under the title: the date, draft and tags, each editable right there
   const meta = h("div", { class: "doc-meta" });
-  function drawMeta() {
+  const has = (name) => fields.some((f) => f.name === name);
+  function drawMeta(force) {
     if (!titleField) return;
-    const bits = [];
-    if (data.date) {
-      const d = new Date(String(data.date).slice(0, 10) + "T12:00:00");
-      if (!isNaN(d)) bits.push(d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }));
+    // don't redraw while you're typing a tag in it
+    if (!force && meta.contains(document.activeElement) && document.activeElement.tagName === "INPUT" && document.activeElement.type !== "date") return;
+    const parts = [];
+    if (has("date")) {
+      const d = data.date ? new Date(String(data.date).slice(0, 10) + "T12:00:00") : null;
+      const picker = h("input", { type: "date", class: "meta-date-input", "aria-label": "Date", value: data.date ? String(data.date).slice(0, 10) : "",
+        onchange: () => {
+          if (!picker.value) return;
+          const rest = /^\d{4}-\d{2}-\d{2}(T.*)$/.exec(String(data.date || ""));
+          data.date = picker.value + (rest ? rest[1] : "T00:00:00" + localOffset());
+          changed(); refreshInspector();
+        } });
+      picker.addEventListener("click", () => { try { picker.showPicker(); } catch { /* opens by itself */ } });
+      parts.push(h("label", { class: "meta-date", title: "Change the date" },
+        icon("calendar"), h("span", {}, d && !isNaN(d) ? d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "Add a date"), picker));
     }
-    if (Array.isArray(data.tags) && data.tags.length) bits.push(data.tags.join(", "));
-    if (data.draft) bits.push("draft");
-    fill(meta, bits.flatMap((b, i) => (i ? [h("span", { "aria-hidden": "true" }, "·"), b] : [b])));
+    if (has("draft")) {
+      parts.push(h("button", { class: "meta-status " + (data.draft ? "is-draft" : "is-live"), "aria-pressed": String(!!data.draft),
+        title: data.draft ? "A draft: not on the site. Click to publish it when you next push." : "On the site. Click to make it a draft.",
+        onclick: () => { data.draft = !data.draft; changed(); refreshInspector(); } },
+        h("span", { class: "meta-dot", "aria-hidden": "true" }), data.draft ? "Draft" : "Published"));
+    }
+    if (has("tags")) {
+      if (!Array.isArray(data.tags)) data.tags = data.tags ? [data.tags] : [];
+      const tags = data.tags;
+      const suggestions = [...new Set([...(fields.find((f) => f.name === "tags")?.options?.values || []).map((v) => (typeof v === "object" ? String(v.value) : String(v))), ...(config.tags || [])])];
+      const listId = "meta-tags-" + Math.random().toString(36).slice(2);
+      const adder = h("input", { class: "meta-tag-input", list: listId, placeholder: "add tag", "aria-label": "Add a tag", size: 7 });
+      const add = (raw) => {
+        const v = raw.trim();
+        if (!v) return;
+        const existing = suggestions.find((x) => x.toLowerCase() === v.toLowerCase()) || v; // keep the spelling you already use
+        if (!tags.some((t) => t.toLowerCase() === existing.toLowerCase())) { tags.push(existing); changed(); refreshInspector(); }
+        adder.value = "";
+      };
+      adder.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(adder.value); drawMeta(true); meta.querySelector(".meta-tag-input")?.focus(); }
+        if (e.key === "Backspace" && !adder.value && tags.length) { tags.pop(); changed(); refreshInspector(); drawMeta(true); meta.querySelector(".meta-tag-input")?.focus(); }
+        if (e.key === "Escape") adder.blur();
+      });
+      adder.addEventListener("change", () => { if (suggestions.includes(adder.value)) { add(adder.value); drawMeta(true); meta.querySelector(".meta-tag-input")?.focus(); } });
+      adder.addEventListener("blur", () => { if (adder.value.trim()) { add(adder.value); } setTimeout(() => { if (!meta.contains(document.activeElement)) drawMeta(true); }, 0); });
+      parts.push(h("span", { class: "meta-tags" },
+        tags.map((t, i) => h("span", { class: "meta-tag" }, t,
+          h("button", { class: "meta-tag-x", "aria-label": `Remove tag ${t}`, onclick: () => { tags.splice(i, 1); changed(); refreshInspector(); drawMeta(true); } }, "×"))),
+        adder,
+        h("datalist", { id: listId }, suggestions.filter((x) => !tags.includes(x)).map((x) => h("option", { value: x })))));
+    }
+    fill(meta, parts);
   }
 
   let blocksEl = null;
@@ -115,7 +163,12 @@ export async function openEditor({ file, section, config }) {
   }
 
   // ----- the inspector -----
+  // (rebuilt when the date, draft or tags change under the title, so both show the same)
   const inspector = h("div", { class: "inspector-body" });
+  const url = entry.url || guessPageUrl(file);
+  function refreshInspector() {
+  const scroll = inspector.parentNode?.scrollTop;
+  fill(inspector);
   if (blockField) {
     let rows = null; // consecutive date / switch fields share one card
     for (const f of fields) {
@@ -136,8 +189,10 @@ export async function openEditor({ file, section, config }) {
   } else {
     inspector.append(h("p", { class: "muted small inspector-empty" }, "This page's fields are all in the document."));
   }
-  const url = entry.url || guessPageUrl(file);
   inspector.append(h("div", { class: "group-wrap" }, h("div", { class: "group-label" }, "Address"), h("div", { class: "address" }, url)));
+  if (scroll && inspector.parentNode) inspector.parentNode.scrollTop = scroll;
+  }
+  refreshInspector();
 
   // ⌘S saves straight away
   const onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); pending = true; save(); } };

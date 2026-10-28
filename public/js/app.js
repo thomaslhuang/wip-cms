@@ -185,26 +185,42 @@ function resizeList(e) {
   window.addEventListener("pointerup", up);
 }
 
+// the same rule as the server's (lib/entries.js): lower case, letters and numbers, dashes between
+const slugify = (t) => String(t || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
 function newEntry(section) {
   const singular = section.label.replace(/s$/, "").replace(/ posts?$/, " post").toLowerCase();
-  const input = h("input", { class: "field-input", placeholder: "Title" });
+  // where it will live on the site: the section's folder (inside the site's pages folder) plus
+  // its filename template, e.g. blog/{year}/{month}/<permalink>/
+  const now = new Date();
+  const root = config.site.contentRoot === "." ? "" : config.site.contentRoot + "/";
+  const base = "/" + (section.path.startsWith(root) ? section.path.slice(root.length) : section.path) + "/" +
+    (section.filename || "{primary}/index.md").replace("{year}", now.getFullYear()).replace("{month}", String(now.getMonth() + 1).padStart(2, "0")).replace(/\{primary\}\/index\.md$/, "").replace(/\{primary\}.*$/, "");
+  let edited = false;
+  const title = h("input", { class: "field-input", placeholder: "Title", "aria-label": "Title", oninput: () => { if (!edited) link.value = slugify(title.value); } });
+  const link = h("input", { class: "field-input permalink-input", placeholder: "made from the title", "aria-label": "Permalink",
+    oninput: () => { edited = link.value.trim() !== ""; },
+    onblur: () => { link.value = slugify(link.value); if (!link.value) { edited = false; link.value = slugify(title.value); } } });
   const go = async () => {
-    const title = input.value.trim();
-    if (!title) return input.focus();
+    const t = title.value.trim();
+    if (!t) return title.focus();
     overlay.remove();
     try {
-      const created = await api.create(section.name, title);
+      const created = await api.create(section.name, t, slugify(link.value) || slugify(t));
       await loadList(section.name, true);
       location.hash = "#/edit/" + created.file;
     } catch (e) { toast(e.message, "error"); }
   };
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); if (e.key === "Escape") overlay.remove(); });
+  for (const el of [title, link]) el.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); if (e.key === "Escape") overlay.remove(); });
   const overlay = h("div", { class: "overlay", onclick: (e) => { if (e.target === overlay) overlay.remove(); } },
-    h("div", { class: "dialog" }, h("p", { class: "dialog-title" }, `New ${singular}`), input,
-      h("p", { class: "muted small" }, "The title also becomes its web address. New posts start as drafts."),
+    h("div", { class: "dialog" }, h("p", { class: "dialog-title" }, `New ${singular}`),
+      title,
+      h("label", { class: "permalink" }, h("span", { class: "field-label" }, "Permalink"),
+        h("span", { class: "permalink-row" }, h("span", { class: "permalink-base" }, base), link, h("span", { class: "permalink-base" }, "/"))),
+      h("p", { class: "muted small" }, "The permalink follows the title unless you change it. New posts start as drafts."),
       h("div", { class: "dialog-buttons" }, h("button", { class: "btn", onclick: () => overlay.remove() }, "Cancel"), h("button", { class: "btn primary", onclick: go }, "Create"))));
   document.body.append(overlay);
-  input.focus();
+  title.focus();
 }
 
 // ---------- toolbar ----------
