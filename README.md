@@ -52,12 +52,15 @@ Options:
   will land. Drop on an edge to dock it beside, above or below that panel, or drop in
   the middle to add it as a tab.
 - **Resize:** drag the thin line between two panels.
+- **Minimise:** click the **–** at the right of a panel's tabs, or double-click its tab
+  strip. It shrinks to just its tabs: a strip across, or a strip down the side.
+  Click a tab to bring it back.
 - **Close a panel:** click the **×** on its tab.
 - **Window** (top right): reopen closed panels or switch to a ready-made layout.
-  - **Write with preview:** everything side by side.
-  - **Write:** no preview.
-  - **Focus:** content and preview only.
-  - **Preview below:** the preview under the editor.
+  - **Write with preview:** Details above Content, with the preview beside them.
+  - **Write:** the same, without the preview.
+  - **Focus:** Details minimised above Content, with the preview beside them.
+  - **Preview below:** Details, Content and the preview in one column.
 - Your layout is remembered. In a narrow window, all panels become tabs.
 
 **Saving and publishing**

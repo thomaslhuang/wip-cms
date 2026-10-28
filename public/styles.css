@@ -76,6 +76,18 @@ button { font: inherit; color: inherit; }
 .dock-tab:hover .dock-tab-close, .dock-tab.on .dock-tab-close { opacity: 1; }
 .dock-tab-close:hover { background: var(--raise); color: var(--text); }
 .dock-tab-close .icon { width: 12px; height: 12px; }
+.dock-min { margin-left: auto; flex: none; border: 0; background: none; color: var(--muted); width: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.dock-min:hover { color: var(--text); background: var(--raise); }
+.dock-min .icon { width: 14px; height: 14px; }
+.dock-splitter.fixed { pointer-events: none; }
+/* minimised: just the tabs. In a column it's a strip across; in a row, a strip down the side */
+.dock-stack.min .dock-tabs { border-bottom: 0; }
+.dock-stack.min-row { width: var(--tabs); }
+.dock-stack.min-row .dock-tabs { flex-direction: column; height: 100%; width: var(--tabs); overflow: visible; }
+.dock-stack.min-row .dock-min { order: -1; margin: 0; height: 30px; width: 100%; }
+.dock-stack.min-row .dock-tab { writing-mode: vertical-rl; padding: 12px 0; border-right: 0; border-bottom: 1px solid var(--line); justify-content: center; }
+.dock-stack.min .dock-tab-close { display: none; }
+.dock-stack.min .dock-tab { cursor: pointer; }
 .dock-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; background: var(--bg); container-type: inline-size; }
 .dock-body > .panel { min-height: 100%; }
 /* while dragging a tab: the iframe would swallow the drag, so let it through */

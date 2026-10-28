@@ -6,6 +6,8 @@
 //   - drag a panel by its tab onto another panel: drop on an edge to dock beside / above /
 //     below it, or in the middle to add it as a tab
 //   - drag the thin lines between panels to resize
+//   - minimise a group of panels with its – button (or double-click its tabs): it shrinks
+//     to just its tabs, and clicking a tab brings it back
 //   - close a panel with its ×, and bring it back from the Window menu
 // The layout is remembered in this browser (localStorage).
 //
@@ -15,7 +17,7 @@
 //       { type: "stack", panels: ["content", "details"], active: 0 } ] }
 import { h, icon } from "./util.js";
 
-const STORE = "wip-cms-layout";
+const STORE = "wip-cms-layout-2"; // bump the number when the built-in layouts change a lot
 const NARROW = 800; // below this width, all panels become tabs in one stack
 
 export function createDock(host, panels, presets) {
@@ -60,7 +62,7 @@ export function createDock(host, panels, presets) {
   // put a panel next to (or into) a target stack
   function insertAt(node, target, id, zone) {
     if (node === target) {
-      if (zone === "center") { node.panels.push(id); node.active = node.panels.length - 1; return node; }
+      if (zone === "center") { node.panels.push(id); node.active = node.panels.length - 1; node.min = false; return node; }
       const dir = zone === "left" || zone === "right" ? "row" : "col";
       const fresh = { type: "stack", panels: [id], active: 0 };
       const before = zone === "left" || zone === "top";
@@ -98,7 +100,7 @@ export function createDock(host, panels, presets) {
   function show(id) {
     if (isShown(id)) {
       // already showing: bring its tab to the front
-      const focus = (n) => { if (n.type === "stack") { const i = n.panels.indexOf(id); if (i >= 0) n.active = i; } else n.children.forEach(focus); };
+      const focus = (n) => { if (n.type === "stack") { const i = n.panels.indexOf(id); if (i >= 0) { n.active = i; n.min = false; } } else n.children.forEach(focus); };
       focus(layout);
       return commit();
     }
@@ -131,30 +133,42 @@ export function createDock(host, panels, presets) {
     host.append(drawNode(node));
   }
 
-  function drawNode(node) {
-    if (node.type === "stack") return drawStack(node);
+  // a minimised stack keeps only its tabs, so it takes no share of the space
+  const isMin = (n) => n.type === "stack" && n.min;
+
+  function drawNode(node, dir) {
+    if (node.type === "stack") return drawStack(node, dir);
     const el = h("div", { class: `dock-split dock-${node.dir}` });
+    // shares add up to 1 among the panels that aren't minimised, so they fill the space
+    const open = node.children.reduce((t, c, i) => t + (isMin(c) ? 0 : node.sizes[i]), 0) || 1;
     node.children.forEach((child, i) => {
       if (i > 0) el.append(splitter(node, i, el));
-      const cell = h("div", { class: "dock-cell", style: { flex: `${node.sizes[i]} 1 0` } }, drawNode(child));
+      const cell = h("div", { class: "dock-cell" + (isMin(child) ? " min" : ""), style: { flex: isMin(child) ? "0 0 auto" : `${node.sizes[i] / open} 1 0` } }, drawNode(child, node.dir));
       el.append(cell);
     });
     return el;
   }
 
-  function drawStack(node) {
+  function setMin(node, min) { node.min = min; commit(); }
+
+  function drawStack(node, dir) {
     const active = Math.min(node.active || 0, node.panels.length - 1);
-    const tabs = h("div", { class: "dock-tabs" }, node.panels.map((id, i) => {
-      const tab = h("div", { class: "dock-tab" + (i === active ? " on" : ""), draggable: !node.narrow,
-        onclick: () => { node.active = i; if (!node.narrow) save(); render(); },
+    const min = !node.narrow && node.min;
+    const tabs = h("div", { class: "dock-tabs", ondblclick: (e) => { if (!node.narrow && !e.target.closest("button")) setMin(node, !node.min); } }, node.panels.map((id, i) => {
+      const tab = h("div", { class: "dock-tab" + (i === active && !min ? " on" : ""), draggable: !node.narrow,
+        onclick: () => { node.active = i; if (min) return setMin(node, false); if (!node.narrow) save(); render(); },
         ondragstart: (e) => { dragging = id; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", id); host.classList.add("dock-dragging"); },
         ondragend: () => { dragging = null; host.classList.remove("dock-dragging"); host.querySelectorAll(".dock-drop").forEach((d) => d.remove()); } },
         h("span", { class: "dock-tab-title" }, panels[id].title),
         node.narrow ? null : h("button", { class: "dock-tab-close", title: "Close panel (reopen from Window)", onclick: (e) => { e.stopPropagation(); hide(id); } }, icon("x")));
       return tab;
     }));
-    const body = h("div", { class: "dock-body" }, panels[node.panels[active]].el);
-    const stack = h("div", { class: "dock-stack" }, tabs, body);
+    if (!node.narrow) {
+      tabs.append(h("button", { class: "dock-min", title: min ? "Restore" : "Minimise", onclick: (e) => { e.stopPropagation(); setMin(node, !min); } },
+        icon(min ? "expand" : "minus")));
+    }
+    const stack = h("div", { class: "dock-stack" + (min ? ` min min-${dir || "row"}` : "") }, tabs);
+    if (!min) stack.append(h("div", { class: "dock-body" }, panels[node.panels[active]].el));
     if (!node.narrow) addDropZones(stack, node);
     return stack;
   }
@@ -192,6 +206,7 @@ export function createDock(host, panels, presets) {
   // the line between two panels: drag to resize
   function splitter(node, i, splitEl) {
     const line = h("div", { class: "dock-splitter" });
+    if (isMin(node.children[i - 1]) || isMin(node.children[i])) { line.classList.add("fixed"); return line; }
     line.addEventListener("pointerdown", (e) => {
       e.preventDefault();
       line.setPointerCapture(e.pointerId);
@@ -199,14 +214,16 @@ export function createDock(host, panels, presets) {
       const a = cells[i - 1], b = cells[i];
       const horizontal = node.dir === "row";
       const start = horizontal ? e.clientX : e.clientY;
-      const total = (horizontal ? splitEl.clientWidth : splitEl.clientHeight);
       const sa = node.sizes[i - 1], sb = node.sizes[i];
+      // pixels the two neighbours share, so minimised panels elsewhere don't throw it off
+      const total = ((horizontal ? a.offsetWidth + b.offsetWidth : a.offsetHeight + b.offsetHeight) / (sa + sb)) || 1;
       const move = (ev) => {
         const delta = ((horizontal ? ev.clientX : ev.clientY) - start) / total;
         const min = 0.08;
         const na = Math.max(min, Math.min(sa + sb - min, sa + delta));
         node.sizes[i - 1] = na; node.sizes[i] = sa + sb - na;
-        a.style.flex = `${node.sizes[i - 1]} 1 0`; b.style.flex = `${node.sizes[i]} 1 0`;
+        const open = node.children.reduce((t, c, k) => t + (isMin(c) ? 0 : node.sizes[k]), 0) || 1;
+        a.style.flex = `${node.sizes[i - 1] / open} 1 0`; b.style.flex = `${node.sizes[i] / open} 1 0`;
       };
       const up = () => { line.removeEventListener("pointermove", move); line.removeEventListener("pointerup", up); save(); };
       line.addEventListener("pointermove", move);

@@ -34,12 +34,14 @@ const PANELS = {
   images: { title: "Images", el: panelEls.images },
 };
 const stack = (...panels) => ({ type: "stack", panels, active: 0 });
+const col = (sizes, ...children) => ({ type: "split", dir: "col", sizes, children });
+const row = (sizes, ...children) => ({ type: "split", dir: "row", sizes, children });
+// Details sits above Content in every layout; Focus starts with Details minimised
 const PRESETS = {
-  "Write with preview": { type: "split", dir: "row", sizes: [0.17, 0.22, 0.33, 0.28], children: [stack("navigator", "images"), stack("details"), stack("content"), stack("preview")] },
-  "Write": { type: "split", dir: "row", sizes: [0.18, 0.27, 0.55], children: [stack("navigator", "images"), stack("details"), stack("content")] },
-  "Focus": { type: "split", dir: "row", sizes: [0.55, 0.45], children: [stack("content", "details"), stack("preview")] },
-  "Preview below": { type: "split", dir: "row", sizes: [0.2, 0.8], children: [stack("navigator", "images"),
-    { type: "split", dir: "col", sizes: [0.55, 0.45], children: [{ type: "split", dir: "row", sizes: [0.35, 0.65], children: [stack("details"), stack("content")] }, stack("preview")] }] },
+  "Write with preview": row([0.18, 0.44, 0.38], stack("navigator", "images"), col([0.35, 0.65], stack("details"), stack("content")), stack("preview")),
+  "Write": row([0.2, 0.8], stack("navigator", "images"), col([0.3, 0.7], stack("details"), stack("content"))),
+  "Focus": row([0.55, 0.45], col([0.3, 0.7], { ...stack("details"), min: true }, stack("content")), stack("preview")),
+  "Preview below": row([0.2, 0.8], stack("navigator", "images"), col([0.25, 0.4, 0.35], stack("details"), stack("content"), stack("preview"))),
 };
 let dock;
 
