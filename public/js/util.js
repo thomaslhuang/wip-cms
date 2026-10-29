@@ -62,7 +62,10 @@ const ICONS = {
   text: '<path d="M4 6h16M4 11h16M4 16h10M4 20h7"/>',
   sort: '<path d="M3 6h13M3 12h9M3 18h5"/><path d="m17 15 3 3 3-3"/><path d="M20 18V6"/>',
   rows: '<rect x="3" y="4" width="6" height="6" rx="1.5"/><rect x="3" y="14" width="6" height="6" rx="1.5"/><path d="M13 6h8M13 9h5M13 16h8M13 19h5"/>',
-  grid: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>',
+  // four small squares with room between them, in a lighter line (a grid of thin boxes reads heavier than other icons)
+  grid: '<g stroke-width="1.45"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></g>',
+  // Titles only: a capital T (the lines icon looked too much like Sort)
+  titles: '<path d="M6 5h12"/><path d="M12 5v14"/>',
   carousel: '<rect x="6" y="5" width="12" height="14" rx="2"/><path d="M2 7v10M22 7v10"/>',
   code: '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
   house: '<path d="M4 11 12 4l8 7v9H4z"/>',

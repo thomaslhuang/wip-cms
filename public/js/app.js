@@ -199,7 +199,7 @@ function drawList() {
 
 // List / Grid / Titles only (and Spreadsheet, with Advanced tools on)
 const viewSwitch = (s, mode) => segmentedIcons(t("Show as"),
-  [["rows", "rows", t("List")], ["grid", "grid", t("Grid")], ["text", "text", t("Titles only")], ...(advancedTools() && !narrow() ? [["table", "table", t("Spreadsheet")]] : [])],
+  [["rows", "rows", t("List")], ["grid", "grid", t("Grid")], ["text", "titles", t("Titles only")], ...(advancedTools() && !narrow() ? [["table", "table", t("Spreadsheet")]] : [])],
   mode, (m) => setListMode(s.name, m));
 
 // the spreadsheet view of a section, kept while you switch between entries (table.js)
