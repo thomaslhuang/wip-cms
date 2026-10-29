@@ -636,7 +636,7 @@ select.input { appearance: auto; }
 .set-section { display: flex; flex-direction: column; gap: 6px; }
 .set-title { margin: 0; padding-left: 4px; font-size: 11px; font-weight: 600; color: var(--muted); }
 .set-group { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; }
-.set-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; border-bottom: 1px solid var(--line); }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 38px; border-bottom: 1px solid var(--line); }
 .set-row:last-child { border-bottom: 0; }
 .set-label { flex: none; }
 .set-control { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 1; min-width: 0; }
