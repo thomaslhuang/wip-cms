@@ -1022,3 +1022,6 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .sheet tr.drop-before td { box-shadow: inset 0 2px 0 var(--accent); }
 .sheet tr.drop-after td { box-shadow: inset 0 -2px 0 var(--accent); }
 .custom-body .type-split-row > * { margin-bottom: 0; }
+/* Typography's sliders: all the same length, their ends lined up, never into their titles */
+.type-options .set-range { width: 132px; flex: none; }
+.type-options .set-value { flex: none; }
