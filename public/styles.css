@@ -682,7 +682,9 @@ select.input { appearance: auto; }
 .custom-body.type-split { padding: 0; overflow: hidden; display: flex; scrollbar-gutter: auto; }
 .custom-body.type-split > .type-split-row { margin: 0; }
 .type-split-row { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr); }
-.type-options { min-width: 0; overflow-y: auto; padding: 18px 22px 28px; scrollbar-gutter: stable; }
+/* the settings scroll on their own: a thin bar, kept a little in from the line to the preview,
+   so it reads as the settings' own and not as the line between the two */
+.type-options { min-width: 0; overflow-y: auto; padding: 18px 16px 28px 22px; margin-right: 4px; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 .type-options > * { margin-bottom: 18px; }
 .type-divider { background: var(--line); }
 .type-preview { min-width: 0; overflow-y: auto; padding: 18px 20px; background: var(--window);
@@ -1021,5 +1023,5 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .sheet tr.drop-after td { box-shadow: inset 0 -2px 0 var(--accent); }
 .custom-body .type-split-row > * { margin-bottom: 0; }
 /* Typography's sliders: all the same length, their ends lined up, never into their titles */
-.type-options .set-range { width: 104px; flex: none; }
+.type-options .set-range { width: 124px; flex: none; }
 .type-options .set-value { flex: none; width: 46px; }
