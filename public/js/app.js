@@ -188,6 +188,7 @@ function drawList() {
       viewButton(s, view)),
     h("div", { class: "list-scroll" }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
+  if (mode === "rows") alignThumbs();
 }
 
 // three ways to show a section, remembered for each one: list (picture, title, first
@@ -426,6 +427,22 @@ function reorderable(container, s) {
   container.addEventListener("dragstart", (e) => e.preventDefault());
 }
 
+// The list view's pictures start level with the top of the title's lowercase letters (most
+// titles start lowercase, and that's where the eye reads the text as starting). Worked out from
+// the interface font, so it stays right with any font in Customize.
+function alignThumbs() {
+  const el = listEl.querySelector(".row-title");
+  if (!el) return;
+  const cs = getComputedStyle(el);
+  const ctx = (alignThumbs.ctx ||= document.createElement("canvas").getContext("2d"));
+  ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const m = ctx.measureText("x");
+  const lineHeight = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+  const top = (lineHeight - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent - m.actualBoundingBoxAscent;
+  if (isFinite(top)) listEl.style.setProperty("--thumb-nudge", Math.max(0, Math.round(top * 2) / 2) + "px");
+}
+document.fonts?.ready.then(() => alignThumbs());
+
 // drag the list's right edge to make it wider (handy for the grid)
 let listWidth = pref.get("list-width", 300);
 listEl.style.width = listWidth + "px";
@@ -588,6 +605,8 @@ $("divider").addEventListener("pointerdown", (e) => {
 
 const previewFrame = h("iframe", { class: "preview-frame", title: t("Live preview") });
 const previewNote = h("span", { class: "preview-note" });
+// shown over the preview while it isn't ready: starting, or why it couldn't start
+const previewWait = h("div", { class: "preview-wait", hidden: true });
 function drawPreviewBar() {
   fill(previewpane,
     h("div", { class: "preview-bar" },
@@ -596,7 +615,7 @@ function drawPreviewBar() {
         [["full", "laptop", t("Computer")], ["phone", "phone", t("Phone")]].map(([v, ic, label]) =>
           h("button", { class: v === previewSize ? "on" : "", "aria-label": label, title: label, onclick: () => { previewSize = v; pref.set("preview-size", v); drawPreviewBar(); } }, icon(ic)))),
       tbtn("refresh", t("Reload preview"), () => { if (previewFrame.dataset.url) previewFrame.src = previewFrame.dataset.url; })),
-    h("div", { class: "preview-stage" + (previewSize === "phone" ? " phone" : "") }, previewFrame));
+    h("div", { class: "preview-stage" + (previewSize === "phone" ? " phone" : "") }, previewFrame, previewWait));
 }
 drawPreviewBar();
 
@@ -605,9 +624,12 @@ let draftTimer = null;
 function wirePreview() {
   if (!editor) return;
   const url = `http://localhost:${config.preview.port}${editor.url || "/"}`;
-  if (previewFrame.dataset.url !== url) { previewFrame.dataset.url = url; previewFrame.src = url; }
-  previewNote.textContent = config.preview.status === "unavailable" ? config.preview.message
-    : config.preview.status === "starting" ? t("Starting the preview…") : LIVE;
+  const st = config.preview.status;
+  if (st === "ready" && previewFrame.dataset.url !== url) { previewFrame.dataset.url = url; previewFrame.src = url; }
+  previewNote.textContent = st === "ready" ? LIVE : st === "starting" ? t("Starting the preview…") : config.preview.message || t("The preview isn't running.");
+  previewWait.hidden = st === "ready";
+  previewWait.textContent = st === "starting" ? t("Starting the preview… The first time can take a little while.")
+    : config.preview.message || t("The preview isn't running. Quit w·i·p cms from the ⋯ menu and open it again to restart it.");
 }
 function watchForPreview(ed) {
   // the preview might still show edits from last time that were never saved: go back to the file
@@ -623,12 +645,23 @@ function watchForPreview(ed) {
   });
   ed.onStatus((st) => { if (statusEl) statusEl.textContent = t(st); if (st === "Saved") afterSave(); });
 }
+// Keep an eye on the preview: it may still be starting, restart after an update, or move to
+// another port. Whenever it becomes ready (again), the preview pane reloads, so it never sits
+// on a "can't connect" page.
 async function waitForPreview() {
-  for (let i = 0; i < 60 && config.preview.status === "starting"; i++) {
-    await new Promise((r) => setTimeout(r, 1000));
-    config.preview = await api.preview();
-  }
-  if (editor && currentView() !== "write") { previewFrame.dataset.url = ""; wirePreview(); }
+  let was = config.preview.status + config.preview.port;
+  const check = async () => {
+    try { config.preview = await api.preview(); } catch { return; }
+    const now = config.preview.status + config.preview.port;
+    if (now !== was) {
+      was = now;
+      previewFrame.dataset.url = "";      // load it again, even at the same address
+      if (editor && currentView() !== "write") wirePreview();
+      else if (editor) previewNote.textContent = config.preview.status === "ready" ? LIVE : previewNote.textContent;
+    }
+  };
+  for (let i = 0; i < 90 && config.preview.status === "starting"; i++) { await new Promise((r) => setTimeout(r, 1000)); await check(); }
+  setInterval(check, 5000);
 }
 
 // ---------- after saving: keep the list and the publish count current ----------

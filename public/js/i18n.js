@@ -206,6 +206,8 @@ const JA = {
   "Draft: not on the site yet": "下書き：まだサイトに出ていません",
   "Switching language reloads w·i·p cms. Interface size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography. ⌘S always saves straight away.": "言語を切り替えると w·i·p cms が再読み込みされます。「表示の大きさ」はサイドバー・一覧・ツールバー・詳細の大きさを変えます（本文の大きさは「カスタマイズ → 文字」で）。⌘S でいつでもすぐ保存できます。",
   "\" and ' become “ ” and ‘ ’ as you type (apostrophes too), as in InDesign. Not in Source, HTML or web addresses.": "入力した \" と ' が “ ” と ‘ ’ になります（アポストロフィも）。InDesign と同じです。ソース、HTML、URL では変わりません。",
+  "The preview isn't running.": "プレビューが動いていません。", "Starting the preview… The first time can take a little while.": "プレビューを起動しています…（初回は少し時間がかかります）",
+  "The preview isn't running. Quit w·i·p cms from the ⋯ menu and open it again to restart it.": "プレビューが動いていません。⋯ メニューから w·i·p cms を終了し、もう一度開くと再起動します。",
   "Settings": "設定", "Settings…": "設定…", "Interface size": "表示の大きさ", "Reset": "元に戻す", "Site": "サイト",
   "w·i·p cms reloads to switch language. Your section and field names switch too, for the common ones.": "言語を切り替えると w·i·p cms が再読み込みされます。よく使うセクション名やフィールド名も切り替わります。",
   "Switching language reloads w·i·p cms. Interface size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.": "言語を切り替えると w·i·p cms が再読み込みされます。「表示の大きさ」はサイドバー・一覧・ツールバー・詳細の大きさを変えます。本文の大きさは「カスタマイズ → 文字」で変えられます。", "General": "一般",
