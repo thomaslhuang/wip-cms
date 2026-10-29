@@ -182,22 +182,19 @@ button:disabled { cursor: default; }
 /* the grid: square pictures, edge to edge, no rounding; the title shows when you point */
 .tile { position: relative; display: block; aspect-ratio: 1; overflow: hidden; background: var(--fill); color: var(--text); text-decoration: none; min-width: 0; }
 .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* the title on a picture you point at: a pane of frosted glass over the bottom, darkened a
-   little so white text reads on any picture, with a bright edge where the light catches it */
-.tile-title { position: absolute; left: 4px; right: 4px; bottom: 4px; padding: 5px 7px 6px; border-radius: 8px;
-  font-size: 11px; font-weight: 600; line-height: 1.25; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
-  background: linear-gradient(rgba(255, 255, 255, .14), rgba(255, 255, 255, .04)), rgba(20, 20, 24, .32);
-  -webkit-backdrop-filter: blur(12px) saturate(170%) brightness(.85); backdrop-filter: blur(12px) saturate(170%) brightness(.85);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 0 0 .5px rgba(255, 255, 255, .22), 0 2px 10px rgba(0, 0, 0, .18);
-  opacity: 0; transform: translateY(3px); transition: opacity .15s ease, transform .2s cubic-bezier(.2, .8, .2, 1);
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.tile:hover .tile-title, .tile:focus-visible .tile-title { transform: none; }
+/* the title on a picture you point at: the whole picture goes behind frosted glass, darkened a
+   little so white text reads on any picture, the title at the bottom */
+.tile-title { position: absolute; inset: 0; padding: 8px; display: flex; align-items: flex-end;
+  font-size: 11px; font-weight: 600; line-height: 1.25; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+  background: linear-gradient(rgba(255, 255, 255, .1), rgba(255, 255, 255, 0) 40%), rgba(20, 20, 24, .3);
+  -webkit-backdrop-filter: blur(10px) saturate(160%) brightness(.85); backdrop-filter: blur(10px) saturate(160%) brightness(.85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), inset 0 0 0 .5px rgba(255, 255, 255, .18);
+  opacity: 0; transform: none; transition: opacity .18s ease; overflow: hidden; }
 .tile:hover .tile-title, .tile:focus-visible .tile-title { opacity: 1; }
 .tile.no-pic .tile-title { opacity: 1; transform: none; position: static; height: 100%; background: none; box-shadow: none; text-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; color: var(--text-2); padding: 8px; display: flex; align-items: flex-end; }
 .tile.active { box-shadow: inset 0 0 0 3px var(--accent); }
 .tile.active img { opacity: .85; }
 .tile .badge { position: absolute; right: 4px; top: 4px; background: var(--card); box-shadow: var(--shadow); }
-@media (hover: none) { .tile-title { opacity: 1; transform: none; } }
 .text-item { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px 0 var(--indent, 10px); border-radius: 7px; color: var(--text); text-decoration: none; }
 .text-item:hover { background: var(--fill); }
 .text-item.active { background: var(--accent-soft); }
