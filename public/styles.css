@@ -169,7 +169,8 @@ button:disabled { cursor: default; }
 .tree-body .list-items { padding-left: 14px; }
 .tree-year > .list-items.grid { margin-top: 4px; }
 .list-empty { padding: 16px 10px; }
-.row-item { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px; padding: 6px 10px; border-radius: 8px; color: var(--text); text-decoration: none; }
+/* the picture's left edge lines up with the view buttons above (12px in from the list's edge) */
+.row-item { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px; padding: 6px 10px 6px 4px; border-radius: 8px; color: var(--text); text-decoration: none; }
 .row-item:hover { background: var(--fill); }
 .row-item.active { background: var(--accent-soft); }
 .row-thumb { width: 46px; height: 46px; border-radius: 6px; object-fit: cover; background: var(--fill); display: block; }
@@ -778,6 +779,7 @@ select.input { appearance: auto; }
   .list-head .back-btn { display: inline-flex; }
   .list-name { font-size: 17px; }
   .list-tools { margin: 0 14px 8px; }
+  .row-item { padding-left: 6px; }
   .search { height: 36px; }
   .list { width: 100% !important; }
   .list-resize { display: none; }
