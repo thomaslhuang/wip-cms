@@ -178,6 +178,7 @@ const JA = {
   "Writing": "書き方", "In the sidebar under": "サイドバーの場所", "Saved in": "保存先", "e.g. Exhibitions": "例：Exhibitions", "e.g. Contact": "例：Contact",
   "w·i·p cms adds it to .pages.yml and makes a place for its content, ready to write in. The site shows it once the site's own templates do; that part is different on every site, and w·i·p cms says what's needed after adding.": "w·i·p cms が .pages.yml に追加し、内容の置き場所を作るので、すぐに書き始められます。サイトに表示されるのは、サイト側のテンプレートが対応してからです（サイトごとに違うので、追加後に必要なことをお知らせします）。",
   "Collection added": "コレクションを追加しました", "Page added": "ページを追加しました", "It's in .pages.yml and ready to write in.": ".pages.yml に追加しました。すぐに書き始められます。", "general": "一般",
+  "The title on its own page. Leave it empty to use the short title.": "その投稿のページに出るタイトル。空にすると短いタイトルが使われます。",
   "Settings": "設定", "Settings…": "設定…", "Interface size": "表示の大きさ", "Reset": "元に戻す", "Site": "サイト",
   "w·i·p cms reloads to switch language. Your section and field names switch too, for the common ones.": "言語を切り替えると w·i·p cms が再読み込みされます。よく使うセクション名やフィールド名も切り替わります。",
   "Switching language reloads w·i·p cms. Interface Size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.": "言語を切り替えると w·i·p cms が再読み込みされます。「表示の大きさ」はサイドバー・一覧・ツールバー・詳細の大きさを変えます。本文の大きさは「カスタマイズ → 文字」で変えられます。", "General": "一般",

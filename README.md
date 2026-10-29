@@ -76,11 +76,12 @@ Options:
 its web address, e.g. `/blog/2026/10/cafe-opening/`). The permalink follows the title as
 you type; change it and it stays as you set it.
 
-**Projects:** the document holds what you'd read and see: the short title, the full title
-under it, the project text, and then the gallery (in the staggered layout the site uses).
+**Projects:** the document holds what you'd read and see: the full title as the heading (as
+on the project's own page; when there isn't one, the short title shows there in gray), the
+short title under it, the project text, and then the gallery (in the staggered layout the site uses).
 The inspector keeps the smaller details: featured image, date, ongoing, book, category and
 related posts. The site's own layout doesn't change. (Any section works this way: a field
-called `longTitle` goes under the title, and fields with several images go after the text.)
+called `longTitle` or `fullTitle` becomes the heading, with the title under it, and fields with several images go after the text.)
 
 **Under the title:** the date, **Draft / Published** and the tags can be changed right
 there. Click the date for a date picker, click Draft or Published to switch, and type in

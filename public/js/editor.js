@@ -96,6 +96,11 @@ export async function openEditor({ file, section, config }) {
   // also in the document rather than the inspector: a long title, and galleries (several
   // images, or a list of pictures with captions)
   const subtitleField = titleField && fields.find((f) => ["longTitle", "subtitle", "fullTitle"].includes(f.name) && f.type === "string");
+  // A full title (a field called longTitle or fullTitle: a longer version of the title, which
+  // a site shows as the heading of the post's own page) is the big heading here too, with
+  // the short title under it. Without one, the heading shows the short title, in gray, the
+  // way the page falls back to it.
+  const fullField = subtitleField && ["longTitle", "fullTitle"].includes(subtitleField.name) ? subtitleField : null;
   const isGallery = (f) => (f.type === "image" && f.options?.multiple) || (f.type === "object" && f.list && (f.fields || []).some((x) => x.type === "image"));
   const galleryFields = section ? fields.filter(isGallery) : [];
 
@@ -158,7 +163,19 @@ export async function openEditor({ file, section, config }) {
 
   let blocksEl = null;
   const doc = h("div", { class: "doc" });
-  if (titleField) {
+  if (titleField && fullField) {
+    const shortLabel = tl(titleField.label || "Short title");
+    const heading = autosize(h("textarea", { class: "doc-title full-heading", rows: 1, "aria-label": tl(fullField.label || fullField.name),
+      placeholder: data[primary] || tl(fullField.label || fullField.name), value: data[fullField.name] ?? "",
+      title: t("The title on its own page. Leave it empty to use the short title."),
+      oninput: () => { data[fullField.name] = heading.value.replace(/\n/g, " "); changed(); },
+      onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); short.focus(); } } }));
+    const short = autosize(h("textarea", { class: "doc-subtitle", rows: 1, "aria-label": shortLabel, placeholder: shortLabel, value: data[primary] ?? "",
+      oninput: () => { data[primary] = short.value.replace(/\n/g, " "); heading.placeholder = data[primary] || tl(fullField.label || fullField.name); changed(); },
+      onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); doc.querySelector(".block .rich-box:not([hidden]), .block textarea:not([hidden]), .doc-body .rich-box:not([hidden]), .doc-body textarea")?.focus(); } } }));
+    doc.append(heading, h("label", { class: "doc-short" }, h("span", { class: "doc-short-label" }, shortLabel), short), meta);
+    drawMeta();
+  } else if (titleField) {
     const title = autosize(h("textarea", { class: "doc-title", rows: 1, placeholder: t("Title"), "aria-label": t("Title"), value: data[primary] ?? "",
       oninput: () => { data[primary] = title.value.replace(/\n/g, " "); changed(); },
       onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); doc.querySelector(".block .rich-box:not([hidden]), .block textarea:not([hidden]), .doc-body .rich-box:not([hidden]), .doc-body textarea")?.focus(); } } }));
@@ -254,7 +271,7 @@ export async function openEditor({ file, section, config }) {
 
   return {
     file, url, section,
-    get title() { return data[primary] || data.title || config.sections.find((s) => s.path === file)?.label || file; },
+    get title() { return (fullField && data[fullField.name]) || data[primary] || data.title || config.sections.find((s) => s.path === file)?.label || file; },
     data, payload,
     doc, inspector,
     redrawMeta: () => drawMeta(true),
