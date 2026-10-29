@@ -23,7 +23,7 @@ import { openSettings } from "./settings.js";
 import { openAddSection } from "./addsection.js";
 import { installQuotes } from "./quotes.js";
 import { onLaunch } from "./settings.js";
-import { t, t2, tl, fmtDate, dayParts, lang } from "./i18n.js";
+import { t, t2, tl, fmtDate, dayParts, lang, dateStyle } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
 applyTheme();
@@ -157,8 +157,10 @@ function drawList() {
   // each group (and month) can be folded away; while searching everything is open, so
   // nothing that matches is hidden
   const open = (key) => filter || !isFolded(s.name, key);
+  // titles only, with Japanese dates: headings and dates share one right-aligned column
+  const jdates = mode === "text" && ["month", "year"].includes(view.group) && naturalGroup(s) === "month" && dateStyle() === "japanese";
   const head = (key, label, count, level) => h("button", { class: `tree-head ${level}`, "aria-expanded": String(open(key)), onclick: () => toggleFold(s.name, key) },
-    icon("chevron", "tree-chev"), h("span", { class: "tree-label" }, label), h("span", { class: "tree-count" }, count));
+    icon("chevron", "tree-chev"), h("span", { class: "tree-label" }, label), h("span", { class: "tree-count" }, jdates ? count + "件" : count));
   // a list kept in one data file, shown in its own order: drag items to reorder the site
   const canReorder = s.store === "list" && view.sort === "order" && view.group === "none" && !filter && all.length > 1;
   const box = (entries) => {
@@ -186,7 +188,7 @@ function drawList() {
       h("label", { class: "search" }, icon("search"), search),
       segmentedIcons(t("Show as"), [["rows", "rows", t("List")], ["grid", "grid", t("Grid")], ["text", "text", t("Titles only")]], mode, (m) => setListMode(s.name, m)),
       viewButton(s, view)),
-    h("div", { class: "list-scroll" }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
+    h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
   if (mode === "rows") alignThumbs();
 }
@@ -326,8 +328,11 @@ function tileItem(e) {
 // Titles only: the date in fixed-width columns before the title, so the titles line up and
 // sit the same distance from it.
 //   grouped by month   western "Thu 22" (day of the week left, number right)
-//                      japanese "22日 (木)" (number right, so 日 and the day of the week line up)
-//   grouped by year    western "Oct 22" · japanese "10月22日" (numbers right, so 月 and 日 line up)
+//                      japanese "22日 (木)"
+//   grouped by year    western "Oct 22" · japanese "10月22日"
+// Japanese dates sit in one column with the year and month headings, all ending at the same
+// place, so 年, 月 and 日 make one straight line down the list (as in a Japanese table of dates);
+// the day of the week follows the date, as it's always written.
 // A title too long for the list scrolls sideways while you point at it (the date stays put).
 function textItem(e, date, group) {
   const p = date ? dayParts(date) : null;
@@ -335,10 +340,10 @@ function textItem(e, date, group) {
   const day = !p ? null
     : group === "year" ? (p.style === "western"
       ? h("span", { class: "text-date western" }, span("td-wd", p.monthName), span("td-day", p.day))
-      : h("span", { class: "text-date japanese by-year" }, span("td-day", p.month), span("td-ni", "月"), span("td-day", p.day), span("td-ni", "日")))
+      : h("span", { class: "text-date japanese by-year" }, h("span", { class: "td-date" }, span("td-md", p.month + "月"), span("td-md", p.day + "日"))))
     : p.style === "western"
       ? h("span", { class: "text-date western" }, span("td-wd", p.weekday), span("td-day", p.day))
-      : h("span", { class: "text-date japanese" }, span("td-day", p.day), span("td-ni", "日"), span("td-wd", `(${p.weekday})`));
+      : h("span", { class: "text-date japanese" }, span("td-date", p.day + "日"), span("td-wd", `(${p.weekday})`));
   const title = h("span", { class: "text-title" }, h("span", { class: "text-title-inner" }, titleOf(e)));
   // a draft: a small dot in the margin left of the date (so the dates stay lined up)
   const dot = e.draft ? h("span", { class: "draft-dot", title: t("Draft"), "aria-label": t("Draft") }) : null;

@@ -205,9 +205,12 @@ button:disabled { cursor: default; }
 /* japanese: a two-digit column for the number, starting where the month's name starts (like
    western's day of the week); numbers sit at its right, so a single-digit day starts one digit in,
    the way a tab stop works, and 日 and the day of the week each make a straight line */
-.text-date.japanese { grid-template-columns: 2ch auto auto; column-gap: .1em; }
-.text-date.japanese .td-wd { padding-left: .3em; }
-.text-date.japanese.by-year { grid-template-columns: 2ch auto 2ch auto; }
+.text-date.japanese { grid-template-columns: auto auto; }
+.text-date.japanese .td-date { text-align: right; }
+.text-date.japanese .td-wd { padding-left: .15em; }
+/* the month and the day each end at a fixed place, so 月 lines up too ("9月 7日" under "10月22日") */
+.text-date.japanese .td-md { display: inline-block; text-align: right; }
+.text-date.japanese .td-md + .td-md { width: calc(2ch + 1em); }
 /* titles only, grouped by year: the same step in as months under a year */
 /* titles only in groups: the highlight runs the full width of the column (like the year and
    month headings); the text inside starts where the year (or month) name does */
@@ -909,3 +912,20 @@ select.input { appearance: auto; }
 .preview-stage { position: relative; }
 .preview-wait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; color: var(--muted); font-size: 13px; background: var(--panel); }
 .preview-wait[hidden] { display: none; }
+
+/* titles only, Japanese dates: the year, the month and the day all end at the same place, the
+   same size, so 年, 月 and 日 make one straight line; the chevrons sit to the left, the day of the
+   week after the date, and the count (2件) at the right
+     ⌄ 2026年                 12件
+     ⌄   10月                  2件
+         22日(木) on mexico city   */
+.list-scroll.jdates { --chev: 30px; --dcol: calc(4ch + 1.1em); }   /* "2026年" */
+.list-scroll.jdates.by-year { --dcol: calc(4ch + 2.2em); }   /* "10月22日" */
+.jdates .tree-head { gap: 0; display: grid; grid-template-columns: var(--chev) var(--dcol) 1fr auto; padding: 5px 10px 4px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.jdates .tree-head .tree-chev { margin-left: 4px; }
+.jdates .tree-head.month .tree-chev { margin-left: 16px; }
+.jdates .tree-label { text-align: right; }
+.jdates .tree-head.year { font-size: 12px; }
+.jdates .tree-count { grid-column: 4; }
+.jdates .list-items.text, .jdates .tree-body .list-items.text, .jdates .tree-year > .list-items.text { padding-left: 0; --indent: var(--chev); }
+.jdates .text-date.japanese { font-size: 12px; grid-template-columns: var(--dcol) auto; }
