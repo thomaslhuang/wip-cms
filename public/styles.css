@@ -259,7 +259,7 @@ button:disabled { cursor: default; }
 .doc-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-weight: 600; }
 .doc-section-head .muted { font-weight: 400; font-size: 12px; }
 .doc-gallery > .field > .field-label { display: none; }
-.doc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--muted); margin: 8px 0 20px; min-height: 26px; }
+.doc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--muted); margin: 8px 0 6px; min-height: 26px; }
 /* the date: looks like text, opens the date picker */
 /* dates in the inspector look like the one under the title: words, and a picker on click */
 .date-field { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; background: var(--fill); cursor: pointer; color: var(--text); white-space: nowrap; }
@@ -428,6 +428,8 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
 
 /* the + between blocks, shown when you point at the gap */
 .insert-line { height: 22px; display: flex; align-items: center; justify-content: center; position: relative; }
+/* the + above the first block: a shorter strip, so the writing starts close under the title */
+.block-list > .insert-line:first-child { height: 14px; }
 .insert-line::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line-strong); opacity: 0; transition: opacity .12s; }
 .insert-line button { position: relative; z-index: 1; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--window);
   color: var(--muted); display: flex; align-items: center; justify-content: center; padding: 0; opacity: 0; transition: opacity .12s; }

@@ -208,8 +208,8 @@ function chips(field, obj, ctx, values) {
 //   Write    the formatting shows (bold looks bold); see rich.js
 //   Source   the Markdown itself, in a monospace font, color-coded; see code.js
 // plus bold, italic, link and "line break" buttons that work in both.
-const getMode = () => { try { return localStorage.getItem("wip-text-mode") || "write"; } catch { return "write"; } };
-const putMode = (m) => { try { localStorage.setItem("wip-text-mode", m); } catch { /* fine */ } };
+// Every text box opens in Write; Source lasts while you're on that page.
+try { localStorage.removeItem("wip-text-mode"); } catch { /* fine */ }   // (it used to be remembered everywhere)
 
 function richText(field, obj, ctx) {
   const isHtml = field.options?.format === "html";
@@ -230,7 +230,7 @@ function richText(field, obj, ctx) {
     t.focus();
     t.dispatchEvent(new Event("input"));
   };
-  let mode = getMode();
+  let mode = "write";
   const tabs = h("div", { class: "seg" });
   const setMode = (m, remember) => {
     mode = m;
@@ -242,7 +242,6 @@ function richText(field, obj, ctx) {
     source.hidden = m !== "source";
     box.el.hidden = m === "source";
     tabs.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
-    if (remember) putMode(m);
   };
   tabs.append(h("button", { "data-mode": "write", onclick: () => setMode("write", true) }, tr("Write")),
               h("button", { "data-mode": "source", onclick: () => setMode("source", true) }, tr("Source")));

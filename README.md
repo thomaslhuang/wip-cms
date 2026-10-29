@@ -116,7 +116,7 @@ line, for big reshuffles.)
   were `<i>word</i>` before. They look the same on the site.)
 - **Source** (top right of a selected text block) shows the Markdown itself in a
   monospace font, color-coded. HTML blocks are color-coded too.
-  w·i·p cms remembers whether you last used Write or Source.
+  Text always opens in Write; Source lasts while you stay on that page.
 
 **Settings:** ⋯ → **Settings…** has how w·i·p cms works for you (Customize is how it looks):
 
