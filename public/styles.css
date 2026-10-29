@@ -919,13 +919,16 @@ select.input { appearance: auto; }
      ⌄ 2026年                 12件
      ⌄   10月                  2件
          22日(木) on mexico city   */
-.list-scroll.jdates { --chev: 30px; --dcol: calc(4ch + 1.1em); }   /* "2026年" */
+.list-scroll.jdates { --chev: 20px; --dcol: calc(4ch + 1.1em); --jsize: 11px; }   /* "2026年" */
 .list-scroll.jdates.by-year { --dcol: calc(4ch + 2.2em); }   /* "10月22日" */
-.jdates .tree-head { gap: 0; display: grid; grid-template-columns: var(--chev) var(--dcol) 1fr auto; padding: 5px 10px 4px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+/* every date the same size and weight (smaller than the titles); the year stands out by color */
+.jdates .tree-head { gap: 0; display: grid; grid-template-columns: var(--chev) var(--dcol) 1fr auto; padding: 5px 10px 4px 0; font-size: var(--jsize); font-weight: 600; margin-top: 0; font-variant-numeric: tabular-nums; }
+.jdates .tree-head.year { font-size: var(--jsize); font-weight: 600; margin-top: 6px; }
+/* chevrons just left of their heading (a month's may reach into the column: its name is short) */
 .jdates .tree-head .tree-chev { margin-left: 4px; }
-.jdates .tree-head.month .tree-chev { margin-left: 16px; }
+.jdates .tree-head.month .tree-chev { margin-left: 18px; }
 .jdates .tree-label { text-align: right; }
-.jdates .tree-head.year { font-size: 12px; }
 .jdates .tree-count { grid-column: 4; }
 .jdates .list-items.text, .jdates .tree-body .list-items.text, .jdates .tree-year > .list-items.text { padding-left: 0; --indent: var(--chev); }
-.jdates .text-date.japanese { font-size: 12px; grid-template-columns: var(--dcol) auto; }
+.jdates .text-date.japanese { font-size: var(--jsize); grid-template-columns: var(--dcol) auto; }
+.jdates .td-date .draft-dot { position: relative; left: auto; top: auto; display: inline-block; vertical-align: middle; margin: -2px 5px 0 0; }

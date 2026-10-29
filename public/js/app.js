@@ -160,7 +160,7 @@ function drawList() {
   // titles only, with Japanese dates: headings and dates share one right-aligned column
   const jdates = mode === "text" && ["month", "year"].includes(view.group) && naturalGroup(s) === "month" && dateStyle() === "japanese";
   const head = (key, label, count, level) => h("button", { class: `tree-head ${level}`, "aria-expanded": String(open(key)), onclick: () => toggleFold(s.name, key) },
-    icon("chevron", "tree-chev"), h("span", { class: "tree-label" }, label), h("span", { class: "tree-count" }, jdates ? count + "件" : count));
+    icon("chevron", "tree-chev"), h("span", { class: "tree-label" }, label), h("span", { class: "tree-count" }, count));
   // a list kept in one data file, shown in its own order: drag items to reorder the site
   const canReorder = s.store === "list" && view.sort === "order" && view.group === "none" && !filter && all.length > 1;
   const box = (entries) => {
@@ -337,18 +337,20 @@ function tileItem(e) {
 function textItem(e, date, group) {
   const p = date ? dayParts(date) : null;
   const span = (cls, text) => h("span", { class: cls }, text);
+  // a draft: a small dot in the margin left of the date (so the dates stay lined up); with
+  // Japanese dates (which end at the same place, not start), right before the date
+  const dot = e.draft ? h("span", { class: "draft-dot", title: t("Draft"), "aria-label": t("Draft") }) : null;
+  const jdot = p?.style === "japanese" ? dot : null;
   const day = !p ? null
     : group === "year" ? (p.style === "western"
       ? h("span", { class: "text-date western" }, span("td-wd", p.monthName), span("td-day", p.day))
-      : h("span", { class: "text-date japanese by-year" }, h("span", { class: "td-date" }, span("td-md", p.month + "月"), span("td-md", p.day + "日"))))
+      : h("span", { class: "text-date japanese by-year" }, h("span", { class: "td-date" }, jdot, span("td-md", p.month + "月"), span("td-md", p.day + "日"))))
     : p.style === "western"
       ? h("span", { class: "text-date western" }, span("td-wd", p.weekday), span("td-day", p.day))
-      : h("span", { class: "text-date japanese" }, span("td-date", p.day + "日"), span("td-wd", `(${p.weekday})`));
+      : h("span", { class: "text-date japanese" }, h("span", { class: "td-date" }, jdot, p.day + "日"), span("td-wd", `(${p.weekday})`));
   const title = h("span", { class: "text-title" }, h("span", { class: "text-title-inner" }, titleOf(e)));
-  // a draft: a small dot in the margin left of the date (so the dates stay lined up)
-  const dot = e.draft ? h("span", { class: "draft-dot", title: t("Draft"), "aria-label": t("Draft") }) : null;
   return h("a", { class: "text-item" + isActive(e), href: editHref(e.file), onmouseenter: () => marquee(title), onmouseleave: () => title.classList.remove("marquee") },
-    dot, day, title, day ? null : draftBadge(e));
+    jdot ? null : dot, day, title, day ? null : draftBadge(e));
 }
 // scroll a title that doesn't fit, back and forth, at an even reading speed
 function marquee(box) {
