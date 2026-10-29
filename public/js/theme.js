@@ -243,7 +243,10 @@ export function openAppearance() {
   const typePreview = () => h("div", { class: "type-preview", "aria-hidden": "true" },
     h("div", { class: "type-preview-ui" }, h("span", {}, tl("Blog posts")), h("span", { class: "muted" }, "12 · 2026")),
     h("div", { class: "type-preview-title" }, "on mexico city"),
-    h("p", { class: "type-preview-text" }, "I'm not really sure what I was expecting when this trip was planned, but it was ", h("em", {}, "wonderful"), ". 旅の記録と書体の見本。"),
+    // a few lines, so changes to the line height show
+    h("p", { class: "type-preview-text" }, "I'm not really sure what I was expecting when this trip was planned, but it was ", h("em", {}, "wonderful"),
+      ". The streets were wetter than I'd imagined, the light softer, and every afternoon ended with something new to write down. ",
+      "These notes are a little of each day, kept here so the words have room to breathe. 旅の記録と書体の見本。"),
     h("div", { class: "type-preview-code", html: codeSample() }));
   function typeTab(t) {
     const update = (fn) => { fn(t); saveCustom(t); };
