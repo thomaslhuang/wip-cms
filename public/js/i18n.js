@@ -88,7 +88,7 @@ const JA = {
   "Everything is published": "すべて公開済み",
   "No date": "日付なし", "Search": "検索", "Search {label}": "{label}を検索",
   "{n} item": "{n} 件", "{n} items": "{n} 件", ", {n} draft": "、下書き {n} 件", ", {n} drafts": "、下書き {n} 件",
-  "New in {label}": "{label}に新規作成", "Show as": "表示方法", "List": "リスト", "Grid": "グリッド", "Titles only": "タイトルのみ",
+  "New in {label}": "{label}に新規作成", "Add new item": "新しい項目を追加", "Show as": "表示方法", "List": "リスト", "Grid": "グリッド", "Titles only": "タイトルのみ",
   "Nothing matches.": "一致するものはありません。", "Nothing here yet.": "まだ何もありません。", "Resize list": "リストの幅を変更",
   "Expand all": "すべて開く", "Collapse all": "すべて閉じる",
   "Draft": "下書き", "Published": "公開中",

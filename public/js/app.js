@@ -188,7 +188,7 @@ function drawList() {
       h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
       h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
         h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
-      tbtn("compose", t("New in {label}", { label: tl(s.label) }), () => newEntry(s))),
+      tbtn("plus", t("Add new item"), () => newEntry(s))),
     // the view buttons first, so they stay put as the list gets wider or narrower; the search takes the rest
     h("div", { class: "list-tools" },
       viewSwitch(s, mode),
@@ -235,7 +235,7 @@ function drawTable(s, all, drafts) {
       !editor && !showSidebar ? tbtn("sidebar", t("Show sidebar"), () => toggleSidebar(), { cls: "sheet-side" }) : null,
       h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
         h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
-      tbtn("compose", t("New in {label}", { label: tl(s.label) }), () => newEntry(s)),
+      tbtn("plus", t("Add new item"), () => newEntry(s)),
       // the toolbar (with its ⋯) is hidden while the spreadsheet fills the window
       editor ? null : moreBtn()),
     h("div", { class: "list-tools" },
