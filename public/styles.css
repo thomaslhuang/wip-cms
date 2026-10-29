@@ -662,7 +662,7 @@ select.input { appearance: auto; }
 .set-site { display: flex; flex-direction: column; min-width: 0; }
 .set-site .muted { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .set-label:has(.set-site) { flex: 1; min-width: 0; }
-.set-editing { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
+.set-editing { margin: 0 0 14px; padding-left: 4px; font-size: 12px; color: var(--muted); }   /* lined up with the section headings */
 .set-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; margin-bottom: 18px; border-radius: 10px;
   background: var(--accent-soft); font-size: 12px; color: var(--text-2); }
 .locked .set-section { opacity: .5; pointer-events: none; }
