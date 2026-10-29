@@ -242,11 +242,13 @@ export function openAppearance() {
   // what the type looks like, drawn with the theme as you change it
   const typePreview = () => h("div", { class: "type-preview", "aria-hidden": "true" },
     h("div", { class: "type-preview-ui" }, h("span", {}, tl("Blog posts")), h("span", { class: "muted" }, "12 · 2026")),
-    h("div", { class: "type-preview-title" }, "on mexico city"),
-    // a few lines, so changes to the line height show
-    h("p", { class: "type-preview-text" }, "I'm not really sure what I was expecting when this trip was planned, but it was ", h("em", {}, "wonderful"),
-      ". The streets were wetter than I'd imagined, the light softer, and every afternoon ended with something new to write down. ",
-      "These notes are a little of each day, kept here so the words have room to breathe. 旅の記録と書体の見本。"),
+    // the texts type foundries use in their specimens: a pangram for the title (every letter of the
+    // alphabet), the opening of Moby-Dick (1851, public domain) for the writing, a few lines long
+    // so the line height shows, and the Iroha poem, the Japanese pangram
+    h("div", { class: "type-preview-title" }, "Sphinx of black quartz, judge my vow"),
+    h("p", { class: "type-preview-text" }, "Call me Ishmael. Some years ago\u2014", h("em", {}, "never mind how long precisely"),
+      "\u2014having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world. ",
+      "いろはにほへと ちりぬるを わかよたれそ つねならむ"),
     h("div", { class: "type-preview-code", html: codeSample() }));
   function typeTab(t) {
     const update = (fn) => { fn(t); saveCustom(t); };
