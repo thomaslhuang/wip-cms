@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// wip cms
+// w·i·p cms
 // -------
 // A local editor for static sites that use a .pages.yml (the Pages CMS settings file).
 //
@@ -76,7 +76,7 @@ const routes = {
   // how many files changed since the last commit (the "ready to publish" count)
   "GET /api/changes": () => changes(),
 
-  // stop wip cms (the ⋯ menu's Quit, and the Mac app when it needs to restart a newer version)
+  // stop w·i·p cms (the ⋯ menu's Quit, and the Mac app when it needs to restart a newer version)
   "POST /api/quit": () => { setTimeout(() => { try { preview.stopPreview(); } catch { /* fine */ } process.exit(0); }, 150); return { ok: true }; },
   // which version is running, so the Mac app can tell when it needs restarting after an update
   "GET /api/version": () => ({ version: VERSION }),
@@ -129,7 +129,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ----- other devices (your phone): only the upload page and uploads -----
     if (!phone.isLocal(req)) {
-      if (!phone.validToken(q.t)) return send(res, 403, { error: "This link has expired. Scan the QR code in wip cms again." });
+      if (!phone.validToken(q.t)) return send(res, 403, { error: "This link has expired. Scan the QR code in w·i·p cms again." });
       if (req.method === "GET" && url.pathname === "/phone") return serveFile(res, path.join(PUBLIC, "phone.html"));
       if (req.method === "POST" && url.pathname === "/api/upload") return send(res, 200, media.saveUpload(q.folder, q.name, await readBody(req)));
       return send(res, 403, { error: "Only photo uploads are allowed from other devices." });
@@ -167,7 +167,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   const cliPath = process.argv.slice(2).find((a) => !a.startsWith("--"));
   const opened = site.tryOpenLast(cliPath);
-  console.log(`\n  wip cms   →  http://localhost:${PORT}`);
+  console.log(`\n  w·i·p cms   →  http://localhost:${PORT}`);
   console.log(opened ? `  site      →  ${opened.root}` : "  site      →  none yet: pick one in the browser");
   if (opened && !process.argv.includes("--no-preview")) {
     preview.startPreview();

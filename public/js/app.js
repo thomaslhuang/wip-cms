@@ -77,24 +77,35 @@ async function refreshChanges() {
   drawSidebar();
 }
 
+// The sidebar, top to bottom:
+//   Collections   things you keep adding to: blog posts, projects (.pages.yml type: collection,
+//                 or a data file with list: true)
+//   <groups>      single pages, under the group they're in in .pages.yml (e.g. "pages")
+//   Site          everything else that's one of a kind (site-wide details like the site's
+//                 title), and the Images library
 function drawSidebar() {
   const collections = config.sections.filter((s) => s.kind === "collection");
   const groups = {};
-  config.sections.filter((s) => s.kind !== "collection").forEach((s) => (groups[s.group || "settings"] ||= []).push(s));
+  config.sections.filter((s) => s.kind !== "collection").forEach((s) => (groups[s.group || ""] ||= []).push(s));
+  const siteItems = groups[""] || [];
+  delete groups[""];
   const item = (href, iconName, label, count, active) => h("a", { class: "side-item" + (active ? " active" : ""), href },
     icon(iconName, "side-icon"), h("span", { class: "side-label" }, label), count != null ? h("span", { class: "side-count" }, count) : null);
+  const pageItem = (s, iconName) => item("#/edit/" + s.path, iconName, tl(s.label), null, route.file === s.path);
   fill(sidebarEl,
     h("div", { class: "side-head" },
       h("button", { class: "site-btn", title: t("Open another site"), onclick: () => chooseSite(true) }, h("span", {}, config.site.name), icon("chevrons")),
       tbtn("sidebar", t("Hide sidebar"), () => toggleSidebar(), { cls: "side-hide" })),
     h("nav", { class: "side-scroll" },
-      h("div", { class: "side-group" }, t("Library")),
+      collections.length ? h("div", { class: "side-group" }, t("Collections")) : null,
       collections.map((s) => item("#/s/" + s.name, s.name === "projects" ? "grid" : s.store === "list" ? "list" : "text", tl(s.label), lists[s.name]?.length, route.section === s.name)),
-      item("#/images", "images", t("Images"), null, route.page === "images"),
       Object.entries(groups).map(([g, items]) => [
         h("div", { class: "side-group" }, tl(g)),
-        items.map((s) => item("#/edit/" + s.path, g === "pages" ? (s.name === "home" ? "house" : "text") : "gear", tl(s.label), null, route.file === s.path)),
-      ])),
+        items.map((s) => pageItem(s, s.name === "home" || s.name === "index" ? "house" : "text")),
+      ]),
+      h("div", { class: "side-group" }, t("Site")),
+      item("#/images", "images", t("Images"), null, route.page === "images"),
+      siteItems.map((s) => pageItem(s, "gear"))),
     h("div", { class: "side-foot" },
       changesCount == null ? null : h("span", { class: "dot" + (changesCount ? " on" : "") }),
       changesCount == null ? "" : changesCount ? t2(changesCount, "{n} change ready to publish", "{n} changes ready to publish") : t("Everything is published")));
@@ -175,7 +186,7 @@ function drawList() {
 const listModes = pref.get("list-modes", {});
 const listMode = (name) => listModes[name] || "rows";
 function setListMode(name, mode) { listModes[name] = mode; pref.set("list-modes", listModes); drawList(); }
-// How a section's list is grouped and sorted, remembered for each section (only in wip cms:
+// How a section's list is grouped and sorted, remembered for each section (only in w·i·p cms:
 // the site's own pages keep their order).
 //   group: "month" (years, then months), "year", "field:<name>" (by a choice field, such as
 //          a project's category), or "none"
@@ -304,18 +315,18 @@ function reorderable(container, s) {
     const from = [...container.children].indexOf(el);
     const x0 = e.clientX, y0 = e.clientY;
     let dragging = false, copy = null, scroller = null, last = e;
-    const grid = container.classList.contains("grid");
+    // pointing at another item moves this one to its place (after it if it's later, before it
+    // if earlier); the item just passed is ignored until the pointer leaves it, so nothing flips back
+    let passed = null;
+    const inside = (c, ev) => { const r = c.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom; };
     const place = (ev) => {
-      const over = [...container.children].find((c) => {
-        if (c === el) return false;
-        const r = c.getBoundingClientRect();
-        return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
-      });
-      if (!over) return;
-      const r = over.getBoundingClientRect();
-      const before = grid ? ev.clientX < r.left + r.width / 2 : ev.clientY < r.top + r.height / 2;
-      if (before) { if (over.previousSibling !== el) container.insertBefore(el, over); }
-      else if (over.nextSibling !== el) container.insertBefore(el, over.nextSibling);
+      if (passed && !inside(passed, ev)) passed = null;
+      const kids = [...container.children];
+      const over = kids.find((c) => c !== el && inside(c, ev));
+      if (!over || over === passed) return;
+      if (kids.indexOf(over) > kids.indexOf(el)) container.insertBefore(el, over.nextSibling);
+      else container.insertBefore(el, over);
+      passed = over;
     };
     const move = (ev) => {
       last = ev;
@@ -466,7 +477,7 @@ function drawToolbar() {
     // language, how dates are written, interface size
     { label: tl("Settings…"), run: showSettings },
     { label: tl("Open another site…"), run: () => chooseSite(true) },
-    { label: t("Quit wip cms"), run: quit },
+    { label: t("Quit w·i·p cms"), run: quit },
   ]));
   right.push(more);
 
@@ -632,14 +643,14 @@ async function go() {
   drawSidebar();
   drawList();
   layout();
-  document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · wip cms`;
+  document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · w·i·p cms`;
 }
 async function reopen() { editor?.destroy(); editor = null; await go(); }
 
 // ---------- files dragged in from Finder ----------
 // Anywhere on a post: pictures become image blocks, videos video blocks, other files links,
 // dropped where the blue line shows. Image fields and the image library take their own drops.
-// (Files are never opened by the browser itself, which would leave wip cms.)
+// (Files are never opened by the browser itself, which would leave w·i·p cms.)
 let dropHint = null, dragDepth = 0;
 const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
 function clearFileDrag() {
@@ -690,8 +701,8 @@ async function quit() {
   await editor?.flush();
   try { await api.quit(); } catch { /* it stops before answering, sometimes */ }
   document.body.append(h("div", { class: "overlay" }, h("div", { class: "dialog" },
-    h("p", { class: "dialog-title" }, t("wip cms has stopped")),
-    h("p", { class: "muted small" }, t("Everything is saved. You can close this window; open wip cms again when you need it.")))));
+    h("p", { class: "dialog-title" }, t("w·i·p cms has stopped")),
+    h("p", { class: "muted small" }, t("Everything is saved. You can close this window; open w·i·p cms again when you need it.")))));
 }
 
 // ---------- choosing a site ----------
@@ -706,7 +717,7 @@ async function chooseSite(canCancel) {
       if (!path) return input.focus();
       const info = await api.inspectSite(path);
       if (!info.exists) { err.textContent = t("There's no folder at {path}.", { path: info.root }); return; }
-      // not set up for wip cms yet: offer to set it up
+      // not set up for w·i·p cms yet: offer to set it up
       if (!info.hasConfig) { overlay.remove(); openSetup(info, () => chooseSite(canCancel)); return; }
       await editor?.flush();
       await api.openSite(path);
@@ -716,7 +727,7 @@ async function chooseSite(canCancel) {
   };
   const overlay = h("div", { class: "overlay" }, h("div", { class: "dialog wide" },
     h("p", { class: "dialog-title" }, t("Open a site")),
-    h("p", { class: "muted small" }, t("The site's main folder. In Finder, select the folder and press ⌥⌘C to copy its path, then paste it here. A folder that isn't set up for wip cms yet (a new client site, say) gets a few questions first.")),
+    h("p", { class: "muted small" }, t("The site's main folder. In Finder, select the folder and press ⌥⌘C to copy its path, then paste it here. A folder that isn't set up for w·i·p cms yet (a new client site, say) gets a few questions first.")),
     input, err,
     recent.length ? h("div", { class: "recent" }, h("p", { class: "muted small" }, t("Recent")),
       recent.map((p) => h("button", { class: "recent-site", onclick: () => open(p) }, icon("folder"), h("span", {}, p)))) : null,

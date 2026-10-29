@@ -58,7 +58,7 @@ export function openSetup(info, back) {
     h("p", { class: "dialog-title" }, tr("Set up “{name}”", { name })),
     h("p", { class: "muted small" },
       info.generator ? tr(/^[AEIOU]/.test(info.generator) ? "This looks like an {generator} site. " : "This looks like a {generator} site. ", { generator: info.generator }) : "",
-      tr("wip cms will write a .pages.yml file describing the sections below, and make their folders. Each post or page becomes its own folder with an index.md inside. You can change all of this later in .pages.yml.")),
+      tr("w·i·p cms will write a .pages.yml file describing the sections below, and make their folders. Each post or page becomes its own folder with an index.md inside. You can change all of this later in .pages.yml.")),
     h("div", { class: "setup-paths" },
       h("label", {}, h("span", { class: "field-label" }, tl("Pages folder (the site generator's input)")), source),
       h("label", {}, h("span", { class: "field-label" }, tl("Images folder, inside it")), images)),

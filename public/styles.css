@@ -1,4 +1,4 @@
-/* wip cms: the look
+/* w·i·p cms: the look
    -----------------
    Colors come from the theme (js/theme.js): eight base colors, set on <html> as
    --window, --sidebar, --list, --panel, --card, --text, --muted and --accent. Everything else
@@ -387,6 +387,10 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
 .block-collage .image-many .thumb:nth-child(6n+5), .doc-gallery .image-many .thumb:nth-child(6n+5) { width: 94%; margin-top: 34px; justify-self: end; }
 .block-collage .image-many .thumb:nth-child(6n), .doc-gallery .image-many .thumb:nth-child(6n) { grid-column: 1 / -1; width: 58%; margin-left: 6%; }
 .block-collage .image-many .thumb:only-child, .doc-gallery .image-many .thumb:only-child { grid-column: 1 / -1; width: 100%; margin: 0; }
+/* while a picture is being dragged, a collage becomes an even grid, so nothing jumps around under the pointer */
+.block-collage .image-many.reordering .thumbs, .doc-gallery .image-many.reordering .thumbs { grid-template-columns: repeat(3, 1fr); align-items: stretch; }
+.block-collage .image-many.reordering .thumb, .doc-gallery .image-many.reordering .thumb { grid-column: auto; width: 100%; margin: 0; aspect-ratio: 1; justify-self: stretch; }
+.block-collage .image-many.reordering .thumb img, .doc-gallery .image-many.reordering .thumb img { height: 100%; }
 
 /* the + between blocks, shown when you point at the gap */
 .insert-line { height: 22px; display: flex; align-items: center; justify-content: center; position: relative; }

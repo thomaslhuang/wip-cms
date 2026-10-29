@@ -75,7 +75,7 @@ const JA = {
   // ----- window, sidebar, list -----
   "Open another site": "別のサイトを開く", "Open another site…": "別のサイトを開く…",
   "Hide sidebar": "サイドバーを隠す", "Show sidebar": "サイドバーを表示",
-  "Library": "ライブラリ", "Images": "画像", "Settings": "設定", "Pages": "ページ", "Sections": "セクション",
+  "Library": "ライブラリ", "Collections": "コレクション", "Images": "画像", "Settings": "設定", "Pages": "ページ", "Sections": "セクション",
   "{n} change ready to publish": "公開待ちの変更 {n} 件", "{n} changes ready to publish": "公開待ちの変更 {n} 件",
   "Everything is published": "すべて公開済み",
   "No date": "日付なし", "Search": "検索", "Search {label}": "{label}を検索",
@@ -103,8 +103,8 @@ const JA = {
   "Choose something from the sidebar.": "サイドバーから選んでください。",
   "There's no folder at {path}.": "{path} にフォルダがありません。",
   "Open a site": "サイトを開く", "Recent": "最近使ったサイト",
-  "The site's main folder. In Finder, select the folder and press ⌥⌘C to copy its path, then paste it here. A folder that isn't set up for wip cms yet (a new client site, say) gets a few questions first.":
-    "サイトのメインフォルダです。Finderでフォルダを選んで ⌥⌘C を押すとパスがコピーされるので、ここに貼り付けてください。まだ wip cms 用に設定されていないフォルダ（新しいクライアントのサイトなど）は、いくつか質問に答えてから開きます。",
+  "The site's main folder. In Finder, select the folder and press ⌥⌘C to copy its path, then paste it here. A folder that isn't set up for w·i·p cms yet (a new client site, say) gets a few questions first.":
+    "サイトのメインフォルダです。Finderでフォルダを選んで ⌥⌘C を押すとパスがコピーされるので、ここに貼り付けてください。まだ w·i·p cms 用に設定されていないフォルダ（新しいクライアントのサイトなど）は、いくつか質問に答えてから開きます。",
   "Couldn't read that site's settings (.pages.yml), so pick a site to open.": "サイトの設定（.pages.yml）を読み込めませんでした。開くサイトを選んでください。",
   // ----- editing -----
   "Saved": "保存済み", "Saving…": "保存中…", "Not saved": "保存されていません", "Edited": "編集済み",
@@ -155,24 +155,24 @@ const JA = {
   "One piece of writing under the title (Markdown)": "タイトルの下に1つの文章（Markdown）",
   "Text, images, carousels, collages… (the site's templates must show blocks)": "テキスト、画像、カルーセル、コラージュ…（サイトのテンプレートがブロックに対応している必要があります）",
   "This looks like a {generator} site. ": "{generator} のサイトのようです。", "This looks like an {generator} site. ": "{generator} のサイトのようです。",
-  "wip cms will write a .pages.yml file describing the sections below, and make their folders. Each post or page becomes its own folder with an index.md inside. You can change all of this later in .pages.yml.":
-    "wip cms が下のセクションを記した .pages.yml を作り、それぞれのフォルダを作成します。投稿やページは1つずつ、中に index.md が入ったフォルダになります。すべて後から .pages.yml で変更できます。",
+  "w·i·p cms will write a .pages.yml file describing the sections below, and make their folders. Each post or page becomes its own folder with an index.md inside. You can change all of this later in .pages.yml.":
+    "w·i·p cms が下のセクションを記した .pages.yml を作り、それぞれのフォルダを作成します。投稿やページは1つずつ、中に index.md が入ったフォルダになります。すべて後から .pages.yml で変更できます。",
   "Posts get a title, featured image, date, draft switch and tags; pages get a title and a description. “Blocks” lets you mix text, images, carousels and collages, like your own site, but the client site's templates need to be able to show them. “Template” fills in the layout field (for Eleventy, e.g. post.njk).":
     "投稿にはタイトル、アイキャッチ画像、日付、下書きスイッチ、タグが、ページにはタイトルと説明が付きます。「ブロック」ではあなたのサイトのようにテキスト・画像・カルーセル・コラージュを組み合わせられますが、クライアントのサイトのテンプレートが対応している必要があります。「テンプレート」は layout 項目に入ります（Eleventy なら post.njk など）。",
   // ----- appearance -----
-  "Quit wip cms": "wip cms を終了", "wip cms has stopped": "wip cms を終了しました",
-  "Everything is saved. You can close this window; open wip cms again when you need it.": "すべて保存されています。このウィンドウは閉じて大丈夫です。必要な時にまた wip cms を開いてください。",
-  "Export": "書き出す", "Import…": "読み込む…", "That file isn't a wip cms theme.": "このファイルは wip cms のテーマではありません。",
+  "Quit w·i·p cms": "w·i·p cms を終了", "w·i·p cms has stopped": "w·i·p cms を終了しました",
+  "Everything is saved. You can close this window; open w·i·p cms again when you need it.": "すべて保存されています。このウィンドウは閉じて大丈夫です。必要な時にまた w·i·p cms を開いてください。",
+  "Export": "書き出す", "Import…": "読み込む…", "That file isn't a w·i·p cms theme.": "このファイルは w·i·p cms のテーマではありません。",
   "Group and sort": "グループと並べ替え", "Group by": "グループ", "Sort by": "並べ替え", "Month": "月", "Year": "年", "Nothing": "なし", "None": "なし",
   "Newest first": "新しい順", "Oldest first": "古い順",
   "Order on the site": "サイトでの順番", "Add pictures:": "画像を追加：", "Add an empty one": "空の項目を追加", "Open all": "すべて開く", "Fold all": "すべて閉じる",
   "Link": "リンク", "Web address": "URL", "A web address, e.g. a video on Google Drive": "URL（Google ドライブの動画など）", "or": "または",
 "It goes at the top of the list; drag it to where it belongs.": "一覧のいちばん上に追加されます。ドラッグして好きな位置へ移動できます。",
   "The permalink follows the title unless you change it.": "パーマリンクは、変更しない限りタイトルから作られます。",
-  "This list was changed somewhere else (another window, or outside wip cms). Reopen the item to see the latest, then make your change again.": "この一覧は別の場所（別のウインドウや wip cms の外）で変更されました。項目を開き直してから、もう一度変更してください。",
+  "This list was changed somewhere else (another window, or outside w·i·p cms). Reopen the item to see the latest, then make your change again.": "この一覧は別の場所（別のウインドウや w·i·p cms の外）で変更されました。項目を開き直してから、もう一度変更してください。",
   "Settings": "設定", "Settings…": "設定…", "Interface size": "表示の大きさ", "Reset": "元に戻す", "Site": "サイト",
-  "wip cms reloads to switch language. Your section and field names switch too, for the common ones.": "言語を切り替えると wip cms が再読み込みされます。よく使うセクション名やフィールド名も切り替わります。",
-  "Switching language reloads wip cms. Interface Size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.": "言語を切り替えると wip cms が再読み込みされます。「表示の大きさ」はサイドバー・一覧・ツールバー・詳細の大きさを変えます。本文の大きさは「カスタマイズ → 文字」で変えられます。", "General": "一般",
+  "w·i·p cms reloads to switch language. Your section and field names switch too, for the common ones.": "言語を切り替えると w·i·p cms が再読み込みされます。よく使うセクション名やフィールド名も切り替わります。",
+  "Switching language reloads w·i·p cms. Interface Size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.": "言語を切り替えると w·i·p cms が再読み込みされます。「表示の大きさ」はサイドバー・一覧・ツールバー・詳細の大きさを変えます。本文の大きさは「カスタマイズ → 文字」で変えられます。", "General": "一般",
   "Customize": "カスタマイズ", "Customize…": "カスタマイズ…", "Themes": "テーマ", "Typography": "文字", "Editing “{name}”": "「{name}」を編集中",
   "Built-in themes can't be changed. Duplicate one to make it your own.": "内蔵のテーマは変更できません。複製すると自分用に変えられます。",
   "Duplicate “{name}”": "「{name}」を複製", "copy": "のコピー", "Surfaces": "背景", "Text and accent": "文字とアクセント", "Interface": "画面",

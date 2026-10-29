@@ -1,5 +1,5 @@
 #!/bin/bash
-# wip cms for Mac: double-click to start the editor and open it in its own window.
+# w·i·p cms for Mac: double-click to start the editor and open it in its own window.
 #
 #   1. finds the wip-cms folder (the one this app sits in, or the last one used)
 #   2. finds Node.js (Homebrew, the installer from nodejs.org, nvm, Volta...)
@@ -15,8 +15,8 @@ URL="http://localhost:$PORT"
 SUPPORT="$HOME/Library/Application Support/wip cms"
 LOG="$HOME/Library/Logs/wip cms.log"
 mkdir -p "$SUPPORT" "$(dirname "$LOG")"
-say() { osascript -e "display notification \"$1\" with title \"wip cms\"" >/dev/null 2>&1; }
-alert() { osascript -e "display dialog \"$1\" with title \"wip cms\" buttons {\"OK\"} default button 1 with icon caution" >/dev/null 2>&1; }
+say() { osascript -e "display notification \"$1\" with title \"w·i·p cms\"" >/dev/null 2>&1; }
+alert() { osascript -e "display dialog \"$1\" with title \"w·i·p cms\" buttons {\"OK\"} default button 1 with icon caution" >/dev/null 2>&1; }
 
 # ---------- 1. the wip-cms folder ----------
 APP="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -27,7 +27,7 @@ elif [ -f "$SUPPORT/folder" ] && [ -f "$(cat "$SUPPORT/folder")/server.js" ]; th
 else
   ROOT="$(osascript -e 'POSIX path of (choose folder with prompt "Where is the wip-cms folder? (the one with server.js in it)")' 2>/dev/null)" || exit 0
   ROOT="${ROOT%/}"
-  [ -f "$ROOT/server.js" ] || { alert "That folder doesn't have wip cms in it (no server.js)."; exit 1; }
+  [ -f "$ROOT/server.js" ] || { alert "That folder doesn't have w·i·p cms in it (no server.js)."; exit 1; }
 fi
 echo "$ROOT" > "$SUPPORT/folder"
 
@@ -48,7 +48,7 @@ find_node() {
 }
 NODE="$(find_node)"
 if [ -z "$NODE" ]; then
-  if osascript -e 'button returned of (display dialog "wip cms needs Node.js, which isn’t installed yet. Download it from nodejs.org (choose the LTS version), install it, then open wip cms again." with title "wip cms" buttons {"Cancel", "Get Node.js"} default button 2)' 2>/dev/null | grep -q "Get"; then
+  if osascript -e 'button returned of (display dialog "w·i·p cms needs Node.js, which isn’t installed yet. Download it from nodejs.org (choose the LTS version), install it, then open w·i·p cms again." with title "w·i·p cms" buttons {"Cancel", "Get Node.js"} default button 2)' 2>/dev/null | grep -q "Get"; then
     open "https://nodejs.org/en/download"
   fi
   exit 1
@@ -61,7 +61,7 @@ cd "$ROOT" || exit 1
 if [ ! -d node_modules ] || [ package-lock.json -nt node_modules/.package-lock.json ]; then
   say "Getting things ready (only after an update)…"
   if ! npm install --no-audit --no-fund >> "$LOG" 2>&1; then
-    alert "Couldn't install what wip cms needs. Is this Mac online? Details are in ~/Library/Logs/wip cms.log."
+    alert "Couldn't install what w·i·p cms needs. Is this Mac online? Details are in ~/Library/Logs/wip cms.log."
     exit 1
   fi
 fi
@@ -76,7 +76,7 @@ if [ -n "$RUNNING" ] && ! echo "$RUNNING" | grep -q "$VERSION"; then
   RUNNING=""
 fi
 if [ -z "$RUNNING" ]; then
-  echo "--- $(date) starting wip cms from $ROOT" >> "$LOG"
+  echo "--- $(date) starting w·i·p cms from $ROOT" >> "$LOG"
   nohup "$NODE" server.js >> "$LOG" 2>&1 &
   for i in $(seq 1 60); do
     curl -s -o /dev/null --max-time 1 "$URL/api/site" && break

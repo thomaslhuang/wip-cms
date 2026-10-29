@@ -1,4 +1,4 @@
-// Themes: colors, fonts and code colors for the whole of wip cms.
+// Themes: colors, fonts and code colors for the whole of w·i·p cms.
 //
 // A theme is a handful of colors (the rest are mixed from them in styles.css), fonts, a
 // writing size, and which code colors to use. Light themes are used in light mode, dark
@@ -322,7 +322,7 @@ export function importTheme(onDone) {
       write("wip-themes", [...customThemes(), theme]);
       write(theme.kind === "dark" ? "wip-theme-dark" : "wip-theme-light", theme.id);
       onDone?.(theme);
-    } catch { toast(tr("That file isn't a wip cms theme."), "error"); }
+    } catch { toast(tr("That file isn't a w·i·p cms theme."), "error"); }
   });
   document.body.append(input);
   input.click();

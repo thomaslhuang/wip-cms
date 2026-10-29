@@ -22,20 +22,20 @@ def icon(size=1024):
     tile.paste(grad, (0, 0), mask)
     img.alpha_composite(tile)
     d = ImageDraw.Draw(img)
-    f = ImageFont.truetype("/usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf", 330)
-    text = "wip"
-    bb = d.textbbox((0, 0), text, font=f)
-    tw, th = bb[2] - bb[0], bb[3] - bb[1]
-    x = (W - tw) / 2 - 34 - bb[0]
-    y = (W - th) / 2 - 40 - bb[1]
-    d.text((x, y), text, font=f, fill=(29, 29, 31, 255))
-    # a blue text cursor after the word
-    cx = x + bb[2] + 34
-    d.rounded_rectangle((cx, y + bb[1] - 18, cx + 26, y + bb[3] + 22), 13, fill=(10, 102, 216, 255))
-    f2 = ImageFont.truetype("/usr/share/fonts/opentype/inter/Inter-Medium.otf", 92)
-    sub = "cms"
-    b2 = d.textbbox((0, 0), sub, font=f2)
-    d.text(((W - (b2[2] - b2[0])) / 2 - b2[0], 690), sub, font=f2, fill=(110, 110, 115, 255))
+    # "w·i·p": the letters in near-black, the two dots in the accent blue
+    f = ImageFont.truetype("/usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf", 300)
+    parts = [("w", (29, 29, 31, 255)), ("·", (10, 102, 216, 255)), ("i", (29, 29, 31, 255)), ("·", (10, 102, 216, 255)), ("p", (29, 29, 31, 255))]
+    gap = -6
+    widths = [d.textlength(t, font=f) for t, _ in parts]
+    total = sum(widths) + gap * (len(parts) - 1)
+    # centered on the tile, by the letters' x-height (so the descender of p hangs below)
+    bx = d.textbbox((0, 0), "wip", font=f)
+    xh = d.textbbox((0, 0), "w", font=f)
+    x = (W - total) / 2
+    y = 512 - (xh[1] + xh[3]) / 2 - 20
+    for (t, color), w in zip(parts, widths):
+        d.text((x, y), t, font=f, fill=color)
+        x += w + gap
     return img
 big = icon()
 out = sys.argv[1]

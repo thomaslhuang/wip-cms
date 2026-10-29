@@ -429,18 +429,19 @@ function imageMany(field, obj, ctx) {
       try { el.setPointerCapture(e.pointerId); } catch { /* fine */ }
     };
     if (touch) timer = setTimeout(begin, 280);
-    // the picture under the pointer: go before it (its first half) or after it
+    // Pointing at another picture moves this one to its place: after it if it comes later,
+    // before it if it comes earlier. The picture just passed is ignored until the pointer
+    // leaves it, so the two can't keep swapping back and forth as the layout shifts.
+    let passed = null;
+    const inside = (c, ev) => { const r = c.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom; };
     const place = (ev) => {
-      const over = [...strip.children].find((c) => {
-        if (c === el) return false;
-        const r = c.getBoundingClientRect();
-        return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
-      });
-      if (!over) return;
-      const r = over.getBoundingClientRect();
-      const before = strip.scrollWidth > strip.clientWidth ? ev.clientX < r.left + r.width / 2 : (ev.clientY < r.top + r.height / 2 && ev.clientX < r.right) || ev.clientX < r.left + r.width / 2;
-      if (before) { if (over.previousSibling !== el) strip.insertBefore(el, over); }
-      else if (over.nextSibling !== el) strip.insertBefore(el, over.nextSibling);
+      if (passed && !inside(passed, ev)) passed = null;
+      const kids = [...strip.children];
+      const over = kids.find((c) => c !== el && inside(c, ev));
+      if (!over || over === passed) return;
+      if (kids.indexOf(over) > kids.indexOf(el)) strip.insertBefore(el, over.nextSibling);
+      else strip.insertBefore(el, over);
+      passed = over;
     };
     const move = (ev) => {
       last = ev;

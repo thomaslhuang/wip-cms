@@ -1,7 +1,7 @@
-// The Settings window (⋯ → Settings…): things about how wip cms works for you, rather than
+// The Settings window (⋯ → Settings…): things about how w·i·p cms works for you, rather than
 // how it looks (that's Customize, in theme.js).
 //
-//   Language        English or 日本語 (wip cms reloads to switch)
+//   Language        English or 日本語 (w·i·p cms reloads to switch)
 //   Dates           October 28, 2026 · 2026年10月28日
 //   Interface Size  scales the sidebar, list, toolbar and inspector
 //   Site            which site is open, and opening another
@@ -49,7 +49,7 @@ export function openSettings({ beforeReload, onDates, site, openSite }) {
         })),
         row(tl("Dates"), choice(tl("Dates"), ["western", "japanese"].map((s) => [s, fmtDate(new Date(), "long", s)]), dateStyle(), (s) => { setDateStyle(s); onDates?.(); draw(); })),
         row(tl("Interface size"), h("span", { class: "set-a small", "aria-hidden": "true" }, "A"), range, h("span", { class: "set-a", "aria-hidden": "true" }, "A"), value, reset)),
-      hint(t("Switching language reloads wip cms. Interface Size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.")),
+      hint(t("Switching language reloads w·i·p cms. Interface Size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.")),
       site ? group("Site",
         row(h("span", { class: "set-site" }, h("b", {}, site.name), h("span", { class: "muted" }, site.root)),
           h("button", { class: "btn small", onclick: () => { close(); openSite(); } }, tl("Open another site…")))) : null);

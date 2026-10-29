@@ -1,16 +1,16 @@
 # .pages.yml for the dosa site (github.com/thomaslhuang/dosainc)
 #
 # To use it: copy this file into the dosa site's main folder as .pages.yml, then open that
-# folder in wip cms. Nothing else in the dosa site needs to change.
+# folder in w·i·p cms. Nothing else in the dosa site needs to change.
 #
 # Everything on that site is kept as lists in src/_data/*.json, so each section here is a
-# "file" with list: true (the Pages CMS way of describing that). wip cms shows each item
+# "file" with list: true (the Pages CMS way of describing that). w·i·p cms shows each item
 # as an entry of its own, works out its page address from the site's templates, and keeps
 # the list's order, which is the order on the site.
 #
 # Pictures are saved as just their file name, the way the site's templates expect, in the
 # folder given by "path" ({slug} is filled in from the entry). "store: filename" is a
-# wip cms option; Pages CMS uses "path" as the folder its picker opens in.
+# w·i·p cms option; Pages CMS uses "path" as the folder its picker opens in.
 
 media:
   input: src/img

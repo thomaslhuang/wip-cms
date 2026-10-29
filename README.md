@@ -1,4 +1,4 @@
-# wip cms
+# w·i·p cms
 
 A local editor for static sites that use a `.pages.yml` (the Pages CMS settings file).
 It runs on your Mac and edits the site's files directly. Nothing goes online until you
@@ -12,12 +12,13 @@ writing, and comes in light and dark.
 
 ## Starting it
 
-**Double-click `wip cms.app`** in this folder. That's it: no Terminal.
+**Double-click `w·i·p cms.app`** in this folder. That's it: no Terminal.
 
 - It starts the editor in the background and opens it in its own window (an app window in
   Chrome, Edge or Brave if you have one; otherwise your default browser).
 - The first time, and after you pull an update, it gets things ready for a moment first.
-- Drag it to the Dock to keep it handy. It can also live in Applications: it remembers
+- Drag it to the Dock to keep it handy. (It used to be called "wip cms.app": if the Dock
+  shows a question mark, drag the new one there instead.) It can also live in Applications: it remembers
   where this folder is (and asks, if it ever can't find it).
 - **Quit** from the ⋯ menu stops the editor. Closing the window leaves it running quietly
   in the background, so the next open is instant.
@@ -39,7 +40,7 @@ npm start -- ~/path/to/my-site      # opens a particular site
 Then go to **http://localhost:4321**. Stop it with **Ctrl+C**.
 
 **A new site (for a client, say):** click the site name, paste the new site's folder,
-and press Open. If it isn't set up yet, wip cms asks a few questions instead:
+and press Open. If it isn't set up yet, w·i·p cms asks a few questions instead:
 
 - which folder the pages live in and where images go;
 - which sections it should have (case studies, news, pages…);
@@ -66,7 +67,7 @@ Options:
 
 | | |
 |---|---|
-| **Sidebar** | Your sections (blog posts, projects), Images, pages and settings. At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site. |
+| **Sidebar** | **Collections**: things you keep adding to (blog posts, projects). Then single **pages**, under the group they're in in `.pages.yml` (e.g. Pages: Home, About). Then **Site**: the Images library, and one-of-a-kind items that aren't in a group (the site's title and description, say). At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site. |
 | **List** | The posts in that section. The ⇅ button picks how they're **grouped** (by month, by year, by any choice field such as Category, or not at all) and **sorted** (newest first, oldest first, or by title). Each section remembers its own, and it only changes this list, never the order on your site. Out of the box, sections filed by month (like blog posts) group by year and month, with the weekday and day beside each post; other dated sections (like projects) group by year, without dates. Click a group to fold it away. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** (square pictures, three across, edge to edge; point at one for its title) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
 | **Inspector** | The post's details: featured image, date, switches, tags, and its permalink. |
@@ -89,7 +90,7 @@ the same and stays in step.
 **Pictures:** there's one **image** choice in the Insert menu. Choose or upload one
 picture, or several at once: the first fills that block and each of the others gets its
 own image block right after it. (The "multi-upload" block in `.pages.yml` stays for Pages
-CMS, but wip cms doesn't offer it, since image does the same.)
+CMS, but w·i·p cms doesn't offer it, since image does the same.)
 
 **Moving blocks:** point at a block and drag the ⠿ handle in the margin to its left. The
 block itself moves through the post as you drag (with a small label following the
@@ -108,11 +109,11 @@ line, for big reshuffles.)
   were `<i>word</i>` before. They look the same on the site.)
 - **Source** (top right of a selected text block) shows the Markdown itself in a
   monospace font, color-coded with the ayu colors. HTML blocks are color-coded too.
-  wip cms remembers whether you last used Write or Source.
+  w·i·p cms remembers whether you last used Write or Source.
 
-**Settings:** ⋯ → **Settings…** has how wip cms works for you (Customize is how it looks):
+**Settings:** ⋯ → **Settings…** has how w·i·p cms works for you (Customize is how it looks):
 
-- **Language:** English or 日本語. Japanese switches all of wip cms (your section and field
+- **Language:** English or 日本語. Japanese switches all of w·i·p cms (your section and field
   names from .pages.yml too, for the common ones). Translations live in
   `public/js/i18n.js`; anything without one stays in English.
 - **Dates:** October 28, 2026 · 2026年10月28日.
@@ -172,11 +173,11 @@ photos and rearrange float at the bottom of the screen.
   into the post's own image folder, e.g. `src/images/blog/2026/10/my-post/`.
 - **From phone** shows a QR code. Your phone needs to be on the same Wi-Fi. The phone
   can only reach the upload page; the editor is only reachable from your Mac. The link
-  changes every time wip cms starts.
+  changes every time w·i·p cms starts.
 
 ## Other sites
 
-wip cms isn't tied to studiotomby.com. What it needs from a site is a `.pages.yml` (the
+w·i·p cms isn't tied to studiotomby.com. What it needs from a site is a `.pages.yml` (the
 Pages CMS format) whose sections are folders of Markdown files. It works out the rest
 from the fields:
 
@@ -194,7 +195,7 @@ cms's code.
 
 **Sites that keep everything in data files** (like dosa, whose projects are a list in
 `src/_data/projects.json`): describe the file the Pages CMS way, `type: file` with
-`list: true`, and wip cms shows each item as an entry of its own, like a blog post.
+`list: true`, and w·i·p cms shows each item as an entry of its own, like a blog post.
 
 - The list's order is the order on the site, so these lists start in that order (**Order on
   the site** under ⇅) and you can **drag an item** to move it. New items go at the top.
@@ -204,7 +205,7 @@ cms's code.
 - The name shown is the `title` field, or whatever `view: { primary: style }` says.
 - Saving changes only that item, keeping the file's own formatting, so GitHub Desktop
   shows just the lines you changed. If the list was changed somewhere else since you
-  opened the item, wip cms says so rather than saving over it.
+  opened the item, w·i·p cms says so rather than saving over it.
 - A long text field (`type: rich-text`) is written in the document like a post; a list of
   pictures with captions shows as the gallery, with **Add pictures** to add several at once.
 - **Move to Trash** takes the item out of the list and keeps it as a small file in
@@ -225,7 +226,7 @@ cms's code.
 
 Uploads go into that folder, and a picture chosen from elsewhere in the library is copied
 in. `path` is Pages CMS's own option (the folder its picker opens in); `store` and `links`
-are wip cms's.
+are w·i·p cms's.
 
 `examples/dosa.pages.yml` is a complete one for the dosa site: copy it into that site's
 folder as `.pages.yml` to use it there. The preview runs a site's Eleventy the way its
@@ -233,7 +234,7 @@ package.json does (dosa's uses `--config=config.js`).
 
 ## How the live preview works
 
-When a site opens, wip cms:
+When a site opens, w·i·p cms:
 
 1. Copies the site into a temporary folder, the "shadow copy". `node_modules` and the
    image library are linked rather than copied.
@@ -242,7 +243,7 @@ When a site opens, wip cms:
 In Split or Preview, what you type goes into the shadow copy straight away, so the page
 updates in place without waiting for the save a moment later.
 
-Changes you make outside wip cms are copied into the shadow copy too, for example
+Changes you make outside w·i·p cms are copied into the shadow copy too, for example
 editing a template in VS Code or pulling in GitHub Desktop.
 
 The preview needs an Eleventy site with its packages installed (`npm install` in the
@@ -251,7 +252,7 @@ site folder). For other sites, everything except the preview still works.
 ## Where things are (for changing it later)
 
 ```
-wip cms.app          the Mac app: double-click to start (Contents/MacOS/wip-cms is the script)
+w·i·p cms.app        the Mac app: double-click to start (Contents/MacOS/wip-cms is the script)
 examples/            .pages.yml files for other sites (dosa)
 mac/make-icon.py     draws the app's icon (AppIcon.icns, and the browser tab icons)
 server.js            the switchboard: each web address hands off to a module below
