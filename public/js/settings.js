@@ -7,6 +7,8 @@
 //   Typographer's quotes   "straight" quotes and apostrophes become “curly” ones as you type
 //   Save after      how long after you stop typing it saves (⌘S always saves straight away)
 //   When it opens   the last site, or the list of sites
+//   Advanced tools  the spreadsheet view in lists (editing many entries at once, pasting rows
+//                   from a spreadsheet)
 //   Site            which site is open, its nickname, and opening another
 //
 // Everything is kept in this browser, like the themes.
@@ -21,11 +23,12 @@ const write = (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /*
 export const smartQuotes = () => read("wip-smart-quotes", "off") === "on";
 // seconds after the last change before it saves by itself
 export const saveAfter = () => { const n = Number(read("wip-save-after", "1.2")); return isFinite(n) && n >= 0.2 ? Math.min(n, 600) : 1.2; };
+export const advancedTools = () => read("wip-advanced", "off") === "on";
 export const onLaunch = () => (read("wip-on-launch", "last") === "list" ? "list" : "last");
 
 // beforeReload: save anything open first · onDates: redraw what shows dates · site: the open site
 // openSite: show the "Open a site" window
-export function openSettings({ beforeReload, onDates, site, openSite, onRename }) {
+export function openSettings({ beforeReload, onDates, site, openSite, onRename, onAdvanced }) {
   const body = h("div", { class: "custom-body" });
   const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey); };
   const onKey = (e) => { if (e.key === "Escape") close(); };
@@ -78,6 +81,9 @@ export function openSettings({ beforeReload, onDates, site, openSite, onRename }
       hint(t("\" and ' become “ ” and ‘ ’ as you type (apostrophes too), as in InDesign. Not in Source, HTML or web addresses.")),
       group("Starting up",
         row(tl("When w·i·p cms opens"), dropdown(tl("When w·i·p cms opens"), [["last", t("Open the last site")], ["list", t("Show the list of sites")]], onLaunch(), (v) => write("wip-on-launch", v)))),
+      group("Advanced",
+        row(tl("Advanced tools"), toggle(advancedTools(), (on) => { write("wip-advanced", on ? "on" : "off"); onAdvanced?.(on); }))),
+      hint(t("Adds a spreadsheet view to lists: every entry as a row, edited right in the cells, and rows pasted in from Google Sheets, Numbers or Excel. Handy for lots of entries at once; the writing and pictures still open in the editor.")),
       site ? group("Site",
         row(h("span", { class: "set-site" }, h("b", {}, site.name), h("span", { class: "muted" }, site.root)),
           h("button", { class: "btn small", onclick: () => { close(); openSite(); } }, tl("Open another site…"))),

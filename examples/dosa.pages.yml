@@ -11,6 +11,8 @@
 # Pictures are saved as just their file name, the way the site's templates expect, in the
 # folder given by "path" ({slug} is filled in from the entry). "store: filename" is a
 # w·i·p cms option; Pages CMS uses "path" as the folder its picker opens in.
+#
+# "description" is the help shown under a field, in w·i·p cms and Pages CMS alike.
 
 media:
   input: src/img
@@ -25,21 +27,21 @@ content:
     list: true
     fields:
       - { name: title, label: Title, type: string, required: true }
-      - { name: navtitle, label: Menu title, type: string }
-      - { name: slug, label: Permalink, type: string }
-      - { name: year, label: Year, type: string }
-      - { name: location, label: Location, type: string }
-      - { name: description, label: Description, type: rich-text, options: { format: markdown } }
-      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/projects/thumbs, store: filename } }
+      - { name: navtitle, label: Menu title, type: string, description: "The short name in the side menu on the site." }
+      - { name: slug, label: Permalink, type: string, description: "The last part of its page's address, e.g. /projects/blurring-boundaries/. Made from the title for new items; changing it later breaks links to the old address." }
+      - { name: year, label: Year, type: string, description: "Shown with the title, e.g. 2023 or 2016–2019." }
+      - { name: location, label: Location, type: string, description: "Where it took place, e.g. Seoul, Korea." }
+      - { name: description, label: Description, type: rich-text, options: { format: markdown }, description: "The writing on its page." }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/projects/thumbs, store: filename }, description: "The small square picture on the Projects page." }
       - name: images
         label: Gallery
         type: object
         list: true
         fields:
-          - { name: type, label: Type, type: select, default: image, options: { values: [image, video] } }
+          - { name: type, label: Type, type: select, default: image, options: { values: [image, video] }, description: "A picture, or a video (paste the video's link in Picture)." }
           - { name: src, label: Picture, type: image, options: { path: "src/img/projects/{slug}", store: filename, links: true } }
-          - { name: caption, label: Caption, type: text }
-          - { name: orientation, label: Video shape, type: select, options: { values: [vertical, horizontal] } }
+          - { name: caption, label: Caption, type: text, description: "Shown under the picture. *Italics* and **bold** work." }
+          - { name: orientation, label: Video shape, type: select, options: { values: [vertical, horizontal] }, description: "Videos only: the shape of the video. Vertical unless it's wider than it is tall." }
 
   - name: recycling
     label: Recycling
@@ -49,21 +51,21 @@ content:
     list: true
     fields:
       - { name: title, label: Title, type: string, required: true }
-      - { name: navtitle, label: Menu title, type: string }
-      - { name: slug, label: Permalink, type: string }
-      - { name: year, label: Year, type: string }
-      - { name: location, label: Location, type: string }
-      - { name: description, label: Description, type: rich-text, options: { format: markdown } }
-      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/recycling/thumbs, store: filename } }
+      - { name: navtitle, label: Menu title, type: string, description: "The short name in the side menu on the site." }
+      - { name: slug, label: Permalink, type: string, description: "The last part of its page's address, e.g. /projects/blurring-boundaries/. Made from the title for new items; changing it later breaks links to the old address." }
+      - { name: year, label: Year, type: string, description: "Shown with the title, e.g. 2023 or 2016–2019." }
+      - { name: location, label: Location, type: string, description: "Where it took place, e.g. Seoul, Korea." }
+      - { name: description, label: Description, type: rich-text, options: { format: markdown }, description: "The writing on its page." }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/recycling/thumbs, store: filename }, description: "The small square picture on the Recycling page." }
       - name: images
         label: Gallery
         type: object
         list: true
         fields:
-          - { name: type, label: Type, type: select, default: image, options: { values: [image, video] } }
+          - { name: type, label: Type, type: select, default: image, options: { values: [image, video] }, description: "A picture, or a video (paste the video's link in Picture)." }
           - { name: src, label: Picture, type: image, options: { path: "src/img/recycling/{slug}", store: filename, links: true } }
-          - { name: caption, label: Caption, type: text }
-          - { name: orientation, label: Video shape, type: select, options: { values: [vertical, horizontal] } }
+          - { name: caption, label: Caption, type: text, description: "Shown under the picture. *Italics* and **bold** work." }
+          - { name: orientation, label: Video shape, type: select, options: { values: [vertical, horizontal] }, description: "Videos only: the shape of the video. Vertical unless it's wider than it is tall." }
 
   - name: standard-issue
     label: Standard Issue
@@ -74,19 +76,19 @@ content:
     view: { primary: style }
     fields:
       - { name: style, label: Style, type: string, required: true }
-      - { name: slug, label: Permalink, type: string }
-      - { name: number, label: Style number, type: string }
-      - { name: material, label: Material, type: string }
-      - { name: colors, label: Colors, type: string }
-      - { name: dimensions, label: Dimensions, type: string }
-      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/standard-issue/thumbs, store: filename } }
+      - { name: slug, label: Permalink, type: string, description: "The last part of its page's address, e.g. /projects/blurring-boundaries/. Made from the title for new items; changing it later breaks links to the old address." }
+      - { name: number, label: Style number, type: string, description: "Shown under the picture on the Standard Issue page, e.g. 00SZ11." }
+      - { name: material, label: Material, type: string, description: "e.g. shahzada cotton." }
+      - { name: colors, label: Colors, type: string, description: "The colors it comes in, separated by commas: rice, nubia." }
+      - { name: dimensions, label: Dimensions, type: string, description: "Only for things with a size, e.g. 11 × 18 inches." }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/standard-issue/thumbs, store: filename }, description: "The small square picture on the Standard Issue page." }
       - name: images
         label: Pictures
         type: object
         list: true
         fields:
           - { name: src, label: Picture, type: image, options: { path: "src/img/standard-issue/{slug}", store: filename } }
-          - { name: color, label: Color, type: string }
+          - { name: color, label: Color, type: string, description: "The color in this picture." }
 
   - name: printed-matter
     label: Printed Matter
@@ -96,10 +98,10 @@ content:
     list: true
     fields:
       - { name: title, label: Title, type: string, required: true }
-      - { name: slug, label: Permalink, type: string }
+      - { name: slug, label: Permalink, type: string, description: "The last part of its page's address, e.g. /projects/blurring-boundaries/. Made from the title for new items; changing it later breaks links to the old address." }
       - { name: image, label: Picture, type: image, options: { path: src/img/printed-matter, store: filename } }
-      - { name: caption, label: Caption, type: text }
-      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/printed-matter/thumbs, store: filename } }
+      - { name: caption, label: Caption, type: text, description: "Shown under the picture. *Italics* and **bold** work." }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/printed-matter/thumbs, store: filename }, description: "The small square picture on the Printed Matter page." }
 
   - name: glossary
     label: Glossary
@@ -108,17 +110,17 @@ content:
     format: json
     list: true
     fields:
-      - { name: title, label: Letter, type: string, required: true }
-      - { name: navtitle, label: Menu title, type: string }
-      - { name: slug, label: Permalink, type: string }
-      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/glossary, store: filename } }
+      - { name: title, label: Letter, type: string, required: true, description: "The letter, as it shows on the site." }
+      - { name: navtitle, label: Menu title, type: string, description: "The short name in the side menu on the site." }
+      - { name: slug, label: Permalink, type: string, description: "The last part of its page's address, e.g. /projects/blurring-boundaries/. Made from the title for new items; changing it later breaks links to the old address." }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: src/img/glossary, store: filename }, description: "The small square picture on the Glossary page." }
       - name: images
         label: Pictures
         type: object
         list: true
         fields:
           - { name: src, label: Picture, type: image, options: { path: "src/img/glossary/{slug}", store: filename } }
-          - { name: caption, label: Caption, type: text }
+          - { name: caption, label: Caption, type: text, description: "Shown under the picture. *Italics* and **bold** work." }
 
   - name: press
     label: Press
@@ -128,18 +130,18 @@ content:
     list: true
     fields:
       - { name: title, label: Title, type: string, required: true }
-      - { name: publication, label: Publication, type: string }
-      - { name: slug, label: Permalink, type: string }
-      - { name: date, label: Issue, type: string }
-      - { name: description, label: Text, type: rich-text, options: { format: markdown } }
-      - { name: thumb, label: Thumbnail, type: image, options: { path: "src/img/press/{slug}", store: filename } }
+      - { name: publication, label: Publication, type: string, description: "The magazine or paper, e.g. Marie Claire Maison." }
+      - { name: slug, label: Permalink, type: string, description: "The last part of its page's address, e.g. /projects/blurring-boundaries/. Made from the title for new items; changing it later breaks links to the old address." }
+      - { name: date, label: Issue, type: string, description: "The issue it was in, written out: February/March 2025." }
+      - { name: description, label: Text, type: rich-text, options: { format: markdown }, description: "The quote or text shown with it. *Italics* and **bold** work." }
+      - { name: thumb, label: Thumbnail, type: image, options: { path: "src/img/press/{slug}", store: filename }, description: "The small square picture on the Press page." }
       - name: images
         label: Pages
         type: object
         list: true
         fields:
           - { name: src, label: Picture, type: image, options: { path: "src/img/press/{slug}", store: filename } }
-          - { name: caption, label: Caption, type: text }
+          - { name: caption, label: Caption, type: text, description: "Shown under the picture. *Italics* and **bold** work." }
 
   - name: stockists
     label: Stockists
@@ -181,5 +183,5 @@ content:
     list: true
     view: { primary: name }
     fields:
-      - { name: name, label: Name, type: string, required: true }
-      - { name: permalink, label: Links to, type: string }
+      - { name: name, label: Name, type: string, required: true, description: "As it shows in the menu." }
+      - { name: permalink, label: Links to, type: string, description: "The page it goes to, e.g. /projects/." }

@@ -50,10 +50,34 @@ export async function openEditor({ file, section, config }) {
   let statusText = "Saved";
   const setStatus = (t) => { statusText = t; statusListeners.forEach((fn) => fn(t)); };
 
+  // required fields (required: true in .pages.yml): it doesn't save while one is empty, and
+  // says which (the field is outlined in red until it's filled in)
+  const isEmpty = (v) => v === undefined || v === null || (typeof v === "string" && !v.trim()) || (Array.isArray(v) && !v.length);
+  let lastMissing = "";
+  function checkRequired() {
+    const missing = fields.filter((f) => f.required && !f.hidden && isEmpty(data[f.name]));
+    for (const el of [doc, inspector]) {
+      el.querySelectorAll(".field.missing").forEach((x) => x.classList.remove("missing"));
+      el.querySelectorAll(".field-help.required-note").forEach((x) => x.remove());
+      for (const f of missing) {
+        const fe = el.querySelector(`.field[data-name="${CSS.escape(f.name)}"]`);
+        if (!fe) continue;
+        fe.classList.add("missing");
+        fe.append(h("p", { class: "field-help warn required-note" }, t("This needs filling in before your changes can be saved.")));
+      }
+    }
+    doc.querySelector(".doc-title")?.classList.toggle("missing", missing.some((f) => f.name === primary));
+    const names = missing.map((f) => tl(f.label || f.name)).join(", ");
+    if (names && names !== lastMissing) toast(t("Not saved: {fields} can't be empty.", { fields: names }), "error");
+    lastMissing = names;
+    return !missing.length;
+  }
+
   async function save() {
     clearTimeout(timer);
     if (!pending) return saving;
     if (saving) { await saving; return save(); }
+    if (!checkRequired()) { setStatus("Not saved"); return saving; }
     pending = false;
     setStatus("Saving…");
     const p = payload();
@@ -82,7 +106,8 @@ export async function openEditor({ file, section, config }) {
     ? (await api.imageFolder(file)).folder
     : `${config.site.mediaInput}/${(file.match(/([^/]+)\.json$/) || [, ""])[1]}`.replace(/\/$/, "");
   // entry: the post's own values, for image folders named after it (src/img/projects/{slug})
-  const ctx = { changed, imageFolder, tags: config.tags, entry: data };
+  // slugGuard: a list item's permalink (its "slug"), which warns when you change it
+  const ctx = { changed, imageFolder, tags: config.tags, entry: data, slugGuard: section?.store === "list" };
 
   // ----- the document -----
   // the document's main part: the blocks, or else the body text of a plain post, or else (for

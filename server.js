@@ -17,6 +17,7 @@ const path = require("path");
 const site = require("./lib/site");
 const { loadConfig } = require("./lib/config");
 const entries = require("./lib/entries");
+const table = require("./lib/table");
 const media = require("./lib/media");
 const { allTags, syncTagSuggestions } = require("./lib/tags");
 const preview = require("./lib/preview");
@@ -78,6 +79,10 @@ const routes = {
   "GET /api/entries": (q) => entries.listEntries(q.section),
   "GET /api/entry": (q) => entries.readEntry(q.file),
   "PUT /api/entry": (q, body) => { const saved = entries.writeEntry(body.file, body.data, body.body, body.version); afterChange(saved.file); return saved; },
+  // the spreadsheet view (Settings → Advanced tools; lib/table.js)
+  "GET /api/table": (q) => table.rows(q.section, entries),
+  "PUT /api/table": (q, body) => { const r = table.save(body.section, body.edits || []); Object.keys(r.versions).forEach(afterChange); return r; },
+  "POST /api/table": (q, body) => { const r = table.add(body.section, body.rows || [], entries); (r.files || [entries.listFileOf(body.section)]).forEach(afterChange); return r; },
   // lists kept in one data file: drag an item to a new place
   "POST /api/move": (q, body) => { const r = entries.moveEntry(body.section, body.from, body.to); afterChange(entries.listFileOf(body.section)); return r; },
   "POST /api/entry": (q, body) => { const made = entries.createEntry(body.section, body.title, body.slug, body.extra); afterChange(made.file); return made; },

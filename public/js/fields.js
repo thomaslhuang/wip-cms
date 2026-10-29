@@ -16,10 +16,12 @@ import { t as tr, t2, tl, fmtDate } from "./i18n.js";
 
 const labelOf = (f) => f.label === false ? null : tl(f.label || f.name);
 
+// a field's help (description: in .pages.yml, which Pages CMS shows too) goes under it
 function wrap(field, ...content) {
   return h("div", { class: `field field-${field.type}${field.list ? " field-list" : ""}`, "data-name": field.name },
     labelOf(field) ? h("label", { class: "field-label" }, labelOf(field), field.required ? h("span", { class: "required" }, " *") : null) : null,
-    ...content);
+    ...content,
+    field.description ? h("p", { class: "field-help" }, String(field.description)) : null);
 }
 
 // ---------- the editors ----------
@@ -27,6 +29,7 @@ function wrap(field, ...content) {
 const EDITORS = {
   string(field, obj, ctx) {
     if (field.list) return wrap(field, stringList(field, obj, ctx));
+    if (field.name === "slug" && ctx.slugGuard) return permalinkField(field, obj, ctx);
     const input = h("input", { type: "text", class: "input", value: obj[field.name] ?? "", placeholder: field.options?.placeholder || "",
       oninput: () => { obj[field.name] = input.value; ctx.changed(); } });
     return wrap(field, input);
@@ -147,6 +150,25 @@ export function renderFields(fields, obj, ctx) {
 }
 
 // ---------- helpers for the editors above ----------
+
+// A list item's permalink ("slug"): the last part of its page's address. Spaces and anything a
+// web address can't hold become "-" as you leave the box (capitals are kept), and changing one
+// that was already there says what that does to links. Two items can't share one: saving
+// says so (lib/listfile.js).
+function permalinkField(field, obj, ctx) {
+  const was = obj[field.name] ? String(obj[field.name]) : "";
+  const note = h("p", { class: "field-help warn", hidden: true });
+  const clean = (v) => String(v || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim().replace(/[^A-Za-z0-9._~-]+/g, "-").replace(/^-+|-+$/g, "");
+  const input = h("input", { type: "text", class: "input", value: was, spellcheck: false,
+    oninput: () => { obj[field.name] = input.value; show(); ctx.changed(); },
+    onblur: () => { const v = clean(input.value); if (v !== input.value) { input.value = v; obj[field.name] = v; ctx.changed(); } show(); } });
+  const show = () => {
+    const now = clean(input.value);
+    note.hidden = !was || now === was;
+    note.textContent = tr("Changing the permalink changes this page's address: links to the old one (…/{was}/), from other sites or saved by people, will stop working.", { was });
+  };
+  return wrap(field, input, note);
+}
 
 function localOffset() {
   const off = -new Date().getTimezoneOffset(), pad = (n) => String(n).padStart(2, "0");

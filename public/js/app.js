@@ -22,7 +22,8 @@ import { openSetup } from "./setup.js";
 import { openSettings } from "./settings.js";
 import { openAddSection } from "./addsection.js";
 import { installQuotes } from "./quotes.js";
-import { onLaunch } from "./settings.js";
+import { onLaunch, advancedTools } from "./settings.js";
+import { tableView } from "./table.js";
 import { t, t2, tl, fmtDate, dayParts, lang, dateStyle } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
@@ -145,6 +146,10 @@ function drawList() {
   const drafts = all.filter((e) => e.draft).length;
   const mode = listMode(s.name);
 
+  // the spreadsheet (Settings → Advanced tools): the list column widens to hold it
+  app.classList.toggle("table-view", mode === "table");
+  if (mode === "table") return drawTable(s, all, drafts);
+
   const view = listView(s);
   // the date beside each post in the list view: the day when grouped by month; for posts dated
   // by the day (blog posts), the date otherwise too; none for things dated by the year (projects)
@@ -186,16 +191,59 @@ function drawList() {
       tbtn("compose", t("New in {label}", { label: tl(s.label) }), () => newEntry(s))),
     h("div", { class: "list-tools" },
       h("label", { class: "search" }, icon("search"), search),
-      segmentedIcons(t("Show as"), [["rows", "rows", t("List")], ["grid", "grid", t("Grid")], ["text", "text", t("Titles only")]], mode, (m) => setListMode(s.name, m)),
+      viewSwitch(s, mode),
       viewButton(s, view)),
     h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
 }
 
+// List / Grid / Titles only (and Spreadsheet, with Advanced tools on)
+const viewSwitch = (s, mode) => segmentedIcons(t("Show as"),
+  [["rows", "rows", t("List")], ["grid", "grid", t("Grid")], ["text", "text", t("Titles only")], ...(advancedTools() && !narrow() ? [["table", "table", t("Spreadsheet")]] : [])],
+  mode, (m) => setListMode(s.name, m));
+
+// the spreadsheet view of a section, kept while you switch between entries (table.js)
+const tables = {};
+function drawTable(s, all, drafts) {
+  let tv = tables[s.name];
+  if (!tv) {
+    tv = tables[s.name] = tableView({
+      section: s,
+      // the same order as the list: the site's order for lists, else newest first (or by title)
+      order: () => sortEntries(lists[s.name] || [], s.store === "list" ? "order" : hasDates(s) ? "newest" : "title").map((e) => e.file),
+      onOpen: (file) => { location.hash = editHref(file); },
+      onNew: () => newEntry(s),
+      // an entry open in the editor is saved first, and opened again after (with the new values)
+      beforeSave: async () => { await editor?.flush(); },
+      afterSave: async (files) => {
+        await loadList(s.name, true);
+        drawSidebar();
+        refreshChanges();
+        if (editor && (files.includes(editor.file) || !files.length)) await reopen();
+      },
+    });
+    tv.refresh(true);
+  }
+  tv.setFilter(filter);
+  tv.setActive(route.file);
+  const search = h("input", { class: "search-input", type: "search", placeholder: t("Search"), "aria-label": t("Search {label}", { label: t(s.label) }), value: filter,
+    oninput: () => { filter = search.value.toLowerCase(); tv.setFilter(filter); } });
+  fill(listEl,
+    h("div", { class: "list-head" },
+      h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
+      h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
+        h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
+      tbtn("compose", t("New in {label}", { label: tl(s.label) }), () => newEntry(s))),
+    h("div", { class: "list-tools" },
+      h("label", { class: "search" }, icon("search"), search),
+      viewSwitch(s, "table")),
+    tv.el);
+}
+
 // three ways to show a section, remembered for each one: list (picture, title, first
 // words), grid (pictures only, three across), titles only
 const listModes = pref.get("list-modes", {});
-const listMode = (name) => listModes[name] || "rows";
+const listMode = (name) => { const m = listModes[name] || "rows"; return m === "table" && (!advancedTools() || narrow()) ? "rows" : m; };
 function setListMode(name, mode) { listModes[name] = mode; pref.set("list-modes", listModes); drawList(); }
 // How a section's list is grouped and sorted, remembered for each section (only in w·i·p cms:
 // the site's own pages keep their order).
@@ -575,6 +623,7 @@ function layout() {
   app.dataset.view = v;
   app.classList.toggle("hide-sidebar", !showSidebar);
   app.classList.toggle("hide-inspector", !showInspector || !editor);
+  app.classList.toggle("has-file", !!editor);
   // phone: one column at a time
   app.dataset.pane = route.page === "edit" || route.page === "images" ? "main" : route.page === "s" ? "list" : "nav";
   docpane.style.flex = v === "split" ? `${splitAt} 1 0` : "";
@@ -666,7 +715,7 @@ let refreshTimer = null;
 function afterSave() {
   clearTimeout(refreshTimer);
   refreshTimer = setTimeout(async () => {
-    if (editor?.section) { await loadList(editor.section.name, true); drawList(); }
+    if (editor?.section) { await loadList(editor.section.name, true); tables[editor.section.name]?.refresh(); drawList(); }
     const name = toolbarEl.querySelector(".toolbar-name");
     if (name && editor) name.textContent = editor.title;
     refreshChanges();
@@ -780,6 +829,7 @@ function showSettings() {
     site: config.site,
     openSite: () => chooseSite(true),
     onRename: () => { drawSidebar(); document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · w·i·p cms`; },
+    onAdvanced: () => { drawList(); layout(); },
   });
 }
 

@@ -236,4 +236,29 @@ const JA = {
   "caption": "キャプション", "caption (optional)": "キャプション（任意）", "aside next": "隣に並べる", "caption position": "キャプションの位置",
   "below": "下", "side": "横", "alt text": "代替テキスト", "alt text (optional)": "代替テキスト（任意）", "seconds per image": "1枚あたりの秒数",
   "Images ": "画像", "project text": "プロジェクトの文章", "post": "本文", "blocks": "ブロック", "pick tags…": "タグを選ぶ…",
+  // ----- the spreadsheet, help and guardrails -----
+  "Advanced": "詳細", "Advanced tools": "詳細ツール", "Spreadsheet": "スプレッドシート",
+  "Adds a spreadsheet view to lists: every entry as a row, edited right in the cells, and rows pasted in from Google Sheets, Numbers or Excel. Handy for lots of entries at once; the writing and pictures still open in the editor.":
+    "リストにスプレッドシート表示を加えます。各項目が1行になり、セルの中で直接編集でき、Google スプレッドシート・Numbers・Excel から行を貼り付けられます。たくさんの項目をまとめて扱うときに便利です。文章や画像はこれまでどおりエディタで開きます。",
+  "Copy all": "すべてコピー", "The whole table, to paste into a spreadsheet": "表全体をコピー（スプレッドシートに貼り付けられます）",
+  "Open": "開く", "Open to edit": "開いて編集", "New": "新規",
+  "{n} row": "{n} 行", "{n} rows": "{n} 行",
+  "Paste rows copied from a spreadsheet into any cell; rows past the last one are added.": "スプレッドシートからコピーした行をどのセルにも貼り付けられます。最後の行より下の分は新しい行として追加されます。",
+  "“{v}” can't go in {label}.": "「{v}」は{label}に入れられません。", "{label} can't be empty.": "{label}は空にできません。",
+  "Change the permalink from “{a}” to “{b}”? Links to the old address, from other sites or saved by people, will stop working.":
+    "パーマリンクを「{a}」から「{b}」に変えますか？ 他のサイトからのリンクや保存されたリンクなど、古いアドレスへのリンクは使えなくなります。",
+  "Change it": "変更する", "Paste": "貼り付ける", " and ": "、",
+  "Another item already has the permalink “{v}”. Each one needs its own.": "パーマリンク「{v}」はすでに別の項目で使われています。項目ごとに別のものが必要です。",
+  "Nothing to paste here.": "ここに貼り付けられるものがありません。",
+  "Change {n} cell": "{n} 個のセルを変更", "Change {n} cells": "{n} 個のセルを変更", "add {n} new row": "{n} 行を追加", "add {n} new rows": "{n} 行を追加",
+  "{n} cell that already has something in it will be replaced.": "入力済みの {n} 個のセルが置き換わります。", "{n} cells that already have something in them will be replaced.": "入力済みの {n} 個のセルが置き換わります。",
+  "That includes {n} permalink: links to its old address will stop working.": "そのうち {n} 個はパーマリンクで、古いアドレスへのリンクは使えなくなります。",
+  "That includes {n} permalinks: links to their old addresses will stop working.": "そのうち {n} 個はパーマリンクで、古いアドレスへのリンクは使えなくなります。",
+  "Added {n} row": "{n} 行を追加しました", "Added {n} rows": "{n} 行を追加しました",
+  "{n} value didn't fit its column and was left out.": "{n} 個の値が列に合わず、入れませんでした。", "{n} values didn't fit their columns and were left out.": "{n} 個の値が列に合わず、入れませんでした。",
+  "Copied {n} row": "{n} 行をコピーしました", "Copied {n} rows": "{n} 行をコピーしました", "Couldn't copy.": "コピーできませんでした。",
+  "This needs filling in before your changes can be saved.": "変更を保存するには、ここを入力してください。",
+  "Not saved: {fields} can't be empty.": "保存されていません：{fields}は空にできません。",
+  "Changing the permalink changes this page's address: links to the old one (…/{was}/), from other sites or saved by people, will stop working.":
+    "パーマリンクを変えるとこのページのアドレスが変わり、古いアドレス（…/{was}/）へのリンクは使えなくなります。",
 };
