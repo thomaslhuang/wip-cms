@@ -2,7 +2,7 @@
 //
 // A theme is a handful of colors (the rest are mixed from them in styles.css), fonts, a
 // writing size, and which code colors to use. Light themes are used in light mode, dark
-// themes in dark mode; "Match my Mac" switches between your chosen light and dark theme.
+// themes in dark mode; "Match my computer" switches between your chosen light and dark theme.
 // Built-in themes can't be changed, but "Duplicate" makes an editable copy.
 // Everything is kept in this browser (localStorage).
 import { h, fill, icon, toast } from "./util.js";
@@ -193,7 +193,7 @@ export function openAppearance() {
     return [
       group(null,
         row(tl("Appearance"), h("div", { class: "segmented", role: "group", "aria-label": tl("Appearance") },
-          [["system", tl("Match my Mac")], ["light", tr("Light")], ["dark", tr("Dark")]].map(([m, label]) =>
+          [["system", tl("Match my computer")], ["light", tr("Light")], ["dark", tr("Dark")]].map(([m, label]) =>
             h("button", { class: mode() === m ? "on" : "", "aria-pressed": String(mode() === m), onclick: () => { setMode(m); editing = activeTheme().id; draw(); } }, label)))),
         row(tl("Light theme"), pickFor("light")),
         row(tl("Dark theme"), pickFor("dark"))),

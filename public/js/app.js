@@ -484,7 +484,7 @@ function drawToolbar() {
       "-",
     ] : []),
     { heading: t("Appearance") },
-    ...[["system", tl("Match my Mac")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
+    ...[["system", tl("Match my computer")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
     { label: tl("Customize…"), run: () => openAppearance() },
     "-",
     // language, how dates are written, interface size

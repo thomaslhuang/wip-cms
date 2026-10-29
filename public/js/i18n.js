@@ -25,26 +25,24 @@ export function t(text, vars) {
   if (vars) for (const [k, v] of Object.entries(vars)) out = out.split(`{${k}}`).join(v);
   return out;
 }
-// Title Case for names of fields, sections and settings ("featured image" -> "Featured
-// Image", "seconds per image" -> "Seconds per Image"). Only in English; Japanese has no case.
+// Sentence case for names of fields, sections and settings: the first word capitalized, the
+// rest as written ("blog posts" -> "Blog posts", "open another site…" -> "Open another site…").
+// Abbreviations are kept in capitals ("html" -> "HTML"). Only in English; Japanese has no case.
 const ACRONYMS = new Set(["html", "css", "url", "pdf", "rss", "seo", "id"]);
-const SMALL = new Set(["a", "an", "the", "and", "or", "but", "nor", "for", "of", "on", "in", "at", "to", "by", "per", "vs", "via", "as", "with", "from"]);
-export function titleCase(text) {
+export function sentenceCase(text) {
   if (lang() === "ja") return text;
-  const words = String(text).split(/(\s+|(?=[(])|(?<=[(]))/);
-  const real = words.filter((w) => /\w/.test(w));
-  return words.map((w) => {
-    if (!/[a-z]/.test(w) || /[A-Z]/.test(w.slice(1))) return w;          // "HTML", "iPhone", "(5px)": as they are
-    if (/[/.@]/.test(w)) return w;                                          // "/projects/maldon-salt/", "e.g.": as they are
-    const first = w === real[0], lastWord = w === real[real.length - 1];
-    if (!first && !lastWord && SMALL.has(w.toLowerCase())) return w.toLowerCase();
-    if (ACRONYMS.has(w.toLowerCase())) return w.toUpperCase();
-    if (/^\d/.test(w)) return w;                                             // "16px"
-    return w.replace(/(^|-)([a-z])/g, (m, p1, c) => p1 + c.toUpperCase());  // "multi-upload" -> "Multi-Upload"
+  let first = true;
+  return String(text).split(/(\s+|(?=[(])|(?<=[(]))/).map((w) => {
+    if (!/\w/.test(w)) return w;
+    if (ACRONYMS.has(w.toLowerCase())) { first = false; return w.toUpperCase(); }
+    if (!first) return w;
+    first = false;
+    if (/[/.@]/.test(w) || /^\d/.test(w) || /[A-Z]/.test(w.slice(1))) return w;   // "/projects/…", "16px", "iPhone": as they are
+    return w.charAt(0).toUpperCase() + w.slice(1);
   }).join("");
 }
-// a name, translated and in Title Case
-export const tl = (text, vars) => titleCase(t(text, vars));
+// a name, translated and in sentence case
+export const tl = (text, vars) => sentenceCase(t(text, vars));
 
 // one / many: t2(n, "{n} image", "{n} images")
 export const t2 = (n, one, many, vars = {}) => t(n === 1 ? one : many, { n, ...vars });
@@ -94,7 +92,7 @@ const JA = {
   "Open on your site": "サイトで開く", "Open on your site (new tab)": "サイトで開く（新しいタブ）",
   "Hide details": "詳細を隠す", "Show details": "詳細を表示", "More": "その他",
   "Revert to when opened": "開いた時の状態に戻す", "Move to Trash": "ゴミ箱に移動",
-  "Appearance": "外観", "Match my Mac": "Macに合わせる", "Light": "ライト", "Dark": "ダーク",
+  "Appearance": "外観", "Match my computer": "コンピュータに合わせる", "Light": "ライト", "Dark": "ダーク",
   "Themes, colors and fonts…": "テーマ・色・フォント…", "Language": "言語", "Dates": "日付の書き方",
   "View": "表示", "Write": "書く", "Split": "分割", "Preview": "プレビュー",
   "Live preview": "ライブプレビュー", "Preview size": "プレビューのサイズ", "Computer": "パソコン", "Phone": "スマホ",
@@ -181,7 +179,7 @@ const JA = {
   "Collection added": "コレクションを追加しました", "Page added": "ページを追加しました", "It's in .pages.yml and ready to write in.": ".pages.yml に追加しました。すぐに書き始められます。", "general": "一般",
   "The title on its own page. Leave it empty to use the short title.": "その投稿のページに出るタイトル。空にすると短いタイトルが使われます。",
   "The full title is the heading of its page; the short title is for lists, and the permalink follows it (or the full title) unless you change it.": "正式タイトルはページの見出しに、短いタイトルは一覧に使われます。パーマリンクは、変更しない限り短いタイトル（なければ正式タイトル）から作られます。",
-  "Media": "メディア", "Select": "選択", "Select All": "すべて選択", "Select None": "選択を解除", "Click files to select them": "ファイルをクリックして選択", "{n} selected": "{n} 件を選択",
+  "Media": "メディア", "Select": "選択", "Select all": "すべて選択", "Select none": "選択を解除", "Click files to select them": "ファイルをクリックして選択", "{n} selected": "{n} 件を選択",
   "{n} of these are still used on the site, in {places}. Moving them to the Trash breaks those until you put them back.": "このうち {n} 件はサイトでまだ使われています（{places}）。ゴミ箱に移すと、戻すまで表示されなくなります。", " and {n} more": " ほか {n} 件",
   "Move {n} file to the Trash?": "{n} 件のファイルをゴミ箱に移しますか？", "Move {n} files to the Trash?": "{n} 件のファイルをゴミ箱に移しますか？", "They go into the .cms-trash folder in your site, so you can get them back.": "サイト内の .cms-trash フォルダに移るので、元に戻せます。",
   "Moved {n} file to .cms-trash": "{n} 件を .cms-trash に移しました", "Moved {n} files to .cms-trash": "{n} 件を .cms-trash に移しました", "Select several (or ⌘-click)": "複数を選択（⌘クリックでも）",
@@ -190,7 +188,7 @@ const JA = {
   "Nickname": "ニックネーム", "Give it a nickname": "ニックネームをつける", "Your own name for this site, shown in the sidebar and the list of recent sites instead of its folder's name. Only on this Mac; the site itself doesn't change.": "このサイトに自分でつける名前。サイドバーと最近のサイトの一覧で、フォルダ名のかわりに表示されます。この Mac だけの設定で、サイト自体は変わりません。",
   "Settings": "設定", "Settings…": "設定…", "Interface size": "表示の大きさ", "Reset": "元に戻す", "Site": "サイト",
   "w·i·p cms reloads to switch language. Your section and field names switch too, for the common ones.": "言語を切り替えると w·i·p cms が再読み込みされます。よく使うセクション名やフィールド名も切り替わります。",
-  "Switching language reloads w·i·p cms. Interface Size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.": "言語を切り替えると w·i·p cms が再読み込みされます。「表示の大きさ」はサイドバー・一覧・ツールバー・詳細の大きさを変えます。本文の大きさは「カスタマイズ → 文字」で変えられます。", "General": "一般",
+  "Switching language reloads w·i·p cms. Interface size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.": "言語を切り替えると w·i·p cms が再読み込みされます。「表示の大きさ」はサイドバー・一覧・ツールバー・詳細の大きさを変えます。本文の大きさは「カスタマイズ → 文字」で変えられます。", "General": "一般",
   "Customize": "カスタマイズ", "Customize…": "カスタマイズ…", "Themes": "テーマ", "Typography": "文字", "Editing “{name}”": "「{name}」を編集中",
   "Built-in themes can't be changed. Duplicate one to make it your own.": "内蔵のテーマは変更できません。複製すると自分用に変えられます。",
   "Duplicate “{name}”": "「{name}」を複製", "copy": "のコピー", "Surfaces": "背景", "Text and accent": "文字とアクセント", "Interface": "画面",

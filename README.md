@@ -124,7 +124,7 @@ line, for big reshuffles.)
   names from .pages.yml too, for the common ones). Translations live in
   `public/js/i18n.js`; anything without one stays in English.
 - **Dates:** October 28, 2026 · 2026年10月28日.
-- **Interface Size:** makes the sidebar, list, toolbar and inspector bigger or smaller
+- **Interface size:** makes the sidebar, list, toolbar and inspector bigger or smaller
   (85–130%). The writing has its own size, in Customize → Typography.
 - **Site:** which site is open, and opening another.
 
@@ -136,7 +136,7 @@ or move it to another Mac). **Colors** and **Typography** change the theme you'r
 colors; fonts (System, EB Garamond, SF Mono, Menlo, Zen Old Mincho, Zen Kaku Gothic New,
 or any other font on your Mac or on Google Fonts); writing size, weight, line, letter and
 word spacing; the interface's font and weight; and code colors (ayu dark or ayu light), with a preview at the
-top as you go. "Match my Mac" switches between your light and dark theme. Themes are kept
+top as you go. "Match my computer" switches between your light and dark theme. Themes are kept
 in this browser.
 
 **Toolbar**

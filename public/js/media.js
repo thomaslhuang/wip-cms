@@ -103,7 +103,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     fill(selectBar,
       h("span", { class: "select-count" }, chosen.size ? tr("{n} selected", { n: chosen.size }) : tr("Click files to select them")),
       h("button", { class: "btn small", onclick: () => { const all = chosen.size === shown.length; chosen.clear(); if (!all) shown.forEach((i) => chosen.add(i.url)); markChosen(); } },
-        chosen.size === shown.length && shown.length ? tr("Select None") : tr("Select All")),
+        chosen.size === shown.length && shown.length ? tr("Select none") : tr("Select all")),
       h("button", { class: "btn small danger", disabled: !chosen.size, onclick: () => trashChosen() }, icon("trash"), tr("Move to Trash")),
       h("button", { class: "btn small primary", onclick: () => setSelecting(false) }, tr("Done")));
   };

@@ -50,7 +50,7 @@ export function openSettings({ beforeReload, onDates, site, openSite, onRename }
         })),
         row(tl("Dates"), choice(tl("Dates"), ["western", "japanese"].map((s) => [s, fmtDate(new Date(), "long", s)]), dateStyle(), (s) => { setDateStyle(s); onDates?.(); draw(); })),
         row(tl("Interface size"), h("span", { class: "set-a small", "aria-hidden": "true" }, "A"), range, h("span", { class: "set-a", "aria-hidden": "true" }, "A"), value, reset)),
-      hint(t("Switching language reloads w·i·p cms. Interface Size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.")),
+      hint(t("Switching language reloads w·i·p cms. Interface size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.")),
       site ? group("Site",
         row(h("span", { class: "set-site" }, h("b", {}, site.name), h("span", { class: "muted" }, site.root)),
           h("button", { class: "btn small", onclick: () => { close(); openSite(); } }, tl("Open another site…"))),
