@@ -84,6 +84,18 @@ const EDITORS = {
     const values = (field.options?.values || []).map((v) => typeof v === "object" ? { value: String(v.value ?? v.name), label: v.label ?? v.value } : { value: String(v), label: String(v) });
     if (field.options?.multiple) return wrap(field, chips(field, obj, ctx, values));
     if (obj[field.name] === undefined && field.default !== undefined) obj[field.name] = field.default;
+    // creatable (Pages CMS's option): pick one of the values or type a new one
+    if (field.options?.creatable) {
+      const listId = "list-" + Math.random().toString(36).slice(2);
+      const input = h("input", { type: "text", class: "input", list: listId, value: obj[field.name] ?? "", placeholder: tr("Choose or type…"),
+        oninput: () => { obj[field.name] = input.value.trim() || undefined; ctx.changed(); },
+        // "drawing" when "Drawing" is a choice: keep the spelling already used
+        onchange: () => {
+          const same = values.find((v) => v.value.toLowerCase() === input.value.trim().toLowerCase());
+          if (same && same.value !== input.value) { input.value = same.value; obj[field.name] = same.value; ctx.changed(); }
+        } });
+      return wrap(field, h("div", {}, input, h("datalist", { id: listId }, values.map((v) => h("option", { value: v.value }, tl(String(v.label)))))));
+    }
     const sel = h("select", { class: "input", onchange: () => { obj[field.name] = sel.value || undefined; ctx.changed(); } },
       field.default === undefined ? h("option", { value: "" }, "—") : null,
       values.map((v) => h("option", { value: v.value, selected: String(obj[field.name] ?? "") === v.value }, tl(String(v.label)))));

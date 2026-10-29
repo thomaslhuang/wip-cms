@@ -218,6 +218,8 @@ from the fields:
 - **The date** is a field called `date`, or else the first date field.
 - **The list picture** is `featuredImage`, or else the first single-image field.
 - **Grouping** offers every single-choice (select) field.
+- **New choices:** a select with `creatable: true` in its options (as in Pages CMS) lets you
+  type a new value as well as pick one; typing an existing one in other capitals keeps its spelling.
 - **Blocks** are only used if the section has a blocks field; otherwise you write one
   piece of Markdown.
 
