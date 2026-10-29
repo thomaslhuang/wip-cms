@@ -231,9 +231,12 @@ function drawTable(s, all, drafts) {
   fill(listEl,
     h("div", { class: "list-head" },
       h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
+      !editor && !showSidebar ? tbtn("sidebar", t("Show sidebar"), () => toggleSidebar(), { cls: "sheet-side" }) : null,
       h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
         h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
-      tbtn("compose", t("New in {label}", { label: tl(s.label) }), () => newEntry(s))),
+      tbtn("compose", t("New in {label}", { label: tl(s.label) }), () => newEntry(s)),
+      // the toolbar (with its ⋯) is hidden while the spreadsheet fills the window
+      editor ? null : moreBtn()),
     h("div", { class: "list-tools" },
       h("label", { class: "search" }, icon("search"), search),
       viewSwitch(s, "table")),
@@ -584,6 +587,30 @@ function newEntry(section) {
 // ---------- toolbar ----------
 
 let statusEl = null;
+const moreBtn = () => { const b = tbtn("more", t("More"), () => popMenu(b, moreItems())); return b; };
+// the ⋯ menu: the open entry's actions, then appearance, settings, sites and Quit (in the
+// toolbar, or in the spreadsheet's head when the spreadsheet fills the window)
+function moreItems() {
+  return [
+    ...(editor ? [
+      { label: tl("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
+      ...(editor.section ? [{ label: tl("Move to Trash"), danger: true, run: async () => {
+        const section = editor.section.name;
+        if (await editor.remove()) { editor.destroy(); editor = null; await loadList(section, true); location.hash = "#/s/" + section; }
+      } }] : []),
+      "-",
+    ] : []),
+    { heading: t("Appearance") },
+    ...[["system", tl("Match my computer")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
+    { label: tl("Customize…"), run: () => openAppearance() },
+    "-",
+    // language, how dates are written, interface size
+    { label: tl("Settings…"), run: showSettings },
+    { label: tl("Open another site…"), run: () => chooseSite(true) },
+    { label: t("Quit w·i·p cms"), run: quit },
+  ];
+}
+
 function drawToolbar() {
   const left = [];
   if (narrow()) left.push(h("a", { class: "tbtn", href: route.section ? "#/s/" + route.section : "#/", "aria-label": t("Back") }, icon("back")));
@@ -604,25 +631,9 @@ function drawToolbar() {
     if (!narrow() && editor.url) right.push(h("a", { class: "tbtn", href: `http://localhost:${config.preview.port}${editor.url}`, target: "_blank", rel: "noopener", "aria-label": t("Open on your site"), title: t("Open on your site (new tab)") }, icon("external")));
     right.push(tbtn(narrow() ? "info" : "inspector", showInspector ? t("Hide details") : t("Show details"), () => toggleInspector(), { on: showInspector && !narrow() }));
   }
-  const more = tbtn("more", t("More"), () => popMenu(more, [
-    ...(editor ? [
-      { label: tl("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
-      ...(editor.section ? [{ label: tl("Move to Trash"), danger: true, run: async () => {
-        const section = editor.section.name;
-        if (await editor.remove()) { editor.destroy(); editor = null; await loadList(section, true); location.hash = "#/s/" + section; }
-      } }] : []),
-      "-",
-    ] : []),
-    { heading: t("Appearance") },
-    ...[["system", tl("Match my computer")], ["light", t("Light")], ["dark", t("Dark")]].map(([m, label]) => ({ label, checked: theme() === m, run: () => setTheme(m) })),
-    { label: tl("Customize…"), run: () => openAppearance() },
-    "-",
-    // language, how dates are written, interface size
-    { label: tl("Settings…"), run: showSettings },
-    { label: tl("Open another site…"), run: () => chooseSite(true) },
-    { label: t("Quit w·i·p cms"), run: quit },
-  ]));
+  const more = tbtn("more", t("More"), () => popMenu(more, moreItems()));
   right.push(more);
+
 
   const views = editor ? segmented(t("View"), narrow() ? [["write", t("Write")], ["preview", t("Preview")]] : [["write", t("Write")], ["split", t("Split")], ["preview", t("Preview")]], v, setView) : null;
   // three slots, always: with nothing open the middle one is empty, so ⋯ stays at the right
@@ -639,7 +650,7 @@ function drawToolbar() {
 
 const currentView = () => (narrow() && view === "split" ? "write" : view);
 function setView(v) { view = v; pref.set("view", v); layout(); }
-function toggleSidebar() { showSidebar = !showSidebar; pref.set("sidebar", showSidebar); layout(); }
+function toggleSidebar() { showSidebar = !showSidebar; pref.set("sidebar", showSidebar); layout(); if (app.classList.contains("table-view")) drawList(); }
 function toggleInspector() { showInspector = !showInspector; if (!narrow()) pref.set("inspector", showInspector); layout(); }
 
 // which columns show

@@ -987,3 +987,6 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .field-help.warn { color: var(--danger); }
 .field.missing .input, .field.missing .doc-title { box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 60%, transparent); }
 .doc-title.missing::placeholder { color: var(--danger); }
+/* the spreadsheet on its own: still there with the sidebar hidden (its head has the button to bring it back) */
+.app.table-view.hide-sidebar:not(.has-file) .list { display: flex; }
+.list-head .sheet-side { margin-left: -8px; }
