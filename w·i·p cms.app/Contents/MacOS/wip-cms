@@ -32,19 +32,26 @@ fi
 echo "$ROOT" > "$SUPPORT/folder"
 
 # ---------- 2. Node.js ----------
-find_node() {
-  for n in /opt/homebrew/bin/node /usr/local/bin/node "$HOME/.volta/bin/node" "$HOME/.asdf/shims/node"; do
-    [ -x "$n" ] && { echo "$n"; return; }
-  done
-  # nvm and fnm: the newest installed version
+# Every Node.js on this Mac (the one your Terminal uses first, then Homebrew, the installer from
+# nodejs.org, Volta, asdf, nvm, fnm), and the newest of them is used: a Mac can have an old
+# one lying around in /usr/local, and Eleventy (the live preview) needs Node 18 or newer.
+node_candidates() {
+  /bin/zsh -lic 'command -v node' 2>/dev/null | tail -1
+  for n in /opt/homebrew/bin/node /usr/local/bin/node "$HOME/.volta/bin/node" "$HOME/.asdf/shims/node"; do echo "$n"; done
   for d in "$HOME/.nvm/versions/node" "$HOME/.local/share/fnm/node-versions" "$HOME/Library/Application Support/fnm/node-versions"; do
     [ -d "$d" ] || continue
-    n="$(ls -td "$d"/*/ 2>/dev/null | head -1)"    # the most recently installed
-    for c in "${n}bin/node" "${n}installation/bin/node"; do [ -x "$c" ] && { echo "$c"; return; }; done
+    for v in "$d"/*/; do echo "${v}bin/node"; echo "${v}installation/bin/node"; done
   done
-  # anything else your Terminal knows about
-  n="$(/bin/zsh -lic 'command -v node' 2>/dev/null | tail -1)"
-  [ -x "$n" ] && echo "$n"
+}
+find_node() {
+  best=""; best_major=0
+  while IFS= read -r n; do
+    [ -n "$n" ] && [ -x "$n" ] || continue
+    major="$("$n" -p 'process.versions.node.split(".")[0]' 2>/dev/null)"
+    [ -n "$major" ] || continue
+    if [ "$major" -gt "$best_major" ]; then best="$n"; best_major="$major"; fi
+  done < <(node_candidates)
+  echo "$best"
 }
 NODE="$(find_node)"
 if [ -z "$NODE" ]; then
@@ -52,6 +59,14 @@ if [ -z "$NODE" ]; then
     open "https://nodejs.org/en/download"
   fi
   exit 1
+fi
+NODE_MAJOR="$("$NODE" -p 'process.versions.node.split(".")[0]' 2>/dev/null)"
+echo "--- $(date) using Node $("$NODE" -v) at $NODE" >> "$LOG"
+if [ "${NODE_MAJOR:-0}" -lt 18 ]; then
+  if osascript -e "button returned of (display dialog \"w·i·p cms found Node.js $("$NODE" -v), which is too old for the live preview (it needs version 18 or newer). Download the LTS version from nodejs.org, install it, then open w·i·p cms again.\" with title \"w·i·p cms\" buttons {\"Open anyway\", \"Get Node.js\"} default button 2)" 2>/dev/null | grep -q "Get"; then
+    open "https://nodejs.org/en/download"
+    exit 1
+  fi
 fi
 # programs started from Finder get a very short PATH: add Node's folder (and the usual ones)
 export PATH="$(dirname "$NODE"):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
