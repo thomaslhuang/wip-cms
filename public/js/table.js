@@ -14,6 +14,7 @@
 // can't share a permalink (the server checks that too).
 import { h, fill, icon, toast, confirmBox } from "./util.js";
 import { api } from "./api.js";
+import { richBox } from "./rich.js";
 import { t, t2, tl } from "./i18n.js";
 
 // a permalink typed or pasted in: spaces and anything a web address can't hold become "-"
@@ -36,6 +37,9 @@ function kindOf(f) {
 // item's pages) is "Media" in every section, as in the sidebar; the rest use their label
 const isMedia = (f) => (f.type === "image" && f.options?.multiple) || (f.type === "object" && f.list && (f.fields || []).some((x) => x.type === "image"));
 const heading = (c) => (isMedia(c.field) ? t("Media") : tl(c.field.label || c.name));
+// writing that's Markdown on the site (a project's text, captions): shown formatted, *italic*
+// in italics and **bold** in bold, and edited that way too, with ⌘B and ⌘I (no asterisks)
+const isRich = (f) => f.type === "rich-text" || (f.type === "text" && /^caption/i.test(f.name));
 const WIDTH = { words: 180, text: 170, long: 280, number: 80, bool: 64, date: 130, select: 130, count: 90 };
 const choices = (f) => (f.options?.values || []).map((v) => (typeof v === "object" ? { value: String(v.value ?? v.name), label: String(v.label ?? v.value) } : { value: String(v), label: String(v) }));
 
@@ -198,6 +202,24 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
         v != null && v !== "" && !opts.some((o) => o.value === String(v)) ? h("option", { value: String(v), selected: true }, String(v)) : null);
     } else if (col.kind === "date") {
       control = h("input", { type: "date", class: "sheet-input", value: asText(col, v), onchange: () => commit(control.value), onkeydown: keys });
+    } else if (col.kind === "long" && isRich(col.field)) {
+      // one line in the table; the whole text, formatted, while you're in it. Saved when you
+      // leave it. Enter: a new paragraph (captions: the next row); ⌘Enter: the next row;
+      // Esc: put it back
+      const inline = col.field.type !== "rich-text";
+      let latest = String(v ?? "");
+      const box = richBox({ value: latest, inline, onChange: (md) => { latest = md; } });
+      control = box.el;
+      control.classList.add("sheet-input", "sheet-long", "sheet-rich");
+      control.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") { e.preventDefault(); latest = asText(col, row.data[col.name]); box.set(latest); control.blur(); return; }
+        if (e.key === "Enter" && !e.isComposing && (inline || e.metaKey || e.ctrlKey)) { e.preventDefault(); control.blur(); move(r + 1, c); }
+      });
+      // (only when something really changed: the same text written back can differ in small ways,
+      // like a space at the end of a paragraph, which isn't worth a change in the file)
+      const unchanged = box.get();
+      control.addEventListener("blur", () => { if (latest !== asText(col, row.data[col.name]) && latest !== unchanged) commit(latest); });
+      control.addEventListener("focus", () => { control.scrollTop = 0; });
     } else if (col.kind === "long") {
       control = h("textarea", { class: "sheet-input sheet-long", rows: 1, value: v ?? "", spellcheck: true, onchange: () => commit(control.value), onkeydown: keys });
     } else {
@@ -208,7 +230,7 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
   }
   function move(r, c) {
     const td = tbody.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
-    const ctl = td?.querySelector("input, textarea, select, button");
+    const ctl = td?.querySelector("input, textarea, select, button, [contenteditable]");
     if (!ctl) return;
     ctl.focus();
     if (ctl.select && ctl.type !== "checkbox") ctl.select();
@@ -250,7 +272,10 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
     const td = e.target.closest("td[data-c]");
     const text = e.clipboardData?.getData("text/plain");
     if (!td || !text || !/[\t\n]/.test(text.replace(/\n$/, ""))) return;   // one cell: the usual paste
+    // a few paragraphs pasted into long text (no tabs: not from a spreadsheet) go into that cell
+    if (!text.includes("\t") && td.classList.contains("kind-long")) return;
     e.preventDefault();
+    e.stopPropagation();   // (a formatted-text cell would paste it too)
     const grid = parseTSV(text);
     const r0 = Number(td.dataset.r), c0 = Number(td.dataset.c);
     const edits = [], fresh = [];
@@ -293,7 +318,7 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
     }
     if (skipped) toast(t2(skipped, "{n} value didn't fit its column and was left out.", "{n} values didn't fit their columns and were left out."), "error");
     await refresh(true);
-  });
+  }, true);
 
   function copyAll() {
     const lines = [cols.map(heading), ...visible.map((row) => cols.map((c) => asText(c, row.data[c.name])))];

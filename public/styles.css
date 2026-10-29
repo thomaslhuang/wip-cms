@@ -994,3 +994,12 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 /* the spreadsheet on its own: still there with the sidebar hidden (its head has the button to bring it back) */
 .app.table-view.hide-sidebar:not(.has-file) .list { display: flex; }
 .list-head .sheet-side { margin-left: -8px; }
+/* formatted text in the spreadsheet: one line (paragraphs run together) until you're in it */
+.sheet-rich { min-height: 0; font: inherit; letter-spacing: normal; word-spacing: normal; cursor: text; }
+/* (width 0 then stretched: a long text mustn't widen its column) */
+.sheet-rich:not(:focus) { height: 29px; width: 0; min-width: 100%; }
+.sheet-rich:not(:focus) > * { display: inline; margin: 0; }
+.sheet-rich:not(:focus) > * + *::before { content: " "; }
+.sheet-rich:not(:focus) br { display: none; }
+.sheet-rich:focus { white-space: normal; padding: 8px 10px; }
+.sheet-rich:focus p { margin: 0 0 .6em; }
