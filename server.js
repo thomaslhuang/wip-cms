@@ -70,7 +70,7 @@ const routes = {
   "PUT /api/entry": (q, body) => { const saved = entries.writeEntry(body.file, body.data, body.body, body.version); afterChange(saved.file); return saved; },
   // lists kept in one data file: drag an item to a new place
   "POST /api/move": (q, body) => { const r = entries.moveEntry(body.section, body.from, body.to); afterChange(entries.listFileOf(body.section)); return r; },
-  "POST /api/entry": (q, body) => { const made = entries.createEntry(body.section, body.title, body.slug); afterChange(made.file); return made; },
+  "POST /api/entry": (q, body) => { const made = entries.createEntry(body.section, body.title, body.slug, body.extra); afterChange(made.file); return made; },
   "DELETE /api/entry": (q) => { const result = entries.deleteEntry(q.file); afterChange(q.file); return result; },
 
   // unsaved edits -> the live preview only (your files are untouched)

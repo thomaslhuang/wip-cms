@@ -413,27 +413,37 @@ function newEntry(section) {
   let edited = false;
   const nameField = section.fields.find((f) => f.name === (section.primary || "title"));
   const nameLabel = nameField?.label ? tl(nameField.label) : t("Title");
-  const title = h("input", { class: "field-input", placeholder: nameLabel, "aria-label": nameLabel, oninput: () => { if (!edited) link.value = slugify(title.value); } });
+  // a section with a full title (longTitle / fullTitle, like projects): ask for both. The full
+  // title is the heading of its page; the short one is for lists, and the permalink is made
+  // from it. Only one given: it's the title, and the page uses it as its heading too.
+  const fullField = section.fields.find((f) => ["longTitle", "fullTitle"].includes(f.name) && (!f.type || f.type === "string"));
+  const follow = () => { if (!edited) link.value = slugify((fullField && short.value.trim()) || title.value); };
+  const title = h("input", { class: "field-input", placeholder: fullField ? tl(fullField.label || "Full title") : nameLabel, "aria-label": fullField ? tl(fullField.label || "Full title") : nameLabel, oninput: follow });
+  const short = fullField ? h("input", { class: "field-input", placeholder: t("{label} (optional)", { label: nameLabel }), "aria-label": nameLabel, oninput: follow }) : null;
   const link = h("input", { class: "field-input permalink-input", placeholder: t("made from the title"), "aria-label": t("Permalink"),
     oninput: () => { edited = link.value.trim() !== ""; },
-    onblur: () => { link.value = slugify(link.value); if (!link.value) { edited = false; link.value = slugify(title.value); } } });
+    onblur: () => { link.value = slugify(link.value); if (!link.value) { edited = false; follow(); } } });
   const go = async () => {
-    const name = title.value.trim();
-    if (!name) return title.focus();
+    const full = title.value.trim(), shortName = short?.value.trim() || "";
+    if (!full && !shortName) return title.focus();
+    // both: short title + full title; just one: that's the title
+    const name = shortName || full;
+    const extra = fullField && shortName && full && full !== shortName ? { [fullField.name]: full } : {};
     overlay.remove();
     try {
-      const created = await api.create(section.name, name, slugify(link.value) || slugify(name));
+      const created = await api.create(section.name, name, slugify(link.value) || slugify(name), extra);
       await loadList(section.name, true);
       location.hash = editHref(created.file);
     } catch (e) { toast(e.message, "error"); }
   };
-  for (const el of [title, link]) el.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); if (e.key === "Escape") overlay.remove(); });
+  for (const el of [title, short, link].filter(Boolean)) el.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); if (e.key === "Escape") overlay.remove(); });
   const overlay = h("div", { class: "overlay", onclick: (e) => { if (e.target === overlay) overlay.remove(); } },
     h("div", { class: "dialog" }, h("p", { class: "dialog-title" }, t("New {kind}", { kind: singular })),
-      title,
+      title, short,
       hasLink ? h("label", { class: "permalink" }, h("span", { class: "field-label" }, t("Permalink")),
         h("span", { class: "permalink-row" }, h("span", { class: "permalink-base" }, base), link, h("span", { class: "permalink-base" }, "/"))) : null,
       h("p", { class: "muted small" }, isList ? t("It goes at the top of the list; drag it to where it belongs.") + (hasLink ? " " + t("The permalink follows the title unless you change it.") : "")
+        : fullField ? t("The full title is the heading of its page; the short title is for lists, and the permalink follows it (or the full title) unless you change it.")
         : t("The permalink follows the title unless you change it. New posts start as drafts.")),
       h("div", { class: "dialog-buttons" }, h("button", { class: "btn", onclick: () => overlay.remove() }, t("Cancel")), h("button", { class: "btn primary", onclick: go }, t("Create")))));
   document.body.append(overlay);

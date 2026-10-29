@@ -74,7 +74,9 @@ Options:
 
 **New posts:** the pencil above the list asks for a title and a **permalink** (the end of
 its web address, e.g. `/blog/2026/10/cafe-opening/`). The permalink follows the title as
-you type; change it and it stays as you set it.
+you type; change it and it stays as you set it. Where a section has a full title (projects), it asks for
+the **full title** and an optional **short title**, and the permalink follows the short
+title (or the full title, if that's all there is). Give just one and it's the title.
 
 **Projects:** the document holds what you'd read and see: the full title as the heading (as
 on the project's own page; when there isn't one, the short title shows there in gray), the
