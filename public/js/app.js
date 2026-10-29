@@ -189,10 +189,11 @@ function drawList() {
       h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
         h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
       tbtn("compose", t("New in {label}", { label: tl(s.label) }), () => newEntry(s))),
+    // the view buttons first, so they stay put as the list gets wider or narrower; the search takes the rest
     h("div", { class: "list-tools" },
-      h("label", { class: "search" }, icon("search"), search),
       viewSwitch(s, mode),
-      viewButton(s, view)),
+      viewButton(s, view),
+      h("label", { class: "search" }, icon("search"), search)),
     h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
 }
@@ -238,8 +239,8 @@ function drawTable(s, all, drafts) {
       // the toolbar (with its ⋯) is hidden while the spreadsheet fills the window
       editor ? null : moreBtn()),
     h("div", { class: "list-tools" },
-      h("label", { class: "search" }, icon("search"), search),
-      viewSwitch(s, "table")),
+      viewSwitch(s, "table"),
+      h("label", { class: "search" }, icon("search"), search)),
     tv.el,
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize"), onpointerdown: resizeTable }));
   sizeTable();
