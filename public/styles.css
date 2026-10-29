@@ -194,7 +194,11 @@ button:disabled { cursor: default; }
 .text-item:hover { background: var(--fill); }
 .text-item.active { background: var(--accent-soft); }
 .text-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.text-date { flex: none; min-width: 44px; font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.text-date { flex: none; width: 3.8em; text-align: right; font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* titles only, grouped by month: entries step in under their month the way months step in
+   under their year, so the dates start where the month's name does (past its arrow) */
+.tree-body .list-items.text { padding-left: 24px; }
+:lang(ja) .text-date { width: 4.5em; }
 .badge { font-size: 10px; font-weight: 600; padding: 0 6px; border-radius: 4px; background: var(--draft-soft); color: var(--draft); line-height: 16px; }
 
 /* ---------- toolbar ---------- */

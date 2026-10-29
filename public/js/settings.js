@@ -2,7 +2,7 @@
 // how it looks (that's Customize, in theme.js).
 //
 //   Language        English or 日本語 (w·i·p cms reloads to switch)
-//   Dates           October 28, 2026 · 2026年10月28日
+//   Date format     October 28, 2026 · 2026年10月28日
 //   Interface Size  scales the sidebar, list, toolbar and inspector
 //   Site            which site is open, and opening another
 //
@@ -30,8 +30,8 @@ export function openSettings({ beforeReload, onDates, site, openSite, onRename }
 
   const group = (title, ...rows) => h("section", { class: "set-section" }, h("h3", { class: "set-title" }, tl(title)), h("div", { class: "set-group" }, rows));
   const row = (label, ...controls) => h("div", { class: "set-row" }, h("span", { class: "set-label" }, label), h("div", { class: "set-control" }, controls));
-  const choice = (label, options, current, onpick) => h("div", { class: "segmented", role: "group", "aria-label": label },
-    options.map(([value, text]) => h("button", { class: value === current ? "on" : "", "aria-pressed": String(value === current), onclick: () => onpick(value) }, text)));
+  const dropdown = (label, options, current, onpick) => h("select", { class: "set-select", "aria-label": label, onchange: (e) => onpick(e.target.value) },
+    options.map(([value, text]) => h("option", { value, selected: value === current }, text)));
   const hint = (text) => h("p", { class: "set-hint" }, text);
 
   function draw() {
@@ -42,13 +42,14 @@ export function openSettings({ beforeReload, onDates, site, openSite, onRename }
     const reset = h("button", { class: "btn small", disabled: scale === 100, onclick: () => { setUiScale(100); draw(); } }, t("Reset"));
     fill(body,
       group("General",
-        row(tl("Language"), choice(tl("Language"), [["en", "English"], ["ja", "日本語"]], lang(), async (l) => {
+        row(tl("Language"), dropdown(tl("Language"), [["en", "English"], ["ja", "日本語"]], lang(), async (l) => {
           if (l === lang()) return;
           await beforeReload?.();
           setLang(l);
           location.reload();
         })),
-        row(tl("Dates"), choice(tl("Dates"), ["western", "japanese"].map((s) => [s, fmtDate(new Date(), "long", s)]), dateStyle(), (s) => { setDateStyle(s); onDates?.(); draw(); })),
+        // each format shown with today's date
+        row(tl("Date format"), dropdown(tl("Date format"), ["western", "japanese"].map((s) => [s, fmtDate(new Date(), "long", s)]), dateStyle(), (s) => { setDateStyle(s); onDates?.(); draw(); })),
         row(tl("Interface size"), h("span", { class: "set-a small", "aria-hidden": "true" }, "A"), range, h("span", { class: "set-a", "aria-hidden": "true" }, "A"), value, reset)),
       hint(t("Switching language reloads w·i·p cms. Interface size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.")),
       site ? group("Site",

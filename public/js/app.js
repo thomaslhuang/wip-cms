@@ -793,7 +793,26 @@ async function chooseSite(canCancel) {
 
 // ---------- start ----------
 
+// After an update (a pull in GitHub Desktop) the page is new but the server may still be the
+// old one: restart it before anything else, so the two always match.
+async function updateServerIfNeeded() {
+  let v;
+  try { v = await api.version(); } catch { return; }
+  if (!v.stale) return;
+  document.body.append(h("div", { class: "overlay" }, h("div", { class: "dialog" }, h("p", { class: "dialog-title" }, t("Finishing an update…")),
+    h("p", { class: "muted small" }, t("w·i·p cms was updated. It's restarting to use the new version; this takes a few seconds.")))));
+  try { await api.restart(); } catch { /* it stops before answering, sometimes */ }
+  await new Promise((r) => setTimeout(r, 800));
+  for (let i = 0; i < 60; i++) {
+    try { const now = await api.version(); if (!now.stale) break; } catch { /* still starting */ }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  location.reload();
+  await new Promise(() => {});   // wait for the reload
+}
+
 (async () => {
+  await updateServerIfNeeded();
   const { site } = await api.site();
   if (!site) { app.hidden = true; await chooseSite(false); return; }
   // the site's settings can't be read (moved, or .pages.yml deleted): pick a site again
@@ -807,6 +826,8 @@ async function chooseSite(canCancel) {
   await go();
   refreshChanges();
   setInterval(refreshChanges, 15000);
+  // updated while the window is open: save, then restart onto the new version
+  setInterval(async () => { try { if ((await api.version()).stale) { await editor?.flush(); updateServerIfNeeded(); } } catch { /* offline */ } }, 20000);
   waitForPreview();
   showAdded();
 })();

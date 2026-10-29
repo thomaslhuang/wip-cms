@@ -47,15 +47,15 @@ export const tl = (text, vars) => sentenceCase(t(text, vars));
 // one / many: t2(n, "{n} image", "{n} images")
 export const t2 = (n, one, many, vars = {}) => t(n === 1 ? one : many, { n, ...vars });
 
-// kind: weekday (Wed 22 / 22日(水)) · long (October 22, 2026) · short (Oct 22, 2026) · day (Oct 22) · month (October 2026)
+// kind: weekday (Wed 22 / 22日 (水)) · long (October 22, 2026) · short (Oct 22, 2026) · day (Oct 22) · month (October 2026)
 //       monthName (October) · year (2026)
 export function fmtDate(value, kind = "long", style = dateStyle()) {
   const d = value instanceof Date ? value : new Date(String(value).slice(0, 10) + "T12:00:00");
   if (isNaN(d)) return "";
-  // the day within its month, for lists already grouped by month: "Wed 22" / "22日(水)"
+  // the day within its month, for lists already grouped by month: "Wed 22" / "22日 (水)"
   if (kind === "weekday") {
     if (style === "western") return d.toLocaleDateString("en-US", { weekday: "short" }) + " " + d.getDate();
-    return `${d.getDate()}日(${d.toLocaleDateString("ja-JP", { weekday: "short" })})`;
+    return `${d.getDate()}日 (${d.toLocaleDateString("ja-JP", { weekday: "short" })})`;
   }
   if (style === "western") {
     const o = { long: { year: "numeric", month: "long", day: "numeric" }, short: { year: "numeric", month: "short", day: "numeric" },
@@ -186,6 +186,8 @@ const JA = {
   "Nothing here yet. Upload some, or go up a folder.": "まだ何もありません。アップロードするか、上のフォルダに戻ってください。",
   "Drop files here to upload into this folder. Click one to copy its address; ⌘-click or Select to pick several.": "ここにファイルをドロップすると、このフォルダにアップロードされます。クリックでアドレスをコピー、⌘クリックか「選択」で複数を選べます。",
   "Nickname": "ニックネーム", "Give it a nickname": "ニックネームをつける", "Your own name for this site, shown in the sidebar and the list of recent sites instead of its folder's name. Only on this Mac; the site itself doesn't change.": "このサイトに自分でつける名前。サイドバーと最近のサイトの一覧で、フォルダ名のかわりに表示されます。この Mac だけの設定で、サイト自体は変わりません。",
+  "Finishing an update…": "アップデートを仕上げています…", "w·i·p cms was updated. It's restarting to use the new version; this takes a few seconds.": "w·i·p cms がアップデートされました。新しいバージョンで起動し直しています（数秒かかります）。",
+  "Date format": "日付の書き方",
   "Settings": "設定", "Settings…": "設定…", "Interface size": "表示の大きさ", "Reset": "元に戻す", "Site": "サイト",
   "w·i·p cms reloads to switch language. Your section and field names switch too, for the common ones.": "言語を切り替えると w·i·p cms が再読み込みされます。よく使うセクション名やフィールド名も切り替わります。",
   "Switching language reloads w·i·p cms. Interface size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.": "言語を切り替えると w·i·p cms が再読み込みされます。「表示の大きさ」はサイドバー・一覧・ツールバー・詳細の大きさを変えます。本文の大きさは「カスタマイズ → 文字」で変えられます。", "General": "一般",

@@ -26,6 +26,14 @@ const sections = require("./lib/sections");
 
 const PORT = Number(process.env.WIP_PORT) || 4321;
 // the code's git commit when it started (the Mac app restarts the editor when this changes)
+// the server's own code as it was when it started (its files' last-changed times). If you pull
+// an update while it's running, the page sees the difference and restarts it (/api/restart),
+// so the page and the server never run different versions.
+const codeStamp = () => {
+  const files = ["server.js", "package.json", ...fs.readdirSync(path.join(__dirname, "lib")).map((f) => "lib/" + f)];
+  return String(Math.max(...files.map((f) => { try { return fs.statSync(path.join(__dirname, f)).mtimeMs; } catch { return 0; } })));
+};
+const STARTED_AS = codeStamp();
 const VERSION = (() => { try { return require("child_process").execFileSync("git", ["rev-parse", "HEAD"], { cwd: __dirname, encoding: "utf8" }).trim(); } catch { return "unknown"; } })();
 // Listens on the local network so your phone can reach the photo-upload page, but from
 // any other device only that page works (see lib/phone.js). The editor is this computer only.
@@ -86,7 +94,19 @@ const routes = {
   // stop w·i·p cms (the ⋯ menu's Quit, and the Mac app when it needs to restart a newer version)
   "POST /api/quit": () => { setTimeout(() => { try { preview.stopPreview(); } catch { /* fine */ } process.exit(0); }, 150); return { ok: true }; },
   // which version is running, so the Mac app can tell when it needs restarting after an update
-  "GET /api/version": () => ({ version: VERSION }),
+  "GET /api/version": () => ({ version: VERSION, stale: codeStamp() !== STARTED_AS }),
+  // start again with the code that's on disk now (after an update): a fresh copy of this
+  // process takes over the same address, writing to the same log
+  "POST /api/restart": () => {
+    setTimeout(() => {
+      try { preview.stopPreview(); } catch { /* fine */ }
+      server.close();
+      const child = require("child_process").spawn(process.execPath, process.argv.slice(1), { cwd: process.cwd(), env: process.env, detached: true, stdio: ["ignore", "inherit", "inherit"] });
+      child.unref();
+      process.exit(0);
+    }, 150);
+    return { ok: true };
+  },
 
   // images
   // where a post's uploads go (a list item's image fields usually say for themselves; see entries.js)
@@ -174,6 +194,13 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// right after a restart the old copy may still hold the address for a moment: try again
+let listenTries = 0;
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE" && listenTries++ < 40) { setTimeout(() => server.listen(PORT, HOST), 250); return; }
+  console.error(err.message);
+  process.exit(1);
+});
 server.listen(PORT, HOST, () => {
   const cliPath = process.argv.slice(2).find((a) => !a.startsWith("--"));
   const opened = site.tryOpenLast(cliPath);

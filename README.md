@@ -123,7 +123,7 @@ line, for big reshuffles.)
 - **Language:** English or 日本語. Japanese switches all of w·i·p cms (your section and field
   names from .pages.yml too, for the common ones). Translations live in
   `public/js/i18n.js`; anything without one stays in English.
-- **Dates:** October 28, 2026 · 2026年10月28日.
+- **Date format:** October 28, 2026 · 2026年10月28日.
 - **Interface size:** makes the sidebar, list, toolbar and inspector bigger or smaller
   (85–130%). The writing has its own size, in Customize → Typography.
 - **Site:** which site is open, and opening another.
