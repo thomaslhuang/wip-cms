@@ -7,7 +7,8 @@
 //   pasting        a block copied from Google Sheets, Numbers or Excel fills the cells from the
 //                  one you're in, across and down; rows past the last one become new entries
 //   Copy all       the whole table, to paste into a spreadsheet
-//   a row's number opens it in the editor, for its writing, pictures and anything else
+//   a row's number opens it in the editor, for its writing, pictures and anything else; in a
+//                  list kept in one data file (whose order is the site's), drag it to move the row
 //
 // Long or nested things (a post's text, galleries, blocks) are shown as a count, and open in
 // the editor. Changing a permalink asks first; required fields can't be emptied; two items
@@ -99,7 +100,7 @@ export function parseTSV(text) {
 }
 const tsvCell = (v) => (/[\t\n"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
 
-export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave }) {
+export function tableView({ section, order, onOpen, onMove, onNew, beforeSave, afterSave }) {
   const s = section;
   const fields = s.fields.filter((f) => !f.hidden && f.name !== "newTags");
   const primary = fields.find((f) => f.name === s.primary) || fields[0];
@@ -110,7 +111,7 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
   let filter = "", active = null;
   const el = h("div", { class: "sheet-wrap" });
   const scroller = h("div", { class: "sheet-scroll" });
-  const table = h("table", { class: "sheet" });
+  const table = h("table", { class: "sheet" + (onMove ? " reorderable" : "") });
   const tbody = h("tbody", {});
   const status = h("span", { class: "sheet-status muted" });
   el.append(
@@ -228,6 +229,63 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
     }
     return h("td", { class: "kind-" + col.kind + (c === 0 ? " sticky" : ""), ...at }, control);
   }
+  // ----- dragging a row to a new place (by its number) -----
+  const fileIndex = (row) => Number(/#(\d+)$/.exec(row.file)?.[1]);
+  function dragRow(e, row) {
+    // only where the order is the site's, and the whole list is showing (not a search)
+    if (!onMove || filter || e.button > 0) return;
+    const tr = e.currentTarget.closest("tr");
+    const y0 = e.clientY;
+    let dragging = false, before = null, last = e;
+    const trs = () => [...tbody.querySelectorAll("tr[data-file]")];
+    const mark = (ev) => {
+      // which gap the pointer is nearest: before row p (p = rows.length: after the last)
+      const list = trs();
+      let p = list.length;
+      for (let i = 0; i < list.length; i++) { const r = list[i].getBoundingClientRect(); if (ev.clientY < r.top + r.height / 2) { p = i; break; } }
+      before = p;
+      list.forEach((x, i) => { x.classList.toggle("drop-before", i === p); x.classList.toggle("drop-after", p === list.length && i === list.length - 1); });
+    };
+    let scrollTimer = null;
+    const edgeScroll = () => {
+      const r = scroller.getBoundingClientRect();
+      const dy = last.clientY < r.top + 70 ? -12 : last.clientY > r.bottom - 40 ? 12 : 0;
+      if (dy) { scroller.scrollTop += dy; mark(last); }
+    };
+    const moveH = (ev) => {
+      last = ev;
+      if (!dragging) {
+        if (Math.abs(ev.clientY - y0) < 5) return;
+        dragging = true;
+        tr.classList.add("dragging");
+        el.classList.add("sheet-dragging");
+        scrollTimer = setInterval(edgeScroll, 30);
+      }
+      ev.preventDefault();
+      mark(ev);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", moveH);
+      window.removeEventListener("pointerup", up);
+      clearInterval(scrollTimer);
+      if (!dragging) return;
+      // the click that ends a drag doesn't open the row
+      const eat = (c) => { c.preventDefault(); c.stopPropagation(); };
+      window.addEventListener("click", eat, { capture: true, once: true });
+      setTimeout(() => window.removeEventListener("click", eat, { capture: true }), 100);
+      tr.classList.remove("dragging");
+      el.classList.remove("sheet-dragging");
+      trs().forEach((x) => x.classList.remove("drop-before", "drop-after"));
+      const list = trs();
+      const from = fileIndex(row);
+      const at = before >= list.length ? fileIndex(visible[list.length - 1]) + 1 : fileIndex(visible[before]);
+      const to = at > from ? at - 1 : at;
+      if (to !== from && isFinite(to)) onMove(from, to);
+    };
+    window.addEventListener("pointermove", moveH, { passive: false });
+    window.addEventListener("pointerup", up);
+  }
+
   function move(r, c) {
     const td = tbody.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
     const ctl = td?.querySelector("input, textarea, select, button, [contenteditable]");
@@ -250,7 +308,7 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
     fill(tbody, visible.map((row, r) => h("tr", { class: row.file === active ? "active" : "", "data-file": row.file },
       // the row's number opens it in the editor
       h("td", { class: "sheet-rownum" },
-        h("button", { class: "sheet-open", title: t("Open"), "aria-label": t("Open") + " " + asText(cols[0], row.data[cols[0].name]), onclick: () => onOpen(row.file) }, r + 1)),
+        h("button", { class: "sheet-open", title: onMove ? t("Open (drag to move)") : t("Open"), onpointerdown: (e) => dragRow(e, row), "aria-label": t("Open") + " " + asText(cols[0], row.data[cols[0].name]), onclick: () => onOpen(row.file) }, r + 1)),
       cols.map((col, c) => cell(row, col, r, c)))),
       h("tr", { class: "sheet-new" }, h("td", { colspan: cols.length + 1 },
         h("button", { class: "sheet-add", onclick: () => onNew() }, icon("plus"), t("New")),

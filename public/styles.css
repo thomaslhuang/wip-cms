@@ -1003,3 +1003,9 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .sheet-rich:not(:focus) br { display: none; }
 .sheet-rich:focus { white-space: normal; padding: 8px 10px; }
 .sheet-rich:focus p { margin: 0 0 .6em; }
+/* dragging a row by its number (lists whose order is the site's): a blue line shows where it goes */
+.sheet.reorderable .sheet-open { cursor: grab; }
+.sheet-dragging, .sheet-dragging * { cursor: grabbing !important; user-select: none; }
+.sheet tr.dragging td { opacity: .4; }
+.sheet tr.drop-before td { box-shadow: inset 0 2px 0 var(--accent); }
+.sheet tr.drop-after td { box-shadow: inset 0 -2px 0 var(--accent); }

@@ -95,7 +95,7 @@ const JA = {
   "Title": "タイトル", "Permalink": "パーマリンク", "made from the title": "タイトルから作成",
   "New {kind}": "新規作成：{kind}",
   "The permalink follows the title unless you change it. New posts start as drafts.": "パーマリンクは、変更しない限りタイトルに合わせて作られます。新しい投稿は下書きから始まります。",
-  "Cancel": "キャンセル", "Create": "作成", "Back": "戻る", "New": "新規", "Open": "開く", "Done": "完了", "Details": "詳細",
+  "Cancel": "キャンセル", "Create": "作成", "Back": "戻る", "New": "新規", "Open": "開く", "Open (drag to move)": "開く（ドラッグで移動）", "Done": "完了", "Details": "詳細",
   // ----- toolbar and menus -----
   "Insert a block": "ブロックを挿入", "Add photos": "写真を追加", "Done rearranging": "並べ替えを終了", "Rearrange blocks": "ブロックを並べ替え",
   "Open on your site": "サイトで開く", "Open on your site (new tab)": "サイトで開く（新しいタブ）",

@@ -213,6 +213,8 @@ function drawTable(s, all, drafts) {
       // the same order as the list: the site's order for lists, else newest first (or by title)
       order: () => sortEntries(lists[s.name] || [], s.store === "list" ? "order" : hasDates(s) ? "newest" : "title").map((e) => e.file),
       onOpen: (file) => { location.hash = editHref(file); },
+      // lists kept in one data file: their order is the site's, so rows can be dragged
+      onMove: s.store === "list" ? (from, to) => moveItem(s, from, to) : null,
       onNew: () => newEntry(s),
       // an entry open in the editor is saved first, and opened again after (with the new values)
       beforeSave: async () => { await editor?.flush(); },
@@ -442,6 +444,25 @@ function marquee(box) {
 }
 function stopMarquee(box) { clearTimeout(box.marqueeWait); box.classList.remove("marquee"); }
 
+// Moving an item of a list section from one place to another (0-based), from the list or the
+// spreadsheet: saved into the data file, and an open item follows its new place
+async function moveItem(s, from, to) {
+  try {
+    await editor?.flush();
+    await api.move(s.name, from, to);
+    const open = route.file && /#(\d+)$/.exec(route.file);
+    if (open && route.file.startsWith(s.path + "#")) {
+      const i = Number(open[1]);
+      const j = i === from ? to : from < i && i <= to ? i - 1 : to <= i && i < from ? i + 1 : i;
+      if (j !== i) { history.replaceState(null, "", editHref(`${s.path}#${j}`)); await loadList(s.name, true); await tables[s.name]?.refresh(true); return reopen(); }
+    }
+    await loadList(s.name, true);
+    await tables[s.name]?.refresh(true);
+    drawList();
+    refreshChanges();
+  } catch (err) { toast(err.message, "error"); await loadList(s.name, true); await tables[s.name]?.refresh(true); drawList(); }
+}
+
 // Dragging an item to a new place in a list section. The item itself moves as you drag (a
 // copy follows the pointer); letting go saves the new order into the data file.
 function reorderable(container, s) {
@@ -492,20 +513,7 @@ function reorderable(container, s) {
       setTimeout(() => window.removeEventListener("click", eat, { capture: true }), 100);
       const to = [...container.children].indexOf(el);
       if (to === from) return;
-      try {
-        await editor?.flush();
-        await api.move(s.name, from, to);
-        // the open item (if it's in this list) has a new place: follow it
-        const open = route.file && /#(\d+)$/.exec(route.file);
-        if (open && route.file.startsWith(s.path + "#")) {
-          const i = Number(open[1]);
-          const j = i === from ? to : from < i && i <= to ? i - 1 : to <= i && i < from ? i + 1 : i;
-          if (j !== i) { history.replaceState(null, "", editHref(`${s.path}#${j}`)); await loadList(s.name, true); return reopen(); }
-        }
-        await loadList(s.name, true);
-        drawList();
-        refreshChanges();
-      } catch (err) { toast(err.message, "error"); await loadList(s.name, true); drawList(); }
+      await moveItem(s, from, to);
     };
     window.addEventListener("pointermove", move, { passive: false });
     window.addEventListener("pointerup", up);
