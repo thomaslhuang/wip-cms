@@ -32,6 +32,10 @@ function kindOf(f) {
   if (["text", "rich-text", "code"].includes(f.type)) return "long";
   return "text";
 }
+// a column's heading: a set of pictures or videos (a gallery, a project's pictures, a press
+// item's pages) is "Media" in every section, as in the sidebar; the rest use their label
+const isMedia = (f) => (f.type === "image" && f.options?.multiple) || (f.type === "object" && f.list && (f.fields || []).some((x) => x.type === "image"));
+const heading = (c) => (isMedia(c.field) ? t("Media") : tl(c.field.label || c.name));
 const WIDTH = { words: 180, text: 170, long: 280, number: 80, bool: 64, date: 130, select: 130, count: 90 };
 const choices = (f) => (f.options?.values || []).map((v) => (typeof v === "object" ? { value: String(v.value ?? v.name), label: String(v.label ?? v.value) } : { value: String(v), label: String(v) }));
 
@@ -113,8 +117,8 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
   table.append(
     h("colgroup", {}, h("col", { style: { width: "40px" } }), cols.map((c, i) => h("col", { style: { width: (i === 0 ? 220 : WIDTH[c.kind]) + "px" } }))),
     h("thead", {}, h("tr", {}, h("th", { class: "sheet-corner" }),
-      cols.map((c) => h("th", { title: c.field.description ? tl(c.field.description) : null, class: "kind-" + c.kind },
-        tl(c.field.label || c.name), c.field.required ? h("span", { class: "required" }, " *") : null)))),
+      cols.map((c) => h("th", { title: c.field.description ? tl(c.field.description) : isMedia(c.field) ? tl(c.field.label || c.name) : null, class: "kind-" + c.kind },
+        heading(c), c.field.required ? h("span", { class: "required" }, " *") : null)))),
     tbody);
 
   // ----- saving: changes are collected and sent together, a moment after the last one -----
@@ -292,7 +296,7 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
   });
 
   function copyAll() {
-    const lines = [cols.map((c) => tl(c.field.label || c.name)), ...visible.map((row) => cols.map((c) => asText(c, row.data[c.name])))];
+    const lines = [cols.map(heading), ...visible.map((row) => cols.map((c) => asText(c, row.data[c.name])))];
     navigator.clipboard.writeText(lines.map((l) => l.map(tsvCell).join("\t")).join("\n"))
       .then(() => toast(t2(visible.length, "Copied {n} row", "Copied {n} rows")), () => toast(t("Couldn't copy."), "error"));
   }
