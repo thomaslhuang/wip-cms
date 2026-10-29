@@ -17,7 +17,7 @@ import { api } from "./api.js";
 import { renderField } from "./fields.js";
 import { t, t2, tl, fmtDate } from "./i18n.js";
 
-const SAVE_AFTER = 1200;            // ms after the last change
+import { saveAfter } from "./settings.js";   // seconds after the last change before saving (Settings → Save after)
 const SKIP = new Set(["newTags"]);   // Pages CMS-only helpers
 const ROW_TYPES = new Set(["date", "boolean"]); // shown as "label …… control" rows in the inspector
 
@@ -72,7 +72,7 @@ export async function openEditor({ file, section, config }) {
     pending = true;
     if (!failed) setStatus("Edited");
     clearTimeout(timer);
-    timer = setTimeout(save, SAVE_AFTER);
+    timer = setTimeout(save, saveAfter() * 1000);
     changeListeners.forEach((fn) => fn());
     drawMeta();
   };

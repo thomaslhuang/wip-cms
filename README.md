@@ -115,7 +115,7 @@ line, for big reshuffles.)
   rewritten. (One small difference: italics you edit are saved as `*word*` even if they
   were `<i>word</i>` before. They look the same on the site.)
 - **Source** (top right of a selected text block) shows the Markdown itself in a
-  monospace font, color-coded with the ayu colors. HTML blocks are color-coded too.
+  monospace font, color-coded. HTML blocks are color-coded too.
   w·i·p cms remembers whether you last used Write or Source.
 
 **Settings:** ⋯ → **Settings…** has how w·i·p cms works for you (Customize is how it looks):
@@ -126,7 +126,11 @@ line, for big reshuffles.)
 - **Date format:** October 28, 2026 · 2026年10月28日.
 - **Interface size:** makes the sidebar, list, toolbar and inspector bigger or smaller
   (85–130%). The writing has its own size, in Customize → Typography.
-- **Site:** which site is open, and opening another.
+- **Use typographer's quotes:** " and ' become “ ” and ‘ ’ as you type (apostrophes too),
+  as in InDesign. Not in Source, HTML or web addresses.
+- **Save after:** how many seconds after you stop typing it saves. ⌘S always saves straight away.
+- **When w·i·p cms opens:** the last site, or the list of sites.
+- **Site:** which site is open, its nickname, and opening another.
 
 **Customize:** ⋯ → **Customize…** has three tabs. **Themes**: match your Mac or pick
 light or dark, and choose a theme for each (Light, Paper and Dark come built in);
@@ -135,7 +139,7 @@ duplicate one to make your own. **Export** saves the theme you're on as a
 or move it to another Mac). **Colors** and **Typography** change the theme you're on: its
 colors; fonts (System, EB Garamond, SF Mono, Menlo, Zen Old Mincho, Zen Kaku Gothic New,
 or any other font on your Mac or on Google Fonts); writing size, weight, line, letter and
-word spacing; the interface's font and weight; and code colors (ayu dark or ayu light), with a preview at the
+word spacing; the interface's font and weight; and code colors (for dark or light backgrounds), with a preview at the
 top as you go. "Match my computer" switches between your light and dark theme. Themes are kept
 in this browser.
 

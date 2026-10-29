@@ -281,7 +281,7 @@ export function openAppearance() {
         row(tl("Word spacing"), ...slider("wordSpacing", "em", -0.1, 0.4, 0.01, 0))),
       group("Code",
         row(tl("Font"), fontPicker("mono", "mono")),
-        row(tl("Colors"), select([["ayu-dark", "Ayu Dark"], ["ayu-light", "Ayu Light"]], t.code || "ayu-dark", (v) => update((x) => { x.code = v; }), tl("Code colors")))),
+        row(tl("Colors"), select([["ayu-dark", tr("For dark backgrounds")], ["ayu-light", tr("For light backgrounds")]], t.code || "ayu-dark", (v) => update((x) => { x.code = v; }), tl("Code colors")))),
     ];
   }
   draw();

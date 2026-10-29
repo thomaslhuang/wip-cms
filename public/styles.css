@@ -190,7 +190,7 @@ button:disabled { cursor: default; }
 .tile.active img { opacity: .85; }
 .tile .badge { position: absolute; left: 4px; top: 4px; background: var(--card); box-shadow: var(--shadow); }
 @media (hover: none) { .tile-title { opacity: 1; } }
-.text-item { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 7px; color: var(--text); text-decoration: none; }
+.text-item { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 7px; color: var(--text); text-decoration: none; }
 .text-item:hover { background: var(--fill); }
 .text-item.active { background: var(--accent-soft); }
 .text-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -200,13 +200,14 @@ button:disabled { cursor: default; }
 .text-date { flex: none; display: inline-grid; align-items: baseline; font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .text-date .td-day { text-align: right; }
 .text-date.western { grid-template-columns: 2.4em 1.45em; }
-/* japanese starts a little further in (its numbers sit right of the line), and the day of the
-   week takes only its own width, so the title follows closely */
-.text-date.japanese { grid-template-columns: 2em auto auto; column-gap: .1em; }
+/* japanese: a two-digit column for the number, starting where the month's name starts (like
+   western's day of the week); numbers sit at its right, so a single-digit day starts one digit in,
+   the way a tab stop works, and 日 and the day of the week each make a straight line */
+.text-date.japanese { grid-template-columns: 2ch auto auto; column-gap: .1em; }
 .text-date.japanese .td-wd { padding-left: .3em; }
-.text-date.japanese.by-year { grid-template-columns: 2em auto 1.45em auto; }
+.text-date.japanese.by-year { grid-template-columns: 2ch auto 2ch auto; }
 /* titles only, grouped by year: the same step in as months under a year */
-.tree-year > .list-items.text { padding-left: 24px; }
+.tree-year > .list-items.text { padding-left: 10px; }   /* grouped by year: the dates start where the year does */
 /* a title that doesn't fit scrolls while you point at it */
 .text-title.marquee { text-overflow: clip; }
 .text-title.marquee .text-title-inner { display: inline-block; }
@@ -386,7 +387,8 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
 .block .image-many .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; }
 .block .image-many .thumb { width: 100%; height: auto; aspect-ratio: 1; }
 .block .image-buttons { border: 1px dashed var(--line-strong); border-radius: 10px; padding: 18px; justify-content: center; }
-.block .image-many .image-buttons { border: 0; padding: 0; justify-content: flex-start; margin-top: 8px; }
+.block .image-many .image-buttons { border: 0; padding: 0; justify-content: flex-start; margin-top: 18px; }
+.doc-gallery .image-many .image-buttons { margin-top: 18px; }
 
 /* "aside next": two images side by side, like on the site */
 .block-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: start; }   /* 10px, like the site */
@@ -631,9 +633,12 @@ select.input { appearance: auto; }
 .set-select:focus-visible, .set-input:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
 .set-input { width: 220px; }
 .set-input.hex { width: 86px; font: 12px var(--mono); text-transform: lowercase; }
-.set-swatch { width: 28px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: none; cursor: pointer; }
+/* a color swatch: just the color, with one faint edge drawn over it (so dark colors don't get a ring) */
+.set-swatch { -webkit-appearance: none; appearance: none; width: 28px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: none; cursor: pointer; overflow: hidden;
+  outline: 1px solid color-mix(in srgb, var(--text) 16%, transparent); outline-offset: -1px; }
 .set-swatch::-webkit-color-swatch-wrapper { padding: 0; }
-.set-swatch::-webkit-color-swatch { border: 1px solid var(--line-strong); border-radius: 6px; }
+.set-swatch::-webkit-color-swatch { border: 0; border-radius: 6px; }
+.set-swatch::-moz-color-swatch { border: 0; border-radius: 6px; }
 .set-range { width: 200px; accent-color: var(--accent); }
 .set-value { width: 54px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
 .font-pick { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding: 6px 0; }
@@ -884,3 +889,11 @@ select.input { appearance: auto; }
 .media-thumb img, .media-thumb video { aspect-ratio: auto !important; border-radius: 0 !important; box-shadow: none !important; }
 .view-list .picker-check, .view-columns .picker-check { background: transparent; border: 1.5px solid var(--line-strong); box-shadow: none; }
 .view-list .selected .picker-check, .view-columns .selected .picker-check { background: var(--accent); border-color: var(--accent); }
+
+.set-number { width: 64px; text-align: right; }
+.set-unit { font-size: 12px; color: var(--muted); }
+
+/* titles only: a draft is a dot in the margin left of the date */
+.text-item { position: relative; }
+.draft-dot { position: absolute; left: -2px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--draft, #e8a33d); }
+.draft-dot::after { content: ""; position: absolute; inset: -6px; }   /* easier to point at */

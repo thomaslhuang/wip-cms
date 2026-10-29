@@ -192,7 +192,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
           h("span", { class: "media-name" }, h("span", { class: "media-thumb" }, icon("folder")), h("span", { class: "media-label" }, f.name)),
           h("span", {}, tr("Folder")), h("span", { class: "num" }, "—"), h("span", {}, fmtWhen(f.modified)))),
         ...shown.map((img) => h("button", fileAttrs(img, "media-row picker-image"),
-          h("span", { class: "media-name" }, h("span", { class: "media-thumb" }, previewOf(img, true)), h("span", { class: "media-label" }, img.name), h("span", { class: "picker-check" }, icon("check"))),
+          h("span", { class: "media-name" }, h("span", { class: "media-thumb" }, previewOf(img, true)), h("span", { class: "media-label" }, img.name), h("span", { class: "picker-check" }, icon("tick"))),
           h("span", {}, kindLabel(img)), h("span", { class: "num" }, fmtSize(img.size)), h("span", {}, fmtWhen(img.modified)))),
         empty);
     } else if (view === "columns") {
@@ -205,7 +205,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
           ...l.folders.map((f) => h("button", { class: "media-col-item folder" + (paths[i + 1] === f.folder ? " open" : ""), onclick: () => { focused = null; show(f.folder); } },
             h("span", { class: "media-thumb" }, icon("folder")), h("span", { class: "media-label" }, f.name), icon("chevron", "media-chev"))),
           ...(i === lists.length - 1 ? shown : []).map((img) => h("button", fileAttrs(img, "media-col-item picker-image" + (img.url === focused ? " open" : "")),
-            h("span", { class: "media-thumb" }, previewOf(img, true)), h("span", { class: "media-label" }, img.name), h("span", { class: "picker-check" }, icon("check")))),
+            h("span", { class: "media-thumb" }, previewOf(img, true)), h("span", { class: "media-label" }, img.name), h("span", { class: "picker-check" }, icon("tick")))),
           i === lists.length - 1 ? empty : null)),
         file ? h("div", { class: "media-col media-preview" },
           h("div", { class: "media-preview-pic" }, file.kind === "video" ? h("video", { src: file.url, controls: true, preload: "metadata" }) : previewOf(file)),
@@ -221,7 +221,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
           h("span", { class: "picker-folder-icon" }, icon("folder")), h("span", { class: "picker-name" }, f.name))),
         ...shown.map((img) => h("button", fileAttrs(img, `picker-image kind-${img.kind || "image"}`),
           previewOf(img), img.kind === "video" ? h("span", { class: "picker-kind" }, icon("play")) : null,
-          h("span", { class: "picker-name" }, img.name), h("span", { class: "picker-check" }, icon("check")))),
+          h("span", { class: "picker-name" }, img.name), h("span", { class: "picker-check" }, icon("tick")))),
         empty);
     }
     onPick(selected.slice(), false);

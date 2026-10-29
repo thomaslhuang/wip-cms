@@ -4,13 +4,24 @@
 //   Language        English or 日本語 (w·i·p cms reloads to switch)
 //   Date format     October 28, 2026 · 2026年10月28日
 //   Interface Size  scales the sidebar, list, toolbar and inspector
-//   Site            which site is open, and opening another
+//   Typographer's quotes   "straight" quotes and apostrophes become “curly” ones as you type
+//   Save after      how long after you stop typing it saves (⌘S always saves straight away)
+//   When it opens   the last site, or the list of sites
+//   Site            which site is open, its nickname, and opening another
 //
 // Everything is kept in this browser, like the themes.
 import { h, fill, toast } from "./util.js";
 import { api } from "./api.js";
 import { t, tl, fmtDate, lang, setLang, dateStyle, setDateStyle } from "./i18n.js";
 import { uiScale, setUiScale } from "./theme.js";
+
+// ---------- the settings other parts of w·i·p cms read ----------
+const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } };
+const write = (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /* private window */ } };
+export const smartQuotes = () => read("wip-smart-quotes", "off") === "on";
+// seconds after the last change before it saves by itself
+export const saveAfter = () => { const n = Number(read("wip-save-after", "1.2")); return isFinite(n) && n >= 0.2 ? Math.min(n, 600) : 1.2; };
+export const onLaunch = () => (read("wip-on-launch", "last") === "list" ? "list" : "last");
 
 // beforeReload: save anything open first · onDates: redraw what shows dates · site: the open site
 // openSite: show the "Open a site" window
@@ -32,6 +43,11 @@ export function openSettings({ beforeReload, onDates, site, openSite, onRename }
   const row = (label, ...controls) => h("div", { class: "set-row" }, h("span", { class: "set-label" }, label), h("div", { class: "set-control" }, controls));
   const dropdown = (label, options, current, onpick) => h("select", { class: "set-select", "aria-label": label, onchange: (e) => onpick(e.target.value) },
     options.map(([value, text]) => h("option", { value, selected: value === current }, text)));
+  const toggle = (on, onchange) => {
+    const sw = h("button", { type: "button", class: "switch", role: "switch", "aria-checked": String(on),
+      onclick: () => { on = !on; sw.setAttribute("aria-checked", String(on)); onchange(on); } }, h("span", { class: "knob" }));
+    return sw;
+  };
   const hint = (text) => h("p", { class: "set-hint" }, text);
 
   function draw() {
@@ -52,6 +68,14 @@ export function openSettings({ beforeReload, onDates, site, openSite, onRename }
         row(tl("Date format"), dropdown(tl("Date format"), ["western", "japanese"].map((s) => [s, fmtDate(new Date(), "long", s)]), dateStyle(), (s) => { setDateStyle(s); onDates?.(); draw(); })),
         row(tl("Interface size"), h("span", { class: "set-a small", "aria-hidden": "true" }, "A"), range, h("span", { class: "set-a", "aria-hidden": "true" }, "A"), value, reset)),
       hint(t("Switching language reloads w·i·p cms. Interface size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.")),
+      group("Writing",
+        row(tl("Use typographer's quotes"), toggle(smartQuotes(), (on) => write("wip-smart-quotes", on ? "on" : "off"))),
+        row(tl("Save after"), h("input", { class: "set-input set-number", type: "number", min: 0.2, max: 600, step: 0.1, value: saveAfter(), "aria-label": tl("Save after"),
+          onchange: (e) => { const n = Number(e.target.value); if (isFinite(n) && n >= 0.2) write("wip-save-after", Math.min(n, 600)); e.target.value = saveAfter(); } }),
+          h("span", { class: "set-unit" }, t("seconds without typing")))),
+      hint(t("Typographer's quotes: \" and ' become “ ” and ‘ ’ as you type (apostrophes too), as in InDesign. Not in Source, HTML or web addresses. ⌘S always saves straight away.")),
+      group("Starting up",
+        row(tl("When w·i·p cms opens"), dropdown(tl("When w·i·p cms opens"), [["last", t("Open the last site")], ["list", t("Show the list of sites")]], onLaunch(), (v) => write("wip-on-launch", v)))),
       site ? group("Site",
         row(h("span", { class: "set-site" }, h("b", {}, site.name), h("span", { class: "muted" }, site.root)),
           h("button", { class: "btn small", onclick: () => { close(); openSite(); } }, tl("Open another site…"))),

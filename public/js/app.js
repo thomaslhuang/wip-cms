@@ -21,10 +21,13 @@ import { ghost, autoScroll } from "./drag.js";
 import { openSetup } from "./setup.js";
 import { openSettings } from "./settings.js";
 import { openAddSection } from "./addsection.js";
+import { installQuotes } from "./quotes.js";
+import { onLaunch } from "./settings.js";
 import { t, t2, tl, fmtDate, dayParts, lang } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
 applyTheme();
+installQuotes();
 
 const $ = (id) => document.getElementById(id);
 const app = $("app"), sidebarEl = $("sidebar"), listEl = $("list"), toolbarEl = $("toolbar");
@@ -336,16 +339,18 @@ function textItem(e, date, group) {
       ? h("span", { class: "text-date western" }, span("td-wd", p.weekday), span("td-day", p.day))
       : h("span", { class: "text-date japanese" }, span("td-day", p.day), span("td-ni", "日"), span("td-wd", `(${p.weekday})`));
   const title = h("span", { class: "text-title" }, h("span", { class: "text-title-inner" }, titleOf(e)));
+  // a draft: a small dot in the margin left of the date (so the dates stay lined up)
+  const dot = e.draft ? h("span", { class: "draft-dot", title: t("Draft: not on the site yet"), "aria-label": t("Draft") }) : null;
   return h("a", { class: "text-item" + isActive(e), href: editHref(e.file), onmouseenter: () => marquee(title), onmouseleave: () => title.classList.remove("marquee") },
-    day, title, draftBadge(e));
+    dot, day, title, day ? null : draftBadge(e));
 }
 // scroll a title that doesn't fit, back and forth, at an even reading speed
 function marquee(box) {
-  const over = box.scrollWidth - box.clientWidth;
-  if (over <= 2) return;
-  box.style.setProperty("--shift", -over - 4 + "px");
+  if (box.scrollWidth - box.clientWidth <= 2) return;
+  box.classList.add("marquee");   // the text becomes one block, so its whole width can be measured
+  const over = box.firstChild.offsetWidth - box.clientWidth;   // (unscaled, so it's right at any Interface size)
+  box.style.setProperty("--shift", -Math.ceil(over) - 2 + "px");
   box.style.setProperty("--marquee-time", Math.max(3, over / 35 + 2.4).toFixed(1) + "s");
-  box.classList.add("marquee");
 }
 
 // Dragging an item to a new place in a list section. The item itself moves as you drag (a
@@ -870,4 +875,9 @@ async function updateServerIfNeeded() {
   setInterval(async () => { try { if ((await api.version()).stale) { await editor?.flush(); updateServerIfNeeded(); } } catch { /* offline */ } }, 20000);
   waitForPreview();
   showAdded();
+  // Settings → When w·i·p cms opens → Show the list of sites: once per window (not on every reload)
+  try {
+    if (onLaunch() === "list" && !sessionStorage.getItem("wip-launched")) chooseSite(true);
+    sessionStorage.setItem("wip-launched", "1");
+  } catch { /* fine */ }
 })();
