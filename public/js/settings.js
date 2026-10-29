@@ -23,12 +23,15 @@ const write = (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /*
 export const smartQuotes = () => read("wip-smart-quotes", "off") === "on";
 // seconds after the last change before it saves by itself
 export const saveAfter = () => { const n = Number(read("wip-save-after", "1.2")); return isFinite(n) && n >= 0.2 ? Math.min(n, 600) : 1.2; };
+// the longest side of pictures you upload, for each site (its folder): they're made this size
+export const imageEdge = (root) => { try { const n = Number(JSON.parse(read("wip-image-edge", "{}"))[root]); return n >= 200 ? Math.min(n, 8000) : 1500; } catch { return 1500; } };
+function setImageEdge(root, n) { let all = {}; try { all = JSON.parse(read("wip-image-edge", "{}")); } catch { /* start again */ } all[root] = n; write("wip-image-edge", JSON.stringify(all)); }
 export const advancedTools = () => read("wip-advanced", "off") === "on";
 export const onLaunch = () => (read("wip-on-launch", "last") === "list" ? "list" : "last");
 
 // beforeReload: save anything open first · onDates: redraw what shows dates · site: the open site
 // openSite: show the "Open a site" window
-export function openSettings({ beforeReload, onDates, site, openSite, onRename, onAdvanced }) {
+export function openSettings({ beforeReload, onDates, site, openSite, onRename, onAdvanced, onImageEdge }) {
   const body = h("div", { class: "custom-body" });
   const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey); };
   const onKey = (e) => { if (e.key === "Escape") close(); };
@@ -89,7 +92,13 @@ export function openSettings({ beforeReload, onDates, site, openSite, onRename, 
           h("button", { class: "btn small", onclick: () => { close(); openSite(); } }, tl("Open another site…"))),
         row(tl("Nickname"), h("input", { class: "set-input", value: site.nickname || "", placeholder: site.folder || "",
           onchange: async (e) => { try { const r = await api.setNickname(site.root, e.target.value); site.nickname = r.nickname; site.name = r.nickname || site.folder; onRename?.(); draw(); } catch (err) { toast(err.message, "error"); } } }))) : null,
-      site ? hint(t("Your own name for this site, shown in the sidebar and the list of recent sites instead of its folder's name. Only on this Mac; the site itself doesn't change.")) : null);
+      site ? hint(t("Your own name for this site, shown in the sidebar and the list of recent sites instead of its folder's name. Only on this Mac; the site itself doesn't change.")) : null,
+      site ? h("div", { class: "set-group" },
+        row(tl("Longest side of pictures"), h("input", { class: "set-input set-number", type: "text", inputmode: "numeric", value: imageEdge(site.root), "aria-label": tl("Longest side of pictures"),
+          onchange: (e) => { const n = Math.round(Number(e.target.value)); if (n >= 200 && n <= 8000) { setImageEdge(site.root, n); onImageEdge?.(n); } e.target.value = imageEdge(site.root); },
+          onkeydown: (e) => { if (e.key === "Enter") e.target.blur(); } }),
+          h("span", { class: "set-unit" }, "px"))) : null,
+      site ? hint(t("Pictures you add are saved as WebP, no bigger than this on their longest side (smaller ones stay as they are). Just for this site. Your site's own image settings, if it has any, should use the same size.")) : null);
   }
   draw();
 }

@@ -16,13 +16,13 @@
 import { h, fill, icon, toast } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
-import { libraryBrowser, setMediaRoot } from "./media.js";
+import { libraryBrowser, setMediaRoot, setUploadEdge } from "./media.js";
 import { ghost, autoScroll } from "./drag.js";
 import { openSetup } from "./setup.js";
 import { openSettings } from "./settings.js";
 import { openAddSection } from "./addsection.js";
 import { installQuotes } from "./quotes.js";
-import { onLaunch, advancedTools } from "./settings.js";
+import { onLaunch, advancedTools, imageEdge } from "./settings.js";
 import { tableView } from "./table.js";
 import { t, t2, tl, fmtDate, dayParts, lang, dateStyle } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
@@ -237,8 +237,33 @@ function drawTable(s, all, drafts) {
     h("div", { class: "list-tools" },
       h("label", { class: "search" }, icon("search"), search),
       viewSwitch(s, "table")),
-    tv.el);
+    tv.el,
+    h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize"), onpointerdown: resizeTable }));
+  sizeTable();
 }
+
+// With an entry open beside the spreadsheet, drag the line between them: more room for the
+// spreadsheet or for the writing (remembered, as a share of the width)
+let tableShare = pref.get("table-share", 0.55);
+function sizeTable() {
+  const on = app.classList.contains("table-view") && app.classList.contains("has-file") && !narrow();
+  if (!on) { listEl.style.flex = ""; return; }
+  const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
+  const room = app.clientWidth - (showSidebar ? sidebarEl.offsetWidth * scale : 0);
+  listEl.style.flex = `0 0 ${Math.round((room * tableShare) / scale)}px`;
+}
+function resizeTable(e) {
+  e.preventDefault();
+  const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
+  const left = showSidebar ? sidebarEl.getBoundingClientRect().right : app.getBoundingClientRect().left;
+  const room = app.clientWidth - (showSidebar ? sidebarEl.offsetWidth * scale : 0);
+  app.classList.add("resizing");
+  const move = (ev) => { tableShare = Math.min(0.8, Math.max(0.25, (ev.clientX - left) / room)); sizeTable(); };
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); app.classList.remove("resizing"); pref.set("table-share", tableShare); };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+}
+window.addEventListener("resize", () => sizeTable());
 
 // three ways to show a section, remembered for each one: list (picture, title, first
 // words), grid (pictures only, three across), titles only
@@ -624,6 +649,7 @@ function layout() {
   app.classList.toggle("hide-sidebar", !showSidebar);
   app.classList.toggle("hide-inspector", !showInspector || !editor);
   app.classList.toggle("has-file", !!editor);
+  sizeTable();
   // phone: one column at a time
   app.dataset.pane = route.page === "edit" || route.page === "images" ? "main" : route.page === "s" ? "list" : "nav";
   docpane.style.flex = v === "split" ? `${splitAt} 1 0` : "";
@@ -830,6 +856,7 @@ function showSettings() {
     openSite: () => chooseSite(true),
     onRename: () => { drawSidebar(); document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · w·i·p cms`; },
     onAdvanced: () => { drawList(); layout(); },
+    onImageEdge: (n) => setUploadEdge(n),
   });
 }
 
@@ -942,6 +969,7 @@ async function updateServerIfNeeded() {
   // the site's settings can't be read (moved, or .pages.yml deleted): pick a site again
   try { config = await api.config(); } catch (e) { app.hidden = true; await chooseSite(false); toast(t("Couldn't read that site's settings (.pages.yml), so pick a site to open."), "error"); return; }
   setMediaRoot(config.site.mediaInput, config.site.mediaSources);
+  setUploadEdge(imageEdge(config.site.root));
   if (narrow()) showInspector = false;
   await Promise.all(config.sections.filter((s) => s.kind === "collection").map((s) => loadList(s.name).catch(() => {})));
   window.addEventListener("hashchange", go);

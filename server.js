@@ -124,7 +124,7 @@ const routes = {
   // the Media page's "Move to Trash": first which are still used, then the move itself
   "POST /api/media/usage": (q, body) => media.usage(body.urls || []),
   "POST /api/media/trash": (q, body) => media.trash(body.urls || []),
-  "GET /api/phone-link": (q) => phone.phoneLink(PORT, q.folder || site.rel(site.imagesDir())),
+  "GET /api/phone-link": (q) => phone.phoneLink(PORT, q.folder || site.rel(site.imagesDir()), q.edge),
 };
 
 // git status of the open site; works without git too (count is then null)
@@ -170,6 +170,12 @@ const server = http.createServer(async (req, res) => {
       return send(res, 403, { error: "Only photo uploads are allowed from other devices." });
     }
     if (req.method === "GET" && url.pathname === "/phone") return serveFile(res, path.join(PUBLIC, "phone.html"));
+    // a new version of a picture, under the same name (public/js/media.js replaceImage)
+    if (req.method === "POST" && url.pathname === "/api/media/replace") {
+      const r = media.replaceFile(q.url, await readBody(req, media.MAX_FILE + 1024));
+      try { preview.syncFromSite(site.rel(site.imageUrlToFile(decodeURI(q.url)))); } catch { /* preview is optional */ }
+      return send(res, 200, r);
+    }
     if (req.method === "POST" && url.pathname === "/api/upload") {
       const anyFile = q.kind === "file";
       return send(res, 200, media.saveUpload(q.folder, q.name, await readBody(req, anyFile ? media.MAX_FILE + 1024 : undefined), anyFile));

@@ -941,7 +941,7 @@ select.input { appearance: auto; }
 .app.table-view .list { flex: 1 1 0; width: auto !important; min-width: 0; }
 .app.table-view:not(.has-file) .main { display: none; }
 .app.table-view.has-file .list { flex: 1.15 1 0; }
-.app.table-view .list-resize { display: none; }
+.app.table-view:not(.has-file) .list-resize { display: none; }
 .sheet-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .sheet-bar { display: flex; align-items: center; gap: 8px; padding: 0 12px 8px 14px; font-size: 11px; }
 .sheet-status { flex: 1; }
@@ -953,14 +953,14 @@ select.input { appearance: auto; }
 /* the row numbers and the first column stay put as you scroll sideways */
 .sheet .sheet-corner, .sheet .sheet-rownum { position: sticky; left: 0; z-index: 2; }
 .sheet thead .sheet-corner { z-index: 4; }
-.sheet td.sticky, .sheet thead th:nth-child(2) { position: sticky; left: 56px; z-index: 1; box-shadow: 1px 0 0 var(--line); }
+.sheet td.sticky, .sheet thead th:nth-child(2) { position: sticky; left: 40px; z-index: 1; box-shadow: 1px 0 0 var(--line); }
 .sheet thead th:nth-child(2) { z-index: 4; }
-.sheet-rownum { font-size: 11px; color: var(--faint); text-align: right; padding: 0 6px !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.sheet-rownum span { display: inline-block; min-width: 2ch; }
-.sheet-open { border: 0; background: none; padding: 0; margin-left: 4px; width: 18px; height: 18px; border-radius: 4px; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; opacity: 0; }
-.sheet-open .icon { width: 12px; height: 12px; }
-.sheet tr:hover .sheet-open, .sheet tr.active .sheet-open { opacity: 1; }
-.sheet-open:hover { background: var(--fill); color: var(--text); }
+/* the row's number: the whole cell is the button that opens it */
+.sheet-rownum { padding: 0 !important; }
+.sheet-open { display: flex; align-items: center; justify-content: flex-end; width: 100%; height: 29px; border: 0; margin: 0; padding: 0 8px 0 0; background: none;
+  font: inherit; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; cursor: pointer; }
+.sheet-open:hover { background: var(--fill-strong); color: var(--text); }
+.sheet tr.active .sheet-open { color: var(--accent-text); font-weight: 600; }
 .sheet tr.active td { background: color-mix(in srgb, var(--accent) 8%, var(--list)); }
 .sheet-input { display: block; width: 100%; height: 29px; border: 0; margin: 0; padding: 0 8px; background: none; font: inherit; color: var(--text); outline: none; border-radius: 0; }
 .sheet-input.num { text-align: right; font-variant-numeric: tabular-nums; }

@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- The page your phone opens after scanning the QR code in the CMS.
-     Pick photos; each one is shrunk to 1500px on the phone and sent to your Mac,
+     Pick photos; each one is shrunk (to 1500px, or the size in Settings) on the phone and sent to your Mac,
      into the post's image folder. The editor on the Mac picks them up by itself. -->
 <html lang="en">
 <head>
@@ -38,9 +38,9 @@
     const token = params.get("t");
     const folder = params.get("folder") || "src/images";
     document.getElementById("folder").textContent = "into " + folder.replace(/^src\//, "");
-    const LONGEST_EDGE = 1500;
+    const LONGEST_EDGE = Number(params.get("edge")) || 1500;   // Settings → Longest side of pictures
 
-    // shrink to 1500px; WebP if the phone can make it, otherwise JPEG
+    // shrink to LONGEST_EDGE; WebP if the phone can make it, otherwise JPEG
     async function prepare(file) {
       try {
         const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });

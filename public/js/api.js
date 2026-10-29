@@ -43,6 +43,7 @@ export const api = {
   remove: (file) => call("DELETE", "/api/entry?" + qs({ file })),
   imageFolder: (file) => call("GET", "/api/image-folder?" + qs({ file })),
   media: (folder) => call("GET", "/api/media?" + qs(folder ? { folder } : {})),
-  phoneLink: (folder) => call("GET", "/api/phone-link?" + qs({ folder })),
+  phoneLink: (folder, edge) => call("GET", "/api/phone-link?" + qs(edge ? { folder, edge } : { folder })),
+  replaceMedia: (url, blob) => call("POST", "/api/media/replace?" + qs({ url }), blob, true),
   upload: (folder, name, blob, kind) => call("POST", "/api/upload?" + qs(kind ? { folder, name, kind } : { folder, name }), blob, true),
 };

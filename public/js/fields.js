@@ -4,7 +4,7 @@
 // back into obj, then calls ctx.changed() so the Save button lights up.
 // To support a new field type, add a function to EDITORS below.
 import { h, fill, icon, autosize, isPlainObject, toast } from "./util.js";
-import { openPicker, chooseFiles, uploadFiles, kindOf, folderUrl } from "./media.js";
+import { openPicker, chooseFiles, uploadFiles, kindOf, folderUrl, replaceImage } from "./media.js";
 import { api } from "./api.js";
 import { ghost, autoScroll, sortable } from "./drag.js";
 import { renderBlocks } from "./blocks.js";
@@ -325,10 +325,14 @@ function imageSpot(field, ctx) {
   };
 }
 
+// a picture in a field: Replace (a new version, same name, so everywhere using it updates) and Remove
 function thumb(url, onRemove, extra = []) {
   if (isLink(url) && !/\.(webp|jpe?g|png|gif|avif|svg)(\?|$)/i.test(url)) return linkThumb(url, onRemove);
+  const canReplace = !isLink(url) && /\.(webp|jpe?g|png)(\?|$)/i.test(String(url || ""));
   return h("div", { class: "thumb" }, h("img", { src: url, alt: "", loading: "lazy" }),
-    h("div", { class: "thumb-tools" }, ...extra, h("button", { class: "icon-btn", title: tr("Remove image"), onclick: onRemove }, icon("trash"))));
+    h("div", { class: "thumb-tools" }, ...extra,
+      canReplace ? h("button", { class: "icon-btn", title: tr("Replace with a new version (same name, so everywhere it's used updates)"), onclick: (e) => { e.stopPropagation(); replaceImage(url); } }, icon("refresh")) : null,
+      h("button", { class: "icon-btn", title: tr("Remove image"), onclick: onRemove }, icon("trash"))));
 }
 
 // a web address in an image field (a video on Google Drive): shown as the address, editable

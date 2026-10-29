@@ -1,16 +1,23 @@
 // The image picker: browse the image library, pick images, upload new ones.
 //
-// Uploads are converted here in the browser to WebP, longest edge 1500px (what the site
-// uses), and saved straight into the post's own folder. Browsers that can't make WebP
-// (Safari) send a 1500px JPEG instead; the GitHub Action converts it after you push.
+// Uploads are converted here in the browser to WebP, the longest edge at most 1500px (or
+// whatever Settings → Site → Longest side says for this site), and saved straight into the
+// post's own folder. Browsers that can't make WebP (Safari) send a JPEG instead; a GitHub
+// Action on the site can convert it after you push.
+//
+// Replacing a picture (a new, sharper version of one already on the site) keeps its file name
+// and format, so every page that uses it shows the new one.
 import { h, fill, icon, toast, confirmBox } from "./util.js";
 import { api } from "./api.js";
 import { t as tr, t2, fmtDate } from "./i18n.js";
 
-const LONGEST_EDGE = 1500;
+let LONGEST_EDGE = 1500;
+export const setUploadEdge = (n) => { LONGEST_EDGE = Number(n) > 0 ? Number(n) : 1500; };
+const FORMATS = { webp: "image/webp", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png" };
 
-// one file -> { blob, name } ready to save
-export async function prepareForWeb(file) {
+// one file -> { blob, name } ready to save. as: "webp", "jpg" or "png" to make exactly that
+// format (when replacing a picture), else WebP (or JPEG where the browser can't make WebP)
+export async function prepareForWeb(file, as = null) {
   if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(file.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)) {
     return { blob: file, name: file.name }; // gif, svg...: as they are
   }
@@ -24,6 +31,12 @@ export async function prepareForWeb(file) {
   canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
   bmp.close?.();
   const stem = file.name.replace(/\.[^.]+$/, "");
+  if (as) {
+    const type = FORMATS[as];
+    const out = await new Promise((r) => canvas.toBlob(r, type, type === "image/png" ? undefined : 0.86));
+    if (!out || out.type !== type) throw new Error(tr("This browser can't save pictures as {format}. Try Chrome, or replace it with a picture that's already a {format}.", { format: as.toUpperCase() }));
+    return { blob: out, name: stem + "." + as };
+  }
   const webp = await new Promise((r) => canvas.toBlob(r, "image/webp", 0.82));
   if (webp && webp.type === "image/webp") return { blob: webp, name: stem + ".webp" };
   const jpg = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.9));
@@ -40,6 +53,27 @@ export async function uploadFiles(folder, files) {
   }
   if (urls.length) toast(t2(urls.length, "Uploaded {n} image", "Uploaded {n} images"));
   return urls;
+}
+
+// Replace a picture with a new version: choose a file, and it's made the same size limit and
+// format as the old one and saved under the old one's name (the old file goes to .cms-trash).
+// Every picture on screen showing it is refreshed. Returns true if it was replaced.
+export function replaceImage(url) {
+  const as = (String(url).match(/\.(webp|jpe?g|png)(\?|$)/i) || [])[1]?.toLowerCase();
+  return new Promise((resolve) => {
+    if (!as) { toast(tr("Only WebP, JPEG and PNG pictures can be replaced here."), "error"); return resolve(false); }
+    chooseFiles(false, async ([file]) => {
+      try {
+        if (kindOf(file) !== "image") throw new Error(tr("Only pictures can go here."));
+        const { blob } = await prepareForWeb(file, as === "jpeg" ? "jpeg" : as);
+        await api.replaceMedia(String(url).split("?")[0], blob);
+        const stamp = "?v=" + Date.now();
+        document.querySelectorAll("img").forEach((img) => { const u = img.getAttribute("src") || ""; if (u.split("?")[0] === String(url).split("?")[0]) img.src = u.split("?")[0] + stamp; });
+        toast(tr("Replaced {name}", { name: decodeURI(String(url).split("?")[0].split("/").pop()) }));
+        resolve(true);
+      } catch (e) { toast(e.message, "error"); resolve(false); }
+    });
+  });
 }
 
 // what a dropped file is: "image", "video" or "file"
@@ -104,6 +138,8 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
       h("span", { class: "select-count" }, chosen.size ? tr("{n} selected", { n: chosen.size }) : tr("Click files to select them")),
       h("button", { class: "btn small", onclick: () => { const all = chosen.size === shown.length; chosen.clear(); if (!all) shown.forEach((i) => chosen.add(i.url)); markChosen(); } },
         chosen.size === shown.length && shown.length ? tr("Select none") : tr("Select all")),
+      h("button", { class: "btn small", disabled: chosen.size !== 1 || shown.find((i) => chosen.has(i.url))?.kind !== "image", title: tr("Put a new version in its place, with the same name"),
+        onclick: async () => { if (await replaceImage([...chosen][0])) await show(current); } }, icon("refresh"), tr("Replace…")),
       h("button", { class: "btn small danger", disabled: !chosen.size, onclick: () => trashChosen() }, icon("trash"), tr("Move to Trash")),
       h("button", { class: "btn small primary", onclick: () => setSelecting(false) }, tr("Done")));
   };
@@ -212,7 +248,9 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
           h("p", { class: "media-preview-name" }, file.name),
           h("p", { class: "muted small" }, kindLabel(file) + " · " + fmtSize(file.size)),
           h("p", { class: "muted small" }, tr("Modified {date}", { date: fmtWhen(file.modified) })),
-          h("button", { class: "btn small", onclick: () => navigator.clipboard?.writeText(file.url).then(() => toast(tr("Copied {url}", { url: file.url })), () => toast(file.url)) }, tr("Copy address"))) : null);
+          h("div", { class: "media-preview-buttons" },
+            h("button", { class: "btn small", onclick: () => navigator.clipboard?.writeText(file.url).then(() => toast(tr("Copied {url}", { url: file.url })), () => toast(file.url)) }, tr("Copy address")),
+            file.kind === "image" ? h("button", { class: "btn small", title: tr("Put a new version in its place, with the same name"), onclick: async () => { if (await replaceImage(file.url)) await show(current); } }, tr("Replace…")) : null)) : null);
       requestAnimationFrame(() => { grid.scrollLeft = grid.scrollWidth; });
     } else {
       // icons: folders are the same size as pictures, with their names underneath
@@ -243,7 +281,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
   function stopPhone() { clearInterval(phoneTimer); phoneTimer = null; phonePanel.hidden = true; phoneBtn.classList.remove("on"); }
   async function startPhone() {
     if (phoneTimer) return stopPhone();
-    const link = await api.phoneLink(current);
+    const link = await api.phoneLink(current, LONGEST_EDGE);
     phoneBtn.classList.add("on");
     phonePanel.hidden = false;
     if (!link.links.length) { fill(phonePanel, h("p", { class: "muted" }, link.error || tr("No network found."))); return; }

@@ -130,6 +130,13 @@ export function richBox({ value = "", inline: isInline = false, placeholder = ""
     document.execCommand("insertText", false, isInline ? text.replace(/\s*\n\s*/g, " ") : text);
   });
   el.addEventListener("keydown", (e) => {
+    // ⌘B bold, ⌘I italic (Ctrl on Windows), as in any writing app
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && /^[bi]$/i.test(e.key)) {
+      e.preventDefault();
+      document.execCommand(e.key.toLowerCase() === "b" ? "bold" : "italic");
+      changed();
+      return;
+    }
     if (isInline && e.key === "Enter") e.preventDefault();          // captions are one line
     if (e.key === "Enter" && e.shiftKey && !isInline) { e.preventDefault(); document.execCommand("insertLineBreak"); }
   });

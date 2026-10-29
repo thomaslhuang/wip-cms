@@ -7,7 +7,7 @@
 //   pasting        a block copied from Google Sheets, Numbers or Excel fills the cells from the
 //                  one you're in, across and down; rows past the last one become new entries
 //   Copy all       the whole table, to paste into a spreadsheet
-//   ↗ on a row     opens it in the editor, for its writing, pictures and anything else
+//   a row's number opens it in the editor, for its writing, pictures and anything else
 //
 // Long or nested things (a post's text, galleries, blocks) are shown as a count, and open in
 // the editor. Changing a permalink asks first; required fields can't be emptied; two items
@@ -111,7 +111,7 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
     scroller);
   scroller.append(table);
   table.append(
-    h("colgroup", {}, h("col", { style: { width: "56px" } }), cols.map((c, i) => h("col", { style: { width: (i === 0 ? 220 : WIDTH[c.kind]) + "px" } }))),
+    h("colgroup", {}, h("col", { style: { width: "40px" } }), cols.map((c, i) => h("col", { style: { width: (i === 0 ? 220 : WIDTH[c.kind]) + "px" } }))),
     h("thead", {}, h("tr", {}, h("th", { class: "sheet-corner" }),
       cols.map((c) => h("th", { title: c.field.description ? tl(c.field.description) : null, class: "kind-" + c.kind },
         tl(c.field.label || c.name), c.field.required ? h("span", { class: "required" }, " *") : null)))),
@@ -222,9 +222,9 @@ export function tableView({ section, order, onOpen, onNew, beforeSave, afterSave
   function draw() {
     visible = shown();
     fill(tbody, visible.map((row, r) => h("tr", { class: row.file === active ? "active" : "", "data-file": row.file },
+      // the row's number opens it in the editor
       h("td", { class: "sheet-rownum" },
-        h("span", {}, r + 1),
-        h("button", { class: "sheet-open", title: t("Open"), "aria-label": t("Open"), onclick: () => onOpen(row.file) }, icon("external"))),
+        h("button", { class: "sheet-open", title: t("Open"), "aria-label": t("Open") + " " + asText(cols[0], row.data[cols[0].name]), onclick: () => onOpen(row.file) }, r + 1)),
       cols.map((col, c) => cell(row, col, r, c)))),
       h("tr", { class: "sheet-new" }, h("td", { colspan: cols.length + 1 },
         h("button", { class: "sheet-add", onclick: () => onNew() }, icon("plus"), t("New")),

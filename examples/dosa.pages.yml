@@ -143,37 +143,23 @@ content:
           - { name: src, label: Picture, type: image, options: { path: "src/img/press/{slug}", store: filename } }
           - { name: caption, label: Caption, type: text, description: "Shown under the picture. *Italics* and **bold** work." }
 
+  # one row per store; the stockist page groups them by continent, country and state
+  # (src/stockist/index.njk), in the order they first appear here
   - name: stockists
     label: Stockists
     type: file
     path: src/_data/stockists.json
     format: json
     list: true
-    view: { primary: continent }
+    view: { primary: name }
     fields:
-      - { name: continent, label: Continent, type: string, required: true }
-      - name: countries
-        label: Countries
-        type: object
-        list: true
-        fields:
-          - { name: country, label: Country, type: string }
-          - name: stores
-            label: Stores
-            type: object
-            list: true
-            fields: &store
-              - { name: name, label: Name, type: string }
-              - { name: address1, label: Address, type: string }
-              - { name: address2, label: City and postcode, type: string }
-              - { name: phone, label: Phone, type: string }
-          - name: states
-            label: States
-            type: object
-            list: true
-            fields:
-              - { name: state, label: State, type: string }
-              - { name: stores, label: Stores, type: object, list: true, fields: *store }
+      - { name: name, label: Store, type: string, required: true }
+      - { name: continent, label: Continent, type: string, required: true, description: "e.g. North America, Europe, Asia." }
+      - { name: country, label: Country, type: string, required: true }
+      - { name: state, label: State, type: string, description: "Only for countries split into states, like the United States and Japan." }
+      - { name: address1, label: Address, type: string }
+      - { name: address2, label: City and postcode, type: string }
+      - { name: phone, label: Phone, type: string }
 
   - name: menu
     label: Menu
