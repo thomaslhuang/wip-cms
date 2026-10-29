@@ -175,7 +175,7 @@ button:disabled { cursor: default; }
 .row-thumb { width: 46px; height: 46px; border-radius: 6px; object-fit: cover; background: var(--fill); display: block; }
 .row-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .row-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* the picture's top meets the top of the title's lowercase letters (worked out from the font in app.js) */
+/* the picture's top meets the top of the title's capitals and tall letters (worked out from the font in app.js) */
 .row-thumb { margin-top: var(--thumb-nudge, 6px); }
 .row-sub { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 .row-excerpt { font-size: 12px; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -201,13 +201,12 @@ button:disabled { cursor: default; }
    so 日 and the day of the week each make a straight line) */
 .text-date { flex: none; display: inline-grid; align-items: baseline; font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .text-date .td-day { text-align: right; }
-.text-date.western { grid-template-columns: 2.2em 1.35em; }
+.text-date.western { grid-template-columns: 2ch; }
 /* japanese: a two-digit column for the number, starting where the month's name starts (like
    western's day of the week); numbers sit at its right, so a single-digit day starts one digit in,
    the way a tab stop works, and 日 and the day of the week each make a straight line */
-.text-date.japanese { grid-template-columns: auto auto; }
+.text-date.japanese { grid-template-columns: auto; }
 .text-date.japanese .td-date { text-align: right; }
-.text-date.japanese .td-wd { padding-left: .15em; }
 /* the month and the day each end at a fixed place, so 月 lines up too ("9月 7日" under "10月22日") */
 .text-date.japanese .td-md { display: inline-block; text-align: right; }
 .text-date.japanese .td-md + .td-md { width: calc(2ch + 1em); }
@@ -218,11 +217,10 @@ button:disabled { cursor: default; }
 .tree-year > .list-items.text { padding-left: 0; --indent: 20px; }
 .tree-body .list-items.text { padding-left: 0; --indent: 34px; }
 /* a title that doesn't fit scrolls while you point at it */
-.text-title.marquee { text-overflow: clip; }
-.text-title.marquee .text-title-inner { display: inline-block; }
-.text-title.marquee .text-title-inner { animation: title-marquee var(--marquee-time, 4s) ease-in-out .3s infinite alternate; }
-@keyframes title-marquee { 0%, 12% { transform: translateX(0); } 88%, 100% { transform: translateX(var(--shift)); } }
-@media (prefers-reduced-motion: reduce) { .text-title.marquee .text-title-inner { animation: none; } .text-title.marquee { text-overflow: ellipsis; } }
+/* (the title is always one block, the … on it, so starting to scroll changes nothing else) */
+.text-title-inner { display: inline-block; vertical-align: top; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-title.marquee .text-title-inner { max-width: none; overflow: visible; animation: title-marquee var(--marquee-time, 4s) ease-in-out infinite alternate; }
+@keyframes title-marquee { 0%, 6% { transform: translateX(0); } 88%, 100% { transform: translateX(var(--shift)); } }
 /* titles only, grouped by month: entries step in under their month the way months step in
    under their year, so the dates start where the month's name does (past its arrow) */
 .badge { font-size: 10px; font-weight: 600; padding: 0 6px; border-radius: 4px; background: var(--draft-soft); color: var(--draft); line-height: 16px; }
@@ -930,5 +928,5 @@ select.input { appearance: auto; }
 .jdates .tree-label { text-align: right; }
 .jdates .tree-count { grid-column: 4; }
 .jdates .list-items.text, .jdates .tree-body .list-items.text, .jdates .tree-year > .list-items.text { padding-left: 0; --indent: var(--chev); }
-.jdates .text-date.japanese { font-size: var(--jsize); grid-template-columns: var(--dcol) auto; }
+.jdates .text-date.japanese { font-size: var(--jsize); grid-template-columns: var(--dcol); }
 .jdates .td-date .draft-dot { position: relative; left: auto; top: auto; display: inline-block; vertical-align: middle; margin: -2px 5px 0 0; }

@@ -148,7 +148,7 @@ function drawList() {
   const view = listView(s);
   // the date beside each post in the list view: the day when grouped by month; for posts dated
   // by the day (blog posts), the date otherwise too; none for things dated by the year (projects)
-  const dateLabel = view.group === "month" ? (e) => (e.date ? fmtDate(e.date, "weekday") : "")
+  const dateLabel = view.group === "month" ? (e) => (e.date ? fmtDate(e.date, "day") : "")
     : naturalGroup(s) === "month" ? (e) => (e.date ? fmtDate(e.date, view.group === "year" ? "day" : "short") : "") : () => "";
   const items = { rows: (e) => rowItem(e, dateLabel(e)), grid: tileItem,
     text: (e) => textItem(e, ["month", "year"].includes(view.group) && naturalGroup(s) === "month" ? e.date : null, view.group) }[mode];
@@ -327,12 +327,11 @@ function tileItem(e) {
 }
 // Titles only: the date in fixed-width columns before the title, so the titles line up and
 // sit the same distance from it.
-//   grouped by month   western "Thu 22" (day of the week left, number right)
-//                      japanese "22日 (木)"
+//   grouped by month   western "22" · japanese "22日" (no day of the week: the month is right above)
 //   grouped by year    western "Oct 22" · japanese "10月22日"
 // Japanese dates sit in one column with the year and month headings, all ending at the same
 // place, so 年, 月 and 日 make one straight line down the list (as in a Japanese table of dates);
-// the day of the week follows the date, as it's always written.
+// (no day of the week: it only added clutter).
 // A title too long for the list scrolls sideways while you point at it (the date stays put).
 function textItem(e, date, group) {
   const p = date ? dayParts(date) : null;
@@ -346,20 +345,27 @@ function textItem(e, date, group) {
       ? h("span", { class: "text-date western" }, span("td-wd", p.monthName), span("td-day", p.day))
       : h("span", { class: "text-date japanese by-year" }, h("span", { class: "td-date" }, jdot, span("td-md", p.month + "月"), span("td-md", p.day + "日"))))
     : p.style === "western"
-      ? h("span", { class: "text-date western" }, span("td-wd", p.weekday), span("td-day", p.day))
-      : h("span", { class: "text-date japanese" }, h("span", { class: "td-date" }, jdot, p.day + "日"), span("td-wd", `(${p.weekday})`));
+      ? h("span", { class: "text-date western" }, span("td-day", p.day))
+      : h("span", { class: "text-date japanese" }, h("span", { class: "td-date" }, jdot, p.day + "日"));
   const title = h("span", { class: "text-title" }, h("span", { class: "text-title-inner" }, titleOf(e)));
-  return h("a", { class: "text-item" + isActive(e), href: editHref(e.file), onmouseenter: () => marquee(title), onmouseleave: () => title.classList.remove("marquee") },
+  return h("a", { class: "text-item" + isActive(e), href: editHref(e.file), onmouseenter: () => marquee(title), onmouseleave: () => stopMarquee(title) },
     jdot ? null : dot, day, title, day ? null : draftBadge(e));
 }
 // scroll a title that doesn't fit, back and forth, at an even reading speed
+// Nothing changes until it starts to move (the … stays till then), so the text never jumps.
+const stillMotion = matchMedia("(prefers-reduced-motion: reduce)");
 function marquee(box) {
-  if (box.scrollWidth - box.clientWidth <= 2) return;
-  box.classList.add("marquee");   // the text becomes one block, so its whole width can be measured
-  const over = box.firstChild.offsetWidth - box.clientWidth;   // (unscaled, so it's right at any Interface size)
-  box.style.setProperty("--shift", -Math.ceil(over) - 2 + "px");
-  box.style.setProperty("--marquee-time", Math.max(3, over / 35 + 2.4).toFixed(1) + "s");
+  const inner = box.firstChild;
+  if (stillMotion.matches || inner.scrollWidth - inner.clientWidth <= 2) return;
+  clearTimeout(box.marqueeWait);
+  box.marqueeWait = setTimeout(() => {
+    box.classList.add("marquee");
+    const over = inner.offsetWidth - box.clientWidth;   // (unscaled, so it's right at any Interface size)
+    box.style.setProperty("--shift", -Math.ceil(over) - 2 + "px");
+    box.style.setProperty("--marquee-time", Math.max(3, over / 35 + 2.4).toFixed(1) + "s");
+  }, 350);
 }
+function stopMarquee(box) { clearTimeout(box.marqueeWait); box.classList.remove("marquee"); }
 
 // Dragging an item to a new place in a list section. The item itself moves as you drag (a
 // copy follows the pointer); letting go saves the new order into the data file.
@@ -443,7 +449,7 @@ function alignThumbs() {
   const cs = getComputedStyle(el);
   const ctx = (alignThumbs.ctx ||= document.createElement("canvas").getContext("2d"));
   ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-  const m = ctx.measureText("x");
+  const m = ctx.measureText("H");   // the top of capitals and tall letters (t, h, l): where the eye reads the top of a line
   const lineHeight = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
   const top = (lineHeight - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent - m.actualBoundingBoxAscent;
   if (isFinite(top)) listEl.style.setProperty("--thumb-nudge", Math.max(0, Math.round(top * 2) / 2) + "px");
