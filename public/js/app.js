@@ -190,7 +190,6 @@ function drawList() {
       viewButton(s, view)),
     h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
-  if (mode === "rows") alignThumbs();
 }
 
 // three ways to show a section, remembered for each one: list (picture, title, first
@@ -315,8 +314,7 @@ function rowItem(e, date) {
     e.featuredImage ? h("img", { class: "row-thumb", src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "row-thumb empty" }),
     h("span", { class: "row-text" },
       h("span", { class: "row-title" }, titleOf(e)),
-      date || e.draft ? h("span", { class: "row-sub" }, date, draftBadge(e)) : null,
-      e.excerpt ? h("span", { class: "row-excerpt" }, e.excerpt) : null));
+      date || e.draft ? h("span", { class: "row-sub" }, date, draftBadge(e)) : null));
 }
 // the grid: square pictures edge to edge; the title shows when you point at one
 function tileItem(e) {
@@ -440,21 +438,6 @@ function reorderable(container, s) {
   container.addEventListener("dragstart", (e) => e.preventDefault());
 }
 
-// The list view's pictures start level with the top of the title's lowercase letters (most
-// titles start lowercase, and that's where the eye reads the text as starting). Worked out from
-// the interface font, so it stays right with any font in Customize.
-function alignThumbs() {
-  const el = listEl.querySelector(".row-title");
-  if (!el) return;
-  const cs = getComputedStyle(el);
-  const ctx = (alignThumbs.ctx ||= document.createElement("canvas").getContext("2d"));
-  ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-  const m = ctx.measureText("H");   // the top of capitals and tall letters (t, h, l): where the eye reads the top of a line
-  const lineHeight = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
-  const top = (lineHeight - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent - m.actualBoundingBoxAscent;
-  if (isFinite(top)) listEl.style.setProperty("--thumb-nudge", Math.max(0, Math.round(top * 2) / 2) + "px");
-}
-document.fonts?.ready.then(() => alignThumbs());
 
 // drag the list's right edge to make it wider (handy for the grid)
 let listWidth = pref.get("list-width", 300);
