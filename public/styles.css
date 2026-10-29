@@ -169,8 +169,9 @@ button:disabled { cursor: default; }
 .tree-body .list-items { padding-left: 14px; }
 .tree-year > .list-items.grid { margin-top: 4px; }
 .list-empty { padding: 16px 10px; }
-/* the picture's left edge lines up with the view buttons above (12px in from the list's edge) */
-.row-item { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px; padding: 6px 10px 6px 4px; border-radius: 8px; color: var(--text); text-decoration: none; }
+/* the picture's left edge lines up with the view buttons above: the buttons themselves, inside their
+   faint tray (14px in from the list's edge), which is where the eye sees them start */
+.row-item { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px; padding: 6px 10px 6px 6px; border-radius: 8px; color: var(--text); text-decoration: none; }
 .row-item:hover { background: var(--fill); }
 .row-item.active { background: var(--accent-soft); }
 .row-thumb { width: 46px; height: 46px; border-radius: 6px; object-fit: cover; background: var(--fill); display: block; }
@@ -779,7 +780,7 @@ select.input { appearance: auto; }
   .list-head .back-btn { display: inline-flex; }
   .list-name { font-size: 17px; }
   .list-tools { margin: 0 14px 8px; }
-  .row-item { padding-left: 6px; }
+  .row-item { padding-left: 8px; }
   .search { height: 36px; }
   .list { width: 100% !important; }
   .list-resize { display: none; }
@@ -947,15 +948,16 @@ select.input { appearance: auto; }
 .sheet-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .sheet-bar { display: flex; align-items: center; gap: 8px; padding: 0 12px 8px 14px; font-size: 11px; }
 .sheet-status { flex: 1; }
-.sheet-scroll { flex: 1; min-height: 0; overflow: auto; border-top: 1px solid var(--line); }
+.sheet-scroll { flex: 1; min-height: 0; overflow: auto; border-top: .5px solid var(--line); }
 .sheet { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: max-content; font-size: 12.5px; }
-.sheet th, .sheet td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 0; height: 30px; vertical-align: middle; background: var(--list); }
+/* hairlines between cells (one screen pixel), so a page of cells doesn't look heavier than the rest of the window */
+.sheet th, .sheet td { border-right: .5px solid var(--line); border-bottom: .5px solid var(--line); padding: 0; height: 30px; vertical-align: middle; background: var(--list); }
 .sheet thead th { position: sticky; top: 0; z-index: 3; background: var(--sidebar); font-size: 11px; font-weight: 600; color: var(--muted); text-align: left; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sheet thead th[title] { cursor: help; }
 /* the row numbers and the first column stay put as you scroll sideways */
 .sheet .sheet-corner, .sheet .sheet-rownum { position: sticky; left: 0; z-index: 2; }
 .sheet thead .sheet-corner { z-index: 4; }
-.sheet td.sticky, .sheet thead th:nth-child(2) { position: sticky; left: 40px; z-index: 1; box-shadow: 1px 0 0 var(--line); }
+.sheet td.sticky, .sheet thead th:nth-child(2) { position: sticky; left: 40px; z-index: 1; }
 .sheet thead th:nth-child(2) { z-index: 4; }
 /* the row's number: the whole cell is the button that opens it */
 .sheet-rownum { padding: 0 !important; }
@@ -968,7 +970,7 @@ select.input { appearance: auto; }
 .sheet-input.num { text-align: right; font-variant-numeric: tabular-nums; }
 select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: none; cursor: pointer; }
 .sheet td:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }
-.sheet td.sticky:focus-within { box-shadow: inset 0 0 0 2px var(--accent), 1px 0 0 var(--line); }
+.sheet td.sticky:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }
 /* long text: one line in the table, the whole text while you're in it */
 .sheet-long { resize: none; padding-top: 7px; line-height: 1.35; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .sheet td.kind-long { position: relative; }
