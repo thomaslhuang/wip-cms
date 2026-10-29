@@ -21,7 +21,7 @@ import { ghost, autoScroll } from "./drag.js";
 import { openSetup } from "./setup.js";
 import { openSettings } from "./settings.js";
 import { openAddSection } from "./addsection.js";
-import { t, t2, tl, fmtDate, lang } from "./i18n.js";
+import { t, t2, tl, fmtDate, dayParts, lang } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
 applyTheme();
@@ -144,7 +144,7 @@ function drawList() {
 
   const view = listView(s);
   const dateLabel = view.group === "month" ? (e) => (e.date ? fmtDate(e.date, "weekday") : "") : () => "";
-  const items = { rows: (e) => rowItem(e, dateLabel(e)), grid: tileItem, text: (e) => textItem(e, dateLabel(e)) }[mode];
+  const items = { rows: (e) => rowItem(e, dateLabel(e)), grid: tileItem, text: (e) => textItem(e, view.group === "month" ? e.date : null) }[mode];
   const groups = groupEntries(s, shown, view);
 
   // each group (and month) can be folded away; while searching everything is open, so
@@ -302,10 +302,18 @@ function tileItem(e) {
     h("span", { class: "tile-title" }, titleOf(e)),
     draftBadge(e));
 }
+// Titles only, grouped by month: the day in a fixed-width column before the title, so the
+// titles line up and sit the same distance from it.
+//   western:   Thu 22   the day of the week left-aligned, the number right-aligned
+//   japanese:  22日 (木)  the number right-aligned, so 日 and the day of the week each form a
+//              straight line down the list
 function textItem(e, date) {
+  const parts = date ? dayParts(date) : null;
+  const day = parts && (parts.style === "western"
+    ? h("span", { class: "text-date western" }, h("span", { class: "td-wd" }, parts.weekday), h("span", { class: "td-day" }, parts.day))
+    : h("span", { class: "text-date japanese" }, h("span", { class: "td-day" }, parts.day), h("span", { class: "td-ni" }, "日"), h("span", { class: "td-wd" }, `(${parts.weekday})`)));
   return h("a", { class: "text-item" + isActive(e), href: editHref(e.file) },
-    // the date first, so all the date information (year, month, day) lines up on the left
-    date ? h("span", { class: "text-date" }, date) : null,
+    day,
     h("span", { class: "text-title" }, titleOf(e)), draftBadge(e));
 }
 
@@ -495,7 +503,8 @@ function drawToolbar() {
   right.push(more);
 
   const views = editor ? segmented(t("View"), narrow() ? [["write", t("Write")], ["preview", t("Preview")]] : [["write", t("Write")], ["split", t("Split")], ["preview", t("Preview")]], v, setView) : null;
-  fill(toolbarEl, h("div", { class: "toolbar-side" }, left, title), views, h("div", { class: "toolbar-side end" }, right));
+  // three slots, always: with nothing open the middle one is empty, so ⋯ stays at the right
+  fill(toolbarEl, h("div", { class: "toolbar-side" }, left, title), views || h("span"), h("div", { class: "toolbar-side end" }, right));
 
   // phone: the most-used block actions float at the bottom
   const b = editor?.blocks;

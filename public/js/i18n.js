@@ -49,6 +49,14 @@ export const t2 = (n, one, many, vars = {}) => t(n === 1 ? one : many, { n, ...v
 
 // kind: weekday (Wed 22 / 22日 (水)) · long (October 22, 2026) · short (Oct 22, 2026) · day (Oct 22) · month (October 2026)
 //       monthName (October) · year (2026)
+// the day of a date in pieces, for lining dates up in a list: { style, weekday: "Thu" / "木", day: "22" }
+export function dayParts(value, style = dateStyle()) {
+  const d = value instanceof Date ? value : new Date(String(value).slice(0, 10) + "T12:00:00");
+  if (isNaN(d)) return null;
+  return { style, day: String(d.getDate()),
+    weekday: style === "western" ? d.toLocaleDateString("en-US", { weekday: "short" }) : d.toLocaleDateString("ja-JP", { weekday: "short" }) };
+}
+
 export function fmtDate(value, kind = "long", style = dateStyle()) {
   const d = value instanceof Date ? value : new Date(String(value).slice(0, 10) + "T12:00:00");
   if (isNaN(d)) return "";
