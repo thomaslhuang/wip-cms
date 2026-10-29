@@ -35,6 +35,7 @@ export function titleCase(text) {
   const real = words.filter((w) => /\w/.test(w));
   return words.map((w) => {
     if (!/[a-z]/.test(w) || /[A-Z]/.test(w.slice(1))) return w;          // "HTML", "iPhone", "(5px)": as they are
+    if (/[/.@]/.test(w)) return w;                                          // "/projects/maldon-salt/", "e.g.": as they are
     const first = w === real[0], lastWord = w === real[real.length - 1];
     if (!first && !lastWord && SMALL.has(w.toLowerCase())) return w.toLowerCase();
     if (ACRONYMS.has(w.toLowerCase())) return w.toUpperCase();
@@ -180,6 +181,13 @@ const JA = {
   "Collection added": "コレクションを追加しました", "Page added": "ページを追加しました", "It's in .pages.yml and ready to write in.": ".pages.yml に追加しました。すぐに書き始められます。", "general": "一般",
   "The title on its own page. Leave it empty to use the short title.": "その投稿のページに出るタイトル。空にすると短いタイトルが使われます。",
   "The full title is the heading of its page; the short title is for lists, and the permalink follows it (or the full title) unless you change it.": "正式タイトルはページの見出しに、短いタイトルは一覧に使われます。パーマリンクは、変更しない限り短いタイトル（なければ正式タイトル）から作られます。",
+  "Media": "メディア", "Select": "選択", "Select All": "すべて選択", "Select None": "選択を解除", "Click files to select them": "ファイルをクリックして選択", "{n} selected": "{n} 件を選択",
+  "{n} of these are still used on the site, in {places}. Moving them to the Trash breaks those until you put them back.": "このうち {n} 件はサイトでまだ使われています（{places}）。ゴミ箱に移すと、戻すまで表示されなくなります。", " and {n} more": " ほか {n} 件",
+  "Move {n} file to the Trash?": "{n} 件のファイルをゴミ箱に移しますか？", "Move {n} files to the Trash?": "{n} 件のファイルをゴミ箱に移しますか？", "They go into the .cms-trash folder in your site, so you can get them back.": "サイト内の .cms-trash フォルダに移るので、元に戻せます。",
+  "Moved {n} file to .cms-trash": "{n} 件を .cms-trash に移しました", "Moved {n} files to .cms-trash": "{n} 件を .cms-trash に移しました", "Select several (or ⌘-click)": "複数を選択（⌘クリックでも）",
+  "Nothing here yet. Upload some, or go up a folder.": "まだ何もありません。アップロードするか、上のフォルダに戻ってください。",
+  "Drop files here to upload into this folder. Click one to copy its address; ⌘-click or Select to pick several.": "ここにファイルをドロップすると、このフォルダにアップロードされます。クリックでアドレスをコピー、⌘クリックか「選択」で複数を選べます。",
+  "Nickname": "ニックネーム", "Give it a nickname": "ニックネームをつける", "Your own name for this site, shown in the sidebar and the list of recent sites instead of its folder's name. Only on this Mac; the site itself doesn't change.": "このサイトに自分でつける名前。サイドバーと最近のサイトの一覧で、フォルダ名のかわりに表示されます。この Mac だけの設定で、サイト自体は変わりません。",
   "Settings": "設定", "Settings…": "設定…", "Interface size": "表示の大きさ", "Reset": "元に戻す", "Site": "サイト",
   "w·i·p cms reloads to switch language. Your section and field names switch too, for the common ones.": "言語を切り替えると w·i·p cms が再読み込みされます。よく使うセクション名やフィールド名も切り替わります。",
   "Switching language reloads w·i·p cms. Interface Size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.": "言語を切り替えると w·i·p cms が再読み込みされます。「表示の大きさ」はサイドバー・一覧・ツールバー・詳細の大きさを変えます。本文の大きさは「カスタマイズ → 文字」で変えられます。", "General": "一般",

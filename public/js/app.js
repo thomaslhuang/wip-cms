@@ -105,7 +105,7 @@ function drawSidebar() {
         items.map((s) => pageItem(s, s.name === "home" || s.name === "index" ? "house" : "text")),
       ]),
       h("div", { class: "side-group" }, t("Site")),
-      item("#/images", "images", t("Images"), null, route.page === "images"),
+      item("#/images", "images", t("Media"), null, route.page === "images"),
       siteItems.map((s) => pageItem(s, "gear"))),
     h("div", { class: "side-foot" },
       changesCount == null ? null : h("span", { class: "dot" + (changesCount ? " on" : "") }),
@@ -304,8 +304,9 @@ function tileItem(e) {
 }
 function textItem(e, date) {
   return h("a", { class: "text-item" + isActive(e), href: editHref(e.file) },
-    h("span", { class: "text-title" }, titleOf(e)), draftBadge(e),
-    date ? h("span", { class: "text-date" }, date) : null);
+    // the date first, so all the date information (year, month, day) lines up on the left
+    date ? h("span", { class: "text-date" }, date) : null,
+    h("span", { class: "text-title" }, titleOf(e)), draftBadge(e));
 }
 
 // Dragging an item to a new place in a list section. The item itself moves as you drag (a
@@ -459,7 +460,7 @@ function drawToolbar() {
   else if (!showSidebar) left.push(tbtn("sidebar", t("Show sidebar"), () => toggleSidebar()));
   statusEl = h("div", { class: "doc-status" }, editor ? t(editor.status()) : "");
   const title = h("div", { class: "toolbar-title" },
-    h("div", { class: "toolbar-name" }, route.page === "images" ? t("Images") : editor ? editor.title : ""), editor ? statusEl : null);
+    h("div", { class: "toolbar-name" }, route.page === "images" ? t("Media") : editor ? editor.title : ""), editor ? statusEl : null);
 
   const right = [];
   const v = currentView();
@@ -704,6 +705,7 @@ function showSettings() {
     onDates: () => { drawList(); editor?.redrawMeta?.(); },
     site: config.site,
     openSite: () => chooseSite(true),
+    onRename: () => { drawSidebar(); document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · w·i·p cms`; },
   });
 }
 
@@ -756,12 +758,31 @@ async function chooseSite(canCancel) {
       location.reload();
     } catch (e) { err.textContent = e.message; }
   };
+  // a recent site: its nickname (or folder name) and path; the pencil gives it a nickname
+  const recentRow = (r) => {
+    const row = h("div", { class: "recent-site" },
+      h("button", { class: "recent-open", onclick: () => open(r.path) }, icon("folder"),
+        h("span", { class: "recent-text" }, h("b", {}, r.nickname || r.folder), h("span", { class: "muted" }, r.path + "\u200e"))),
+      h("button", { class: "icon-btn", title: t("Give it a nickname"), onclick: () => rename() }, icon("compose")));
+    const rename = () => {
+      const input = h("input", { class: "field-input", value: r.nickname, placeholder: r.folder, "aria-label": t("Nickname") });
+      const save = async () => {
+        try { const res = await api.setNickname(r.path, input.value); r.nickname = res.nickname; } catch (e) { toast(e.message, "error"); }
+        if (site && site.root === r.path) { config.site.name = r.nickname || r.folder; drawSidebar(); }
+        row.replaceWith(recentRow(r));
+      };
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); if (e.key === "Escape") row.replaceWith(recentRow(r)); });
+      input.addEventListener("blur", save);
+      fill(row, icon("folder"), h("span", { class: "recent-text" }, input, h("span", { class: "muted" }, r.path)));
+      input.focus(); input.select();
+    };
+    return row;
+  };
   const overlay = h("div", { class: "overlay" }, h("div", { class: "dialog wide" },
     h("p", { class: "dialog-title" }, t("Open a site")),
     h("p", { class: "muted small" }, t("The site's main folder. In Finder, select the folder and press ⌥⌘C to copy its path, then paste it here. A folder that isn't set up for w·i·p cms yet (a new client site, say) gets a few questions first.")),
     input, err,
-    recent.length ? h("div", { class: "recent" }, h("p", { class: "muted small" }, t("Recent")),
-      recent.map((p) => h("button", { class: "recent-site", onclick: () => open(p) }, icon("folder"), h("span", {}, p)))) : null,
+    recent.length ? h("div", { class: "recent" }, h("p", { class: "muted small" }, t("Recent")), recent.map(recentRow)) : null,
     h("div", { class: "dialog-buttons" },
       canCancel ? h("button", { class: "btn", onclick: () => overlay.remove() }, t("Cancel")) : null,
       h("button", { class: "btn primary", onclick: () => open(input.value.trim()) }, t("Open")))));

@@ -50,7 +50,9 @@ function afterChange(file) {
 
 const routes = {
   // which site is open, and recent ones (for the "Open site" screen)
-  "GET /api/site": () => ({ site: site.info(), recent: site.recentSites() }),
+  "GET /api/site": () => ({ site: site.info(), recent: site.recentWithNames() }),
+  // your own name for a site, shown instead of its folder's name
+  "POST /api/site/nickname": (q, body) => site.setNickname(body.path, body.nickname),
   "POST /api/site": (q, body) => { const info = site.openSite(body.path); preview.startPreview(); return { site: info }; },
   // setting up a new site: look at a folder, then write its .pages.yml (lib/setup.js)
   "GET /api/site/inspect": (q) => setup.inspect(q.path),
@@ -94,6 +96,9 @@ const routes = {
   "GET /api/media": (q) => media.listFolder(q.folder),
   // a picture from elsewhere in the library, copied into a field's own folder
   "POST /api/media/copy": (q, body) => media.copyInto(body.url, body.folder),
+  // the Media page's "Move to Trash": first which are still used, then the move itself
+  "POST /api/media/usage": (q, body) => media.usage(body.urls || []),
+  "POST /api/media/trash": (q, body) => media.trash(body.urls || []),
   "GET /api/phone-link": (q) => phone.phoneLink(PORT, q.folder || site.rel(site.imagesDir())),
 };
 

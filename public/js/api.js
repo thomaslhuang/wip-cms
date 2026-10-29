@@ -15,6 +15,7 @@ const qs = (o) => new URLSearchParams(o).toString();
 
 export const api = {
   site: () => call("GET", "/api/site"),
+  setNickname: (path, nickname) => call("POST", "/api/site/nickname", { path, nickname }),
   openSite: (path) => call("POST", "/api/site", { path }),
   inspectSite: (path) => call("GET", "/api/site/inspect?" + qs({ path })),
   setupSite: (path, plan) => call("POST", "/api/site/setup", { path, plan }),
@@ -30,6 +31,8 @@ export const api = {
   read: (file) => call("GET", "/api/entry?" + qs({ file })),
   save: (file, data, body, version) => call("PUT", "/api/entry", { file, data, body, version }),
   move: (section, from, to) => call("POST", "/api/move", { section, from, to }),
+  mediaUsage: (urls) => call("POST", "/api/media/usage", { urls }),
+  trashMedia: (urls) => call("POST", "/api/media/trash", { urls }),
   copyMedia: (url, folder) => call("POST", "/api/media/copy", { url, folder }),
   create: (section, title, slug, extra) => call("POST", "/api/entry", { section, title, slug, extra }),
   remove: (file) => call("DELETE", "/api/entry?" + qs({ file })),

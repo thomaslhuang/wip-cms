@@ -6,7 +6,7 @@
 import { h, fill, icon, autosize, isPlainObject, toast } from "./util.js";
 import { openPicker, chooseFiles, uploadFiles, kindOf, folderUrl } from "./media.js";
 import { api } from "./api.js";
-import { ghost, autoScroll } from "./drag.js";
+import { ghost, autoScroll, sortable } from "./drag.js";
 import { renderBlocks } from "./blocks.js";
 import { richBox } from "./rich.js";
 import { codeArea } from "./code.js";
@@ -481,10 +481,115 @@ function imageMany(field, obj, ctx) {
 }
 
 // ---------- lists of objects (home page spots, exhibitions, a gallery of pictures with captions) ----------
-// Each item is a card you can fold. Long lists start folded, showing each item's picture and
-// name. When the items have a picture, "Add pictures" adds several at once, one item each.
+// Three layouts, depending on what the items hold:
+//   tiles  items with a picture (collage spots, a gallery): a grid of squares to drag into
+//          order; click one to edit it underneath. "Add pictures" adds several at once.
+//   rows   short items (a year and a line of text): one compact row each, with a handle to drag
+//   cards  anything else (lists inside lists): cards that fold, with up / down buttons
 
+const SIMPLE = new Set(["string", "number", "select", "boolean", "date", undefined]);
 function objectList(field, obj, ctx) {
+  if (!Array.isArray(obj[field.name])) obj[field.name] = [];
+  const fields = (field.fields || []).filter((f) => !f.hidden);
+  if (fields.some((f) => f.type === "image")) return objectTiles(field, obj, ctx);
+  if (fields.length && fields.length <= 3 && fields.every((f) => SIMPLE.has(f.type) && !f.list && !(f.type === "select" && f.options?.multiple))) return objectRows(field, obj, ctx);
+  return objectCards(field, obj, ctx);
+}
+
+const plainText = (v) => String(v).replace(/[*_`#>\\]|<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+// an item's name: its first text that has something in it
+function itemName(fields, item, i) {
+  const first = fields.find((f) => ["string", "text", undefined].includes(f.type) && item[f.name] && typeof item[f.name] !== "object");
+  if (first) return plainText(item[first.name]).slice(0, 80);
+  const pic = fields.find((f) => f.type === "image" && item[f.name]);
+  if (pic) return String([].concat(item[pic.name])[0]).split("/").pop();
+  return tr("Item {n}", { n: i + 1 });
+}
+const freshItem = (fields) => Object.fromEntries(fields.filter((f) => f.default !== undefined).map((f) => [f.name, f.default]));
+
+function objectTiles(field, obj, ctx) {
+  const list = obj[field.name];
+  const fields = field.fields || [];
+  const picField = fields.find((f) => f.type === "image");
+  const spot = imageSpot(picField, ctx);
+  const single = !picField.options?.multiple;
+  let open = null;   // the item being edited
+  const box = h("div", { class: "object-tiles" });
+  const grid = h("div", { class: "tile-grid" });
+  const editor = h("div", { class: "tile-editor" });
+  sortable(grid, { onMove: (from, to) => { const [it] = list.splice(from, 1); list.splice(to, 0, it); ctx.changed(); draw(); } });
+  const addPictures = async (urls, asIs) => {
+    const kept = asIs ? urls : await spot.keep(urls);
+    for (const v of kept) list.push({ ...freshItem(fields), [picField.name]: single ? v : [v] });
+    if (kept.length) { ctx.changed(); draw(); }
+  };
+  const draw = () => {
+    if (open && !list.includes(open)) open = null;
+    fill(grid,
+      ...list.map((item, i) => {
+        const pics = [].concat(item[picField.name] || []);
+        const first = pics[0];
+        return h("button", { class: "sort-item obj-tile" + (item === open ? " on" : ""), title: itemName(fields, item, i), onclick: () => { open = open === item ? null : item; draw(); if (open) requestAnimationFrame(() => editor.scrollIntoView({ block: "nearest", behavior: "smooth" })); } },
+          first && !isLink(first) ? h("img", { src: spot.show(first), alt: "", loading: "lazy", draggable: false }) : h("span", { class: "obj-tile-empty" }, first ? icon("link") : icon("image")),
+          pics.length > 1 ? h("span", { class: "obj-tile-count" }, String(pics.length)) : null,
+          h("span", { class: "obj-tile-name" }, itemName(fields, item, i)));
+      }),
+      h("button", { class: "obj-tile add sort-fixed", title: tr("Add"), onclick: () => { const item = freshItem(fields); list.push(item); open = item; ctx.changed(); draw(); } }, icon("plus"), h("span", {}, tr("Add"))));
+    if (!open) { fill(editor); editor.hidden = true; return; }
+    editor.hidden = false;
+    const i = list.indexOf(open);
+    fill(editor,
+      h("div", { class: "tile-editor-head" },
+        h("span", { class: "tile-editor-title" }, itemName(fields, open, i)),
+        h("button", { class: "icon-btn", title: tr("Remove"), onclick: () => { list.splice(i, 1); open = null; ctx.changed(); draw(); } }, icon("trash")),
+        h("button", { class: "btn small", onclick: () => { open = null; draw(); } }, tr("Done"))),
+      renderFields(fields, open, { ...ctx, changed: () => { ctx.changed(); redrawTiles(); } }));
+  };
+  // names and pictures in the grid follow your typing, without redrawing the open editor
+  let tileTimer = null;
+  const redrawTiles = () => { clearTimeout(tileTimer); tileTimer = setTimeout(() => {
+    const kids = grid.querySelectorAll(".obj-tile:not(.add)");
+    list.forEach((item, i) => {
+      const t = kids[i]; if (!t) return;
+      const pics = [].concat(item[picField.name] || []);
+      t.querySelector(".obj-tile-name").textContent = itemName(fields, item, i);
+      const img = t.querySelector("img");
+      if (pics[0] && !isLink(pics[0])) { if (img) img.src = spot.show(pics[0]); else draw(); }
+    });
+    const head = editor.querySelector(".tile-editor-title");
+    if (head && open) head.textContent = itemName(fields, open, list.indexOf(open));
+  }, 150); };
+  fill(box, grid, editor,
+    single ? h("div", { class: "object-add" }, h("span", { class: "image-buttons-label" }, tr("Add pictures:")), imageButtons(spot.folder, true, addPictures, !!picField.options?.links)) : null);
+  if (single) acceptDrops(box, spot.folder, addPictures);
+  draw();
+  return box;
+}
+
+function objectRows(field, obj, ctx) {
+  const list = obj[field.name];
+  const fields = (field.fields || []).filter((f) => !f.hidden);
+  const rows = h("div", { class: "obj-rows" });
+  sortable(rows, { handle: ".obj-grip", onMove: (from, to) => { const [it] = list.splice(from, 1); list.splice(to, 0, it); ctx.changed(); draw(); } });
+  const draw = () => {
+    fill(rows, list.map((item, i) => h("div", { class: "obj-row" },
+      h("span", { class: "obj-grip", title: tr("Drag to move") }, icon("grip")),
+      fields.map((f) => {
+        const el = renderField(f, item, ctx);
+        el?.querySelector(".field-label")?.remove();
+        const input = el?.querySelector("input, select, textarea");
+        if (input && !input.placeholder) input.placeholder = tl(f.label || f.name);
+        el?.classList.add(f.type === "number" || /year|date|^n(um(ber)?)?$/i.test(f.name) ? "obj-cell-narrow" : "obj-cell");
+        return el;
+      }),
+      h("button", { class: "icon-btn", title: tr("Remove"), onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash")))));
+  };
+  draw();
+  return h("div", { class: "object-rows" }, rows,
+    h("button", { class: "btn small", onclick: () => { list.push(freshItem(fields)); ctx.changed(); draw(); rows.lastElementChild?.querySelector("input")?.focus(); } }, icon("plus"), tr("Add")));
+}
+
+function objectCards(field, obj, ctx) {
   if (!Array.isArray(obj[field.name])) obj[field.name] = [];
   const list = obj[field.name];
   const fields = field.fields || [];

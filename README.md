@@ -67,7 +67,7 @@ Options:
 
 | | |
 |---|---|
-| **Sidebar** | **Collections**: things you keep adding to (blog posts, projects). Then single **pages**, under the group they're in in `.pages.yml` (e.g. Pages: Home, About). Then **Site**: the Images library, and one-of-a-kind items that aren't in a group (the site's title and description, say). At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site. |
+| **Sidebar** | **Collections**: things you keep adding to (blog posts, projects). Then single **pages**, under the group they're in in `.pages.yml` (e.g. Pages: Home, About). Then **Site**: the Images library, and one-of-a-kind items that aren't in a group (the site's title and description, say). At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site; in that list, the pencil gives a site a **nickname** (also in Settings → Site). |
 | **List** | The posts in that section. The ⇅ button picks how they're **grouped** (by month, by year, by any choice field such as Category, or not at all) and **sorted** (newest first, oldest first, or by title). Each section remembers its own, and it only changes this list, never the order on your site. Out of the box, sections filed by month (like blog posts) group by year and month, with the weekday and day beside each post; other dated sections (like projects) group by year, without dates. Click a group to fold it away. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** (square pictures, three across, edge to edge; point at one for its title) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
 | **Inspector** | The post's details: featured image, date, switches, tags, and its permalink. |
@@ -84,6 +84,10 @@ short title under it, the project text, and then the gallery (in the staggered l
 The inspector keeps the smaller details: featured image, date, ongoing, book, category and
 related posts. The site's own layout doesn't change. (Any section works this way: a field
 called `longTitle` or `fullTitle` becomes the heading, with the title under it, and fields with several images go after the text.)
+
+**Lists inside a page** (the home page's collage spots, exhibitions): items with a picture
+show as **tiles**; drag them into order, click one to edit it underneath. Short items (a
+year and a line) are one **row** each, with a handle to drag. Anything bigger folds into cards.
 
 **Under the title:** the date, **Draft / Published** and the tags can be changed right
 there. Click the date for a date picker, click Draft or Published to switch, and type in
@@ -160,6 +164,10 @@ photos and rearrange float at the bottom of the screen.
   in GitHub Desktop.
 - **Move to Trash** moves the post and its image folder into `.cms-trash` in the site,
   so you can get them back.
+
+**Media** (in the sidebar, under Site): every picture, video and file in the site's media
+folder. Click one to copy its address. **Select** (or ⌘-click) picks several; **Move to
+Trash** moves them into `.cms-trash`, after saying which are still used on the site.
 
 **Images**
 

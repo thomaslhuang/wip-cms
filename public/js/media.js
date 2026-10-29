@@ -3,7 +3,7 @@
 // Uploads are converted here in the browser to WebP, longest edge 1500px (what the site
 // uses), and saved straight into the post's own folder. Browsers that can't make WebP
 // (Safari) send a 1500px JPEG instead; the GitHub Action converts it after you push.
-import { h, fill, icon, toast } from "./util.js";
+import { h, fill, icon, toast, confirmBox } from "./util.js";
 import { api } from "./api.js";
 import { t as tr, t2 } from "./i18n.js";
 
@@ -63,8 +63,8 @@ export async function uploadAny(folder, files) {
 }
 
 // a hidden file input, opened from a button; calls back with the chosen files
-export function chooseFiles(multiple, onFiles) {
-  const input = h("input", { type: "file", accept: "image/*", multiple, style: { display: "none" } });
+export function chooseFiles(multiple, onFiles, accept = "image/*") {
+  const input = h("input", { type: "file", accept, multiple, style: { display: "none" } });
   input.addEventListener("change", () => { if (input.files.length) onFiles([...input.files]); input.remove(); });
   document.body.append(input);
   input.click();
@@ -81,15 +81,52 @@ export function folderUrl(folder) {
   return m ? (m.output.replace(/\/$/, "") + f.slice(m.input.length)) : null;
 }
 
-// A folder browser for the image library, used by both the picker window and the Images panel.
+// A folder browser for the media library, used by both the picker window and the Media page.
 //   multiple:  allow picking several
 //   onPick(urls, done): called as the selection changes; done=true means "finished picking"
-//   pickable:  false for the Images panel (clicking an image copies its address instead)
+//   pickable:  false for the Media page, which shows videos and other files too. Clicking one
+//              copies its address; "Select" picks several, to move them to the Trash.
 function libraryView({ folder, multiple = false, pickable = true, onPick = () => {}, onClose = null }) {
   let current = folder || ROOT;
   const selected = [];
   const grid = h("div", { class: "picker-grid" });
   const crumbs = h("div", { class: "picker-crumbs" });
+  // the Media page's Select mode
+  let selecting = false;
+  const chosen = new Set();
+  let shown = [];
+  const selectBar = h("div", { class: "select-bar", hidden: true });
+  const drawSelectBar = () => {
+    selectBar.hidden = !selecting;
+    grid.classList.toggle("selecting", selecting);
+    if (!selecting) return;
+    fill(selectBar,
+      h("span", { class: "select-count" }, chosen.size ? tr("{n} selected", { n: chosen.size }) : tr("Click files to select them")),
+      h("button", { class: "btn small", onclick: () => { const all = chosen.size === shown.length; chosen.clear(); if (!all) shown.forEach((i) => chosen.add(i.url)); markChosen(); } },
+        chosen.size === shown.length && shown.length ? tr("Select None") : tr("Select All")),
+      h("button", { class: "btn small danger", disabled: !chosen.size, onclick: () => trashChosen() }, icon("trash"), tr("Move to Trash")),
+      h("button", { class: "btn small primary", onclick: () => setSelecting(false) }, tr("Done")));
+  };
+  const markChosen = () => { grid.querySelectorAll(".picker-image").forEach((t) => t.classList.toggle("selected", chosen.has(t.dataset.url))); drawSelectBar(); };
+  const setSelecting = (on) => { selecting = on; chosen.clear(); selectBtn.classList.toggle("on", on); markChosen(); };
+  async function trashChosen() {
+    const urls = [...chosen];
+    let used = {};
+    try { used = await api.mediaUsage(urls); } catch { /* check failed: ask anyway */ }
+    const inUse = urls.filter((u) => used[u]?.length);
+    const where = [...new Set(inUse.flatMap((u) => used[u]))];
+    const message = (inUse.length
+      ? tr("{n} of these are still used on the site, in {places}. Moving them to the Trash breaks those until you put them back.", { n: inUse.length, places: where.slice(0, 3).join(", ") + (where.length > 3 ? tr(" and {n} more", { n: where.length - 3 }) : "") }) + " "
+      : "") + t2(urls.length, "Move {n} file to the Trash?", "Move {n} files to the Trash?") + " " + tr("They go into the .cms-trash folder in your site, so you can get them back.");
+    if (!(await confirmBox(message, tr("Move to Trash")))) return;
+    try {
+      const { moved } = await api.trashMedia(urls);
+      toast(t2(moved.length, "Moved {n} file to .cms-trash", "Moved {n} files to .cms-trash"));
+    } catch (e) { toast(e.message, "error"); }
+    chosen.clear();
+    await show(current);
+    markChosen();
+  }
 
   async function show(path) {
     current = path;
@@ -99,16 +136,26 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     fill(crumbs);
     const parts = path.slice(ROOT.length).split("/").filter(Boolean);
     const link = (label, target) => h("button", { class: "crumb", onclick: () => show(target) }, label);
-    crumbs.append(link(tr("images"), ROOT));
+    crumbs.append(link(tr("Media"), ROOT));
     parts.forEach((p, i) => crumbs.append(" / ", link(p, ROOT + "/" + parts.slice(0, i + 1).join("/"))));
     if (!list.exists) crumbs.append(h("span", { class: "muted" }, "  " + tr("(new folder: made when you upload)")));
 
     fill(grid,
       ...list.folders.map((f) => h("button", { class: "picker-folder", onclick: () => show(f.folder) }, icon("folder"), h("span", {}, f.name))),
-      ...list.images.map((img) => {
-        const tile = h("button", { class: "picker-image" + (selected.includes(img.url) ? " selected" : ""), title: img.name, draggable: !pickable,
+      ...(shown = pickable ? list.images : list.items || list.images).map((img) => {
+        const kind = img.kind || "image";
+        const preview = kind === "image" ? h("img", { src: img.url, loading: "lazy", alt: "" })
+          : kind === "video" ? h("video", { src: img.url + "#t=0.1", muted: true, preload: "metadata", playsinline: true })
+          : h("span", { class: "picker-file" }, icon("text"), h("b", {}, (img.name.split(".").pop() || "").toUpperCase()));
+        const tile = h("button", { class: `picker-image kind-${kind}` + ((pickable ? selected.includes(img.url) : chosen.has(img.url)) ? " selected" : ""), title: img.name, draggable: !pickable,
           ondragstart: (e) => e.dataTransfer.setData("text/plain", img.url),
-          onclick: () => {
+          onclick: (e) => {
+            if (!pickable && (selecting || e.metaKey || e.shiftKey)) {
+              if (!selecting) setSelecting(true);
+              chosen.has(img.url) ? chosen.delete(img.url) : chosen.add(img.url);
+              markChosen();
+              return;
+            }
             if (!pickable) {
               navigator.clipboard?.writeText(img.url).then(() => toast(tr("Copied {url}", { url: img.url })), () => toast(img.url));
               return;
@@ -118,12 +165,12 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
             else { if (!multiple) selected.length = 0; selected.push(img.url); }
             grid.querySelectorAll(".picker-image").forEach((t) => t.classList.toggle("selected", selected.includes(t.dataset.url)));
             onPick(selected.slice(), !multiple && selected.length > 0); // single: pick straight away
-          } }, h("img", { src: img.url, loading: "lazy", alt: "" }), h("span", { class: "picker-name" }, img.name));
+          } }, preview, kind === "video" ? h("span", { class: "picker-kind" }, icon("play")) : null, h("span", { class: "picker-name" }, img.name), h("span", { class: "picker-check" }, icon("check")));
         tile.dataset.url = img.url;
         return tile;
       }),
     );
-    if (!list.folders.length && !list.images.length) grid.append(h("p", { class: "muted picker-empty" }, tr("No images here yet. Upload some, or go up a folder.")));
+    if (!list.folders.length && !shown.length) grid.append(h("p", { class: "muted picker-empty" }, pickable ? tr("No images here yet. Upload some, or go up a folder.") : tr("Nothing here yet. Upload some, or go up a folder.")));
     onPick(selected.slice(), false);
   }
 
@@ -160,10 +207,12 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     }, 1500);
   }
   const phoneBtn = h("button", { class: "btn", onclick: () => startPhone() }, icon("phone"), h("span", { class: "label" }, tr("From phone")));
+  const selectBtn = h("button", { class: "btn", title: tr("Select several (or ⌘-click)"), onclick: () => setSelecting(!selecting) }, icon("check"), h("span", { class: "label" }, tr("Select")));
 
   async function upload(files) {
     try {
-      const urls = await uploadFiles(current, files);
+      // the Media page takes any file (pictures are made web-ready); pickers take pictures
+      const urls = pickable ? await uploadFiles(current, files) : (await uploadAny(current, files)).map((f) => f.url);
       if (pickable) { if (multiple) selected.push(...urls); else { selected.length = 0; selected.push(urls[urls.length - 1]); } }
       await show(current);
     } catch (e) { toast(e.message, "error"); }
@@ -174,19 +223,21 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     ondrop: (e) => { if (e.dataTransfer.files.length) { e.preventDefault(); upload([...e.dataTransfer.files]); } } },
     h("div", { class: "picker-head" }, crumbs,
       phoneBtn,
-      h("button", { class: "btn", onclick: () => chooseFiles(multiple || !pickable, upload) }, icon("upload"), h("span", { class: "label" }, tr("Upload"))),
+      h("button", { class: "btn", onclick: () => chooseFiles(multiple || !pickable, upload, pickable ? "image/*" : "") }, icon("upload"), h("span", { class: "label" }, tr("Upload"))),
+      pickable ? null : selectBtn,
       h("button", { class: "icon-btn", title: tr("Refresh"), onclick: () => show(current) }, icon("refresh")),
       onClose ? h("button", { class: "btn ghost", title: tr("Close"), onclick: onClose }, icon("x")) : null),
     phonePanel,
+    selectBar,
     grid);
   return { el, show: (p) => show(p ?? current), stopPhone, get folder() { return current; } };
 }
 
-// the Images panel: browse, upload, phone uploads; click an image to copy its address
+// the Media page: browse, upload, phone uploads; click a file to copy its address
 export function libraryBrowser({ folder } = {}) {
   const view = libraryView({ folder, pickable: false });
   view.show(folder || ROOT);
-  view.el.append(h("p", { class: "muted small picker-tip" }, tr("Drop images here to upload into this folder. Click one to copy its address.")));
+  view.el.append(h("p", { class: "muted small picker-tip" }, tr("Drop files here to upload into this folder. Click one to copy its address; ⌘-click or Select to pick several.")));
   return view;
 }
 

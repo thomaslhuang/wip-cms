@@ -38,3 +38,64 @@ export function autoScroll(containers, onScroll, edge = 48) {
   requestAnimationFrame(tick);
   return { at: (ev) => { x = ev.clientX; y = ev.clientY; }, stop: () => { running = false; } };
 }
+
+// Drag to reorder the children of a container (tiles in a grid, rows in a list).
+//   handle:  a selector inside each child to drag by (or none: the whole child)
+//   onMove(from, to): called once when you let go, if the order changed
+// The dragged item itself moves as you go (a copy follows the pointer). Pointing at another
+// item moves it to that item's place: after it if it comes later, before it if earlier. The
+// item just passed is ignored until the pointer leaves it, so nothing flips back and forth.
+// A click without moving is still a click.
+export function sortable(container, { handle = null, onMove }) {
+  container.addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    const grip = handle ? e.target.closest(handle) : e.target;
+    const el = grip && [...container.children].find((c) => c.contains(grip));
+    if (!el || (!handle && e.target.closest("input, textarea, select, button:not(.sort-item), [contenteditable]"))) return;
+    const from = [...container.children].indexOf(el);
+    const x0 = e.clientX, y0 = e.clientY;
+    let dragging = false, copy = null, scroller = null, last = e, passed = null;
+    const inside = (c, ev) => { const r = c.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom; };
+    const place = (ev) => {
+      if (passed && !inside(passed, ev)) passed = null;
+      const kids = [...container.children].filter((c) => !c.classList.contains("sort-fixed"));
+      const over = kids.find((c) => c !== el && inside(c, ev));
+      if (!over || over === passed) return;
+      if (kids.indexOf(over) > kids.indexOf(el)) container.insertBefore(el, over.nextSibling); else container.insertBefore(el, over);
+      passed = over;
+    };
+    const move = (ev) => {
+      last = ev;
+      if (!dragging) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        dragging = true;
+        const r = el.getBoundingClientRect();
+        const w = Math.min(r.width, 220);
+        copy = ghost(el.cloneNode(true), w, ev, { x: w / 2, y: Math.min(r.height, 120) / 2 });
+        el.classList.add("sort-placeholder");
+        container.classList.add("sorting");
+        scroller = autoScroll([container.closest(".docpane, .inspector, .list-scroll")], () => place(last));
+      }
+      ev.preventDefault();
+      copy.move(ev); scroller.at(ev); place(ev);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      if (!dragging) return;
+      copy.remove(); scroller.stop();
+      el.classList.remove("sort-placeholder");
+      container.classList.remove("sorting");
+      const eat = (c) => { c.preventDefault(); c.stopPropagation(); };
+      window.addEventListener("click", eat, { capture: true, once: true });
+      setTimeout(() => window.removeEventListener("click", eat, { capture: true }), 100);
+      const to = [...container.children].indexOf(el);
+      if (to !== from) onMove(from, to);
+    };
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  });
+  container.addEventListener("dragstart", (e) => e.preventDefault());
+}

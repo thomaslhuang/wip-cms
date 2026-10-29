@@ -7,13 +7,14 @@
 //   Site            which site is open, and opening another
 //
 // Everything is kept in this browser, like the themes.
-import { h, fill } from "./util.js";
+import { h, fill, toast } from "./util.js";
+import { api } from "./api.js";
 import { t, tl, fmtDate, lang, setLang, dateStyle, setDateStyle } from "./i18n.js";
 import { uiScale, setUiScale } from "./theme.js";
 
 // beforeReload: save anything open first · onDates: redraw what shows dates · site: the open site
 // openSite: show the "Open a site" window
-export function openSettings({ beforeReload, onDates, site, openSite }) {
+export function openSettings({ beforeReload, onDates, site, openSite, onRename }) {
   const body = h("div", { class: "custom-body" });
   const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey); };
   const onKey = (e) => { if (e.key === "Escape") close(); };
@@ -52,7 +53,10 @@ export function openSettings({ beforeReload, onDates, site, openSite }) {
       hint(t("Switching language reloads w·i·p cms. Interface Size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography.")),
       site ? group("Site",
         row(h("span", { class: "set-site" }, h("b", {}, site.name), h("span", { class: "muted" }, site.root)),
-          h("button", { class: "btn small", onclick: () => { close(); openSite(); } }, tl("Open another site…")))) : null);
+          h("button", { class: "btn small", onclick: () => { close(); openSite(); } }, tl("Open another site…"))),
+        row(tl("Nickname"), h("input", { class: "set-input", value: site.nickname || "", placeholder: site.folder || "",
+          onchange: async (e) => { try { const r = await api.setNickname(site.root, e.target.value); site.nickname = r.nickname; site.name = r.nickname || site.folder; onRename?.(); draw(); } catch (err) { toast(err.message, "error"); } } }))) : null,
+      site ? hint(t("Your own name for this site, shown in the sidebar and the list of recent sites instead of its folder's name. Only on this Mac; the site itself doesn't change.")) : null);
   }
   draw();
 }
