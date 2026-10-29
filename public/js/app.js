@@ -340,7 +340,7 @@ function textItem(e, date, group) {
       : h("span", { class: "text-date japanese" }, span("td-day", p.day), span("td-ni", "日"), span("td-wd", `(${p.weekday})`));
   const title = h("span", { class: "text-title" }, h("span", { class: "text-title-inner" }, titleOf(e)));
   // a draft: a small dot in the margin left of the date (so the dates stay lined up)
-  const dot = e.draft ? h("span", { class: "draft-dot", title: t("Draft: not on the site yet"), "aria-label": t("Draft") }) : null;
+  const dot = e.draft ? h("span", { class: "draft-dot", title: t("Draft"), "aria-label": t("Draft") }) : null;
   return h("a", { class: "text-item" + isActive(e), href: editHref(e.file), onmouseenter: () => marquee(title), onmouseleave: () => title.classList.remove("marquee") },
     dot, day, title, day ? null : draftBadge(e));
 }
