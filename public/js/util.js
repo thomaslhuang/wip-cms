@@ -22,6 +22,12 @@ export function h(tag, attrs = {}, ...children) {
     if (c === null || c === undefined || c === false) continue;
     el.append(c instanceof Node ? c : document.createTextNode(String(c)));
   }
+  // sliders: how far along they are, for the filled part of the track (styles.css)
+  if (tag === "input" && el.type === "range") {
+    const fill = () => el.style.setProperty("--p", ((Number(el.value) - Number(el.min || 0)) / ((Number(el.max || 100) - Number(el.min || 0)) || 1)) * 100 + "%");
+    fill();
+    el.addEventListener("input", fill);
+  }
   return el;
 }
 

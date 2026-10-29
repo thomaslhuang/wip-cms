@@ -1025,3 +1025,19 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 /* Typography's sliders: all the same length, their ends lined up, never into their titles */
 .type-options .set-range { width: 124px; flex: none; }
 .type-options .set-value { flex: none; width: 46px; }
+
+/* sliders like the Mac's: a thin rounded track, filled in the accent color up to a small,
+   light, rounded knob (instead of the browser's big circle) */
+.set-range { -webkit-appearance: none; appearance: none; height: 18px; background: none; margin: 0; cursor: pointer; }
+.set-range::-webkit-slider-runnable-track { height: 5px; border-radius: 3px;
+  background: linear-gradient(to right, var(--accent) var(--p, 50%), color-mix(in srgb, var(--text) 16%, transparent) var(--p, 50%)); }
+.set-range::-moz-range-track { height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text) 16%, transparent); }
+.set-range::-moz-range-progress { height: 5px; border-radius: 3px; background: var(--accent); }
+.set-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 14px; margin-top: -4.5px; border: 0; border-radius: 7px;
+  background: #fff; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .18), 0 1px 3px rgba(0, 0, 0, .22); transition: transform .1s; }
+.set-range::-moz-range-thumb { width: 20px; height: 14px; border: 0; border-radius: 7px; background: #fff; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .18), 0 1px 3px rgba(0, 0, 0, .22); }
+.set-range:active::-webkit-slider-thumb { transform: scale(1.06); }
+:root[data-theme="dark"] .set-range::-webkit-slider-thumb { background: #dcdcdc; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+:root[data-theme="dark"] .set-range::-moz-range-thumb { background: #dcdcdc; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+.set-range:focus-visible { outline: none; }
+.set-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
