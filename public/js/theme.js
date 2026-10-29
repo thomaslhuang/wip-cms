@@ -157,37 +157,17 @@ export function openAppearance() {
     const builtIn = BUILT_IN.some((t) => t.id === current.id);
     const scroll = body.scrollTop, optScroll = body.querySelector(".type-options")?.scrollTop;
     const note = builtIn ? lockedNote(current) : h("p", { class: "set-editing" }, tr("Editing “{name}”", { name: nameOf(current) }));
-    // Typography: the settings on the left, the preview on the right; drag the line between them
-    // to give the preview more or less room (the window itself stays the same size)
+    // Typography: the settings on the left, the preview on the right, half each
     body.classList.toggle("type-split", tab === "type");
     if (tab === "type") {
       const options = h("div", { class: "type-options" + (builtIn ? " locked" : "") }, note, typeTab(current));
-      const preview = typePreview();
-      const split = h("div", { class: "type-split-row", style: { "--preview-w": previewWidth + "px" } },
-        options, h("div", { class: "type-divider", role: "separator", "aria-label": tr("Resize preview"), onpointerdown: (e) => resizePreview(e, split) }), preview);
-      fill(body, split);
+      fill(body, h("div", { class: "type-split-row" }, options, h("div", { class: "type-divider" }), typePreview()));
       if (optScroll) options.scrollTop = optScroll;
       return;
     }
     fill(body, tab === "themes" ? themesTab(themes, current, builtIn)
       : h("div", { class: builtIn ? "locked" : "" }, [note, colorsTab(current)]));
     body.scrollTop = scroll;
-  }
-  // the preview's width, remembered; the settings take the rest of the window
-  let previewWidth = Number(read("wip-type-preview-w", "300")) || 300;
-  function resizePreview(e, split) {
-    e.preventDefault();
-    const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
-    const total = split.getBoundingClientRect().width / scale;
-    const right = split.getBoundingClientRect().right;
-    const move = (ev) => {
-      previewWidth = Math.round(Math.min(total - 380, Math.max(220, (right - ev.clientX) / scale)));   // the settings keep room for their labels
-      split.style.setProperty("--preview-w", previewWidth + "px");
-    };
-    const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); document.body.classList.remove("col-resizing"); write("wip-type-preview-w", String(previewWidth)); };
-    document.body.classList.add("col-resizing");
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
   }
 
   function duplicate(current) {

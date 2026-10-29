@@ -678,15 +678,13 @@ select.input { appearance: auto; }
 .theme-name { font-weight: 600; font-size: 12px; }
 .theme-kind { font-size: 11px; color: var(--muted); }
 .theme-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-/* Typography: the settings on the left, the preview on the right (drag the line between them) */
+/* Typography: the settings on the left, the preview on the right, half each */
 .custom-body.type-split { padding: 0; overflow: hidden; display: flex; scrollbar-gutter: auto; }
 .custom-body.type-split > .type-split-row { margin: 0; }
-.type-split-row { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 1px var(--preview-w, 300px); }
+.type-split-row { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr); }
 .type-options { min-width: 0; overflow-y: auto; padding: 18px 22px 28px; scrollbar-gutter: stable; }
 .type-options > * { margin-bottom: 18px; }
-.type-divider { background: var(--line); position: relative; cursor: col-resize; }
-.type-divider::after { content: ""; position: absolute; inset: 0 -5px; }
-body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none; }
+.type-divider { background: var(--line); }
 .type-preview { min-width: 0; overflow-y: auto; padding: 18px 20px; background: var(--window);
   display: flex; flex-direction: column; gap: 10px; }
 .type-preview-ui { display: flex; gap: 8px; align-items: baseline; font-size: 13px; }
@@ -1023,5 +1021,5 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .sheet tr.drop-after td { box-shadow: inset 0 -2px 0 var(--accent); }
 .custom-body .type-split-row > * { margin-bottom: 0; }
 /* Typography's sliders: all the same length, their ends lined up, never into their titles */
-.type-options .set-range { width: 132px; flex: none; }
-.type-options .set-value { flex: none; }
+.type-options .set-range { width: 104px; flex: none; }
+.type-options .set-value { flex: none; width: 46px; }
