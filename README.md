@@ -68,7 +68,7 @@ Options:
 | | |
 |---|---|
 | **Sidebar** | **Collections**: things you keep adding to (blog posts, projects). Then single **pages**, under the group they're in in `.pages.yml` (e.g. Pages: Home, About). Then **Site**: the Images library, and one-of-a-kind items that aren't in a group (the site's title and description, say). At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site; in that list, the pencil gives a site a **nickname** (also in Settings → Site). |
-| **List** | The posts in that section. The ⇅ button picks how they're **grouped** (by month, by year, by any choice field such as Category, or not at all) and **sorted** (newest first, oldest first, or by title). Each section remembers its own, and it only changes this list, never the order on your site. Out of the box, sections filed by month (like blog posts) group by year and month, with the weekday and day beside each post; other dated sections (like projects) group by year, without dates. Click a group to fold it away. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** (square pictures, three across, edge to edge; point at one for its title) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
+| **List** | The posts in that section. The ⇅ button picks how they're **grouped** (by month, by year, by any choice field such as Category, or not at all) and **sorted** (newest first, oldest first, or by title). Each section remembers its own for each view (list, grid, titles only), and it only changes this list, never the order on your site. Out of the box, sections filed by month (like blog posts) group by year and month, with the weekday and day beside each post; other dated sections (like projects) group by year, without dates. Click a group to fold it away. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** (square pictures, three across, edge to edge; point at one for its title) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
 | **Inspector** | The post's details: featured image, date, switches, tags, and its permalink. |
 
@@ -166,7 +166,8 @@ photos and rearrange float at the bottom of the screen.
   so you can get them back.
 
 **Media** (in the sidebar, under Site): every picture, video and file in the site's media
-folder. Click one to copy its address. **Select** (or ⌘-click) picks several; **Move to
+folder, shown as **icons**, a **list** (name, kind, size, date modified) or **columns** (a
+column per folder, and a preview of the file you click), like Finder. Click one to copy its address. **Select** (or ⌘-click) picks several; **Move to
 Trash** moves them into `.cms-trash`, after saying which are still used on the site.
 
 **Images**

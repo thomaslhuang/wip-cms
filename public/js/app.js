@@ -143,8 +143,12 @@ function drawList() {
   const mode = listMode(s.name);
 
   const view = listView(s);
-  const dateLabel = view.group === "month" ? (e) => (e.date ? fmtDate(e.date, "weekday") : "") : () => "";
-  const items = { rows: (e) => rowItem(e, dateLabel(e)), grid: tileItem, text: (e) => textItem(e, view.group === "month" ? e.date : null) }[mode];
+  // the date beside each post in the list view: the day when grouped by month; for posts dated
+  // by the day (blog posts), the date otherwise too; none for things dated by the year (projects)
+  const dateLabel = view.group === "month" ? (e) => (e.date ? fmtDate(e.date, "weekday") : "")
+    : naturalGroup(s) === "month" ? (e) => (e.date ? fmtDate(e.date, view.group === "year" ? "day" : "short") : "") : () => "";
+  const items = { rows: (e) => rowItem(e, dateLabel(e)), grid: tileItem,
+    text: (e) => textItem(e, ["month", "year"].includes(view.group) && naturalGroup(s) === "month" ? e.date : null, view.group) }[mode];
   const groups = groupEntries(s, shown, view);
 
   // each group (and month) can be folded away; while searching everything is open, so
@@ -202,20 +206,33 @@ function setListMode(name, mode) { listModes[name] = mode; pref.set("list-modes"
 const listViews = pref.get("list-views", {});
 const hasDates = (s) => s.fields.some((f) => f.type === "date");
 const hasYears = (s) => hasDates(s) || s.fields.some((f) => f.name === "year" && ["number", "string", undefined].includes(f.type));
-function listView(s) {
+// remembered for each way of showing the list (list, grid, titles only): grouping by month
+// suits titles only, while list and grid read best as one run of pictures
+const viewsFor = (s) => {
+  const v = listViews[s.name] || {};
+  return "group" in v || "sort" in v ? { text: v } : v;   // (from before views were separate: it was titles only's)
+};
+// the grouping a section starts with in titles only: month for posts filed by month, year for other dated sections
+const naturalGroup = (s) => (s.store !== "list" && hasDates(s) ? (/\{month\}/.test(s.filename || "") ? "month" : "year") : "none");
+function listView(s, mode = listMode(s.name)) {
   const dated = hasYears(s);
   const d = s.view?.default || {};
   const configured = d.sort ? (s.fields.find((f) => f.name === d.sort)?.type === "date" || d.sort === "year" ? (d.order === "asc" ? "oldest" : "newest") : "title") : null;
   const fallback = s.store === "list" ? { group: "none", sort: configured || "order" }
-    : { group: hasDates(s) ? (/\{month\}/.test(s.filename || "") ? "month" : "year") : "none", sort: configured || (dated ? "newest" : "title") };
-  const v = { ...fallback, ...listViews[s.name] };
+    : { group: mode === "text" ? naturalGroup(s) : "none", sort: configured || (dated ? "newest" : "title") };
+  const v = { ...fallback, ...viewsFor(s)[mode] };
   if (v.group.startsWith("field:") && !choiceFields(s).some((f) => "field:" + f.name === v.group)) v.group = fallback.group;
   if (!hasDates(s) && v.group === "month") v.group = dated ? "year" : "none";
   if (!dated && v.group === "year") v.group = "none";
   if (v.sort === "order" && s.store !== "list") v.sort = fallback.sort;
   return v;
 }
-function setListView(s, change) { listViews[s.name] = { ...listView(s), ...change }; pref.set("list-views", listViews); drawList(); }
+function setListView(s, change) {
+  const mode = listMode(s.name);
+  listViews[s.name] = { ...viewsFor(s), [mode]: { ...listView(s, mode), ...change } };
+  pref.set("list-views", listViews);
+  drawList();
+}
 const choiceFields = (s) => s.fields.filter((f) => f.type === "select" && !f.options?.multiple);
 
 function sortEntries(entries, sort) {
@@ -302,19 +319,33 @@ function tileItem(e) {
     h("span", { class: "tile-title" }, titleOf(e)),
     draftBadge(e));
 }
-// Titles only, grouped by month: the day in a fixed-width column before the title, so the
-// titles line up and sit the same distance from it.
-//   western:   Thu 22   the day of the week left-aligned, the number right-aligned
-//   japanese:  22日 (木)  the number right-aligned, so 日 and the day of the week each form a
-//              straight line down the list
-function textItem(e, date) {
-  const parts = date ? dayParts(date) : null;
-  const day = parts && (parts.style === "western"
-    ? h("span", { class: "text-date western" }, h("span", { class: "td-wd" }, parts.weekday), h("span", { class: "td-day" }, parts.day))
-    : h("span", { class: "text-date japanese" }, h("span", { class: "td-day" }, parts.day), h("span", { class: "td-ni" }, "日"), h("span", { class: "td-wd" }, `(${parts.weekday})`)));
-  return h("a", { class: "text-item" + isActive(e), href: editHref(e.file) },
-    day,
-    h("span", { class: "text-title" }, titleOf(e)), draftBadge(e));
+// Titles only: the date in fixed-width columns before the title, so the titles line up and
+// sit the same distance from it.
+//   grouped by month   western "Thu 22" (day of the week left, number right)
+//                      japanese "22日 (木)" (number right, so 日 and the day of the week line up)
+//   grouped by year    western "Oct 22" · japanese "10月22日" (numbers right, so 月 and 日 line up)
+// A title too long for the list scrolls sideways while you point at it (the date stays put).
+function textItem(e, date, group) {
+  const p = date ? dayParts(date) : null;
+  const span = (cls, text) => h("span", { class: cls }, text);
+  const day = !p ? null
+    : group === "year" ? (p.style === "western"
+      ? h("span", { class: "text-date western" }, span("td-wd", p.monthName), span("td-day", p.day))
+      : h("span", { class: "text-date japanese by-year" }, span("td-day", p.month), span("td-ni", "月"), span("td-day", p.day), span("td-ni", "日")))
+    : p.style === "western"
+      ? h("span", { class: "text-date western" }, span("td-wd", p.weekday), span("td-day", p.day))
+      : h("span", { class: "text-date japanese" }, span("td-day", p.day), span("td-ni", "日"), span("td-wd", `(${p.weekday})`));
+  const title = h("span", { class: "text-title" }, h("span", { class: "text-title-inner" }, titleOf(e)));
+  return h("a", { class: "text-item" + isActive(e), href: editHref(e.file), onmouseenter: () => marquee(title), onmouseleave: () => title.classList.remove("marquee") },
+    day, title, draftBadge(e));
+}
+// scroll a title that doesn't fit, back and forth, at an even reading speed
+function marquee(box) {
+  const over = box.scrollWidth - box.clientWidth;
+  if (over <= 2) return;
+  box.style.setProperty("--shift", -over - 4 + "px");
+  box.style.setProperty("--marquee-time", Math.max(3, over / 35 + 2.4).toFixed(1) + "s");
+  box.classList.add("marquee");
 }
 
 // Dragging an item to a new place in a list section. The item itself moves as you drag (a

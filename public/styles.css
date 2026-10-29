@@ -200,8 +200,19 @@ button:disabled { cursor: default; }
 .text-date { flex: none; display: inline-grid; align-items: baseline; font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .text-date .td-day { text-align: right; }
 .text-date.western { grid-template-columns: 2.4em 1.45em; }
-.text-date.japanese { grid-template-columns: 1.45em auto 2.75em; column-gap: .1em; }
+/* japanese starts a little further in (its numbers sit right of the line), and the day of the
+   week takes only its own width, so the title follows closely */
+.text-date.japanese { grid-template-columns: 2em auto auto; column-gap: .1em; }
 .text-date.japanese .td-wd { padding-left: .3em; }
+.text-date.japanese.by-year { grid-template-columns: 2em auto 1.45em auto; }
+/* titles only, grouped by year: the same step in as months under a year */
+.tree-year > .list-items.text { padding-left: 24px; }
+/* a title that doesn't fit scrolls while you point at it */
+.text-title.marquee { text-overflow: clip; }
+.text-title.marquee .text-title-inner { display: inline-block; }
+.text-title.marquee .text-title-inner { animation: title-marquee var(--marquee-time, 4s) ease-in-out .3s infinite alternate; }
+@keyframes title-marquee { 0%, 12% { transform: translateX(0); } 88%, 100% { transform: translateX(var(--shift)); } }
+@media (prefers-reduced-motion: reduce) { .text-title.marquee .text-title-inner { animation: none; } .text-title.marquee { text-overflow: ellipsis; } }
 /* titles only, grouped by month: entries step in under their month the way months step in
    under their year, so the dates start where the month's name does (past its arrow) */
 .tree-body .list-items.text { padding-left: 24px; }
@@ -307,6 +318,8 @@ button:disabled { cursor: default; }
 .code-input::selection { background: var(--accent-soft); }
 textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source { font: 13px/1.65 var(--mono); }
 .field-code .code-wrap, .block .primary .field-code .code-wrap { background: var(--fill); border-radius: 6px; }
+/* Source in a text field looks like Write: the same background behind the text */
+.rich > .code-wrap { background: var(--window); border-radius: 6px; }
 
 /* blocks: text and pictures in a column, with no boxes until you select one */
 .block-list { display: flex; flex-direction: column; position: relative; }
@@ -689,10 +702,11 @@ select.input { appearance: auto; }
 .crumb:hover { background: var(--fill); }
 .picker-grid { flex: 1; overflow-y: auto; padding: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; align-content: start; }
 .docpane > .library .picker-grid { overflow: visible; }
-.picker-folder { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--fill); overflow: hidden; text-align: left; }
-.picker-folder .icon { color: var(--accent-text); }
-.picker-folder span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.picker-folder:hover { background: var(--fill-strong); }
+/* icons view: a folder is a square like a picture, its name underneath */
+.picker-image.picker-folder { cursor: pointer; }
+.picker-folder-icon { width: 100%; aspect-ratio: 1; border-radius: 8px; background: var(--fill); display: flex; align-items: center; justify-content: center; color: var(--accent-text); }
+.picker-folder-icon .icon { width: 42%; height: 42%; stroke-width: 1.2; }
+.picker-folder:hover .picker-folder-icon { background: var(--fill-strong); }
 .picker-image { border: 0; border-radius: 8px; padding: 0; background: none; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
 .picker-image img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; border-radius: 8px; background: var(--fill); }
 .picker-image.selected img { box-shadow: 0 0 0 3px var(--accent); }
@@ -829,4 +843,44 @@ select.input { appearance: auto; }
 .field.field-rich-text:has(> .field-label) > .rich { display: contents; }
 .field.field-rich-text:has(> .field-label) > .field-label { grid-column: 1; grid-row: 1; margin: 0; }
 .field.field-rich-text:has(> .field-label) .rich-bar { grid-column: 2; grid-row: 1; border-bottom: 0; padding: 0; margin: 0; }
-.field.field-rich-text:has(> .field-label) .rich > :not(.rich-bar) { grid-column: 1 / -1; margin-top: 12px; }
+.field.field-rich-text:has(> .field-label) .rich > :not(.rich-bar) { grid-column: 1 / -1; margin-top: 6px; }   /* the same gap as under any label */
+
+/* Media: list view (name, kind, size, date modified) */
+.picker-grid.view-list { display: block; padding: 6px 14px 14px; }
+.media-row { display: grid; grid-template-columns: minmax(0, 1fr) 130px 76px 120px; align-items: center; gap: 12px; width: 100%; min-height: 34px; padding: 3px 8px;
+  border: 0; border-radius: 6px; background: none; text-align: left; font-size: 12px; color: var(--muted); }
+.media-row:nth-child(even):not(.media-head) { background: color-mix(in srgb, var(--fill) 55%, transparent); }
+.media-row:not(.media-head):hover { background: var(--fill-strong); }
+.media-row.selected { background: var(--accent-soft) !important; }
+.media-head { position: sticky; top: 0; z-index: 1; min-height: 28px; font-weight: 600; font-size: 11px; background: var(--window); border-bottom: 1px solid var(--line); border-radius: 0; }
+.media-row .num { text-align: right; font-variant-numeric: tabular-nums; }
+.media-name { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--text); font-size: 13px; position: relative; }
+.media-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-thumb { flex: none; width: 26px; height: 26px; border-radius: 4px; overflow: hidden; background: var(--fill); display: flex; align-items: center; justify-content: center; color: var(--accent-text); }
+.media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-thumb .picker-file { aspect-ratio: auto; height: 100%; border-radius: 0; }
+.media-thumb .icon { width: 16px; height: 16px; }
+.view-list .picker-check, .view-columns .picker-check { position: static; margin-left: auto; width: 18px; height: 18px; border-color: var(--line-strong); }
+/* Media: columns view, one per folder level, then a preview of the chosen file */
+.picker-grid.view-columns { display: flex; align-items: stretch; gap: 0; padding: 0; overflow-x: auto; min-height: 420px; }
+.docpane > .library .picker-grid.view-columns { overflow-x: auto; height: calc(100vh - var(--toolbar-h) - 110px); }
+.media-col { flex: none; width: 230px; overflow-y: auto; border-right: 1px solid var(--line); padding: 6px; display: flex; flex-direction: column; gap: 1px; }
+.media-col-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 30px; padding: 2px 6px; border: 0; border-radius: 6px; background: none; text-align: left; font-size: 13px; color: var(--text); }
+.media-col-item:hover { background: var(--fill); }
+.media-col-item.open { background: var(--fill-strong); }
+.media-col-item.selected { background: var(--accent-soft); }
+.media-col-item .media-thumb { width: 22px; height: 22px; }
+.media-col-item .media-label { flex: 1; }
+.media-chev { width: 12px; height: 12px; color: var(--faint); flex: none; }
+.media-preview { width: 300px; padding: 16px; align-items: center; text-align: center; gap: 4px; }
+.media-preview-pic { width: 100%; display: flex; justify-content: center; margin-bottom: 8px; }
+.media-preview-pic img, .media-preview-pic video { max-width: 100%; max-height: 260px; border-radius: 8px; object-fit: contain; }
+.media-preview-pic .picker-file { width: 140px; }
+.media-preview-name { margin: 0; font-weight: 600; word-break: break-all; }
+.media-preview p { margin: 0; }
+.media-preview .btn { margin-top: 10px; }
+/* list and columns rows don't take the icon view's tile layout */
+.media-col-item.picker-image { flex-direction: row; gap: 8px; border-radius: 6px; }
+.media-thumb img, .media-thumb video { aspect-ratio: auto !important; border-radius: 0 !important; box-shadow: none !important; }
+.view-list .picker-check, .view-columns .picker-check { background: transparent; border: 1.5px solid var(--line-strong); box-shadow: none; }
+.view-list .selected .picker-check, .view-columns .selected .picker-check { background: var(--accent); border-color: var(--accent); }
