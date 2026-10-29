@@ -683,7 +683,7 @@ select.input { appearance: auto; }
   display: flex; flex-direction: column; gap: 6px; }
 .type-preview-ui { display: flex; gap: 8px; align-items: baseline; font-size: 13px; }
 .type-preview-ui span:first-child { font-weight: 600; }
-.type-preview-title { font: 700 calc(var(--writing-size) * 1.5)/1.2 var(--font-writing); letter-spacing: calc(-0.01em + var(--writing-tracking)); word-spacing: var(--writing-word-spacing); color: var(--text); }
+.type-preview-title { font: 400 calc(var(--writing-size) * 1.5)/1.2 var(--font-writing); letter-spacing: calc(-0.01em + var(--writing-tracking)); word-spacing: var(--writing-word-spacing); color: var(--text); }
 .type-preview-text { margin: 0; font: var(--writing-weight) var(--writing-size)/var(--writing-leading) var(--font-writing); letter-spacing: var(--writing-tracking); word-spacing: var(--writing-word-spacing); color: var(--text); }
 .type-preview-code { font: 12px/1.6 var(--mono); }
 @media (max-width: 760px) {

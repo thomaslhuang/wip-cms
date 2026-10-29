@@ -101,7 +101,7 @@ const JA = {
   "Open on your site": "サイトで開く", "Open on your site (new tab)": "サイトで開く（新しいタブ）",
   "Hide details": "詳細を隠す", "Show details": "詳細を表示", "More": "その他",
   "Revert to when opened": "開いた時の状態に戻す", "Move to Trash": "ゴミ箱に移動",
-  "Appearance": "外観", "Match my computer": "コンピュータに合わせる", "Light": "ライト", "Dark": "ダーク",
+  "Appearance": "外観", "Match my computer": "コンピュータに合わせる", "System": "システム", "Light": "ライト", "Dark": "ダーク",
   "Themes, colors and fonts…": "テーマ・色・フォント…", "Language": "言語", "Dates": "日付の書き方",
   "View": "表示", "Write": "書く", "Split": "分割", "Preview": "プレビュー",
   "Live preview": "ライブプレビュー", "Preview size": "プレビューのサイズ", "Computer": "パソコン", "Phone": "スマホ",
