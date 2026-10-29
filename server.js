@@ -22,6 +22,7 @@ const { allTags, syncTagSuggestions } = require("./lib/tags");
 const preview = require("./lib/preview");
 const phone = require("./lib/phone");
 const setup = require("./lib/setup");
+const sections = require("./lib/sections");
 
 const PORT = Number(process.env.WIP_PORT) || 4321;
 // the code's git commit when it started (the Mac app restarts the editor when this changes)
@@ -54,6 +55,10 @@ const routes = {
   // setting up a new site: look at a folder, then write its .pages.yml (lib/setup.js)
   "GET /api/site/inspect": (q) => setup.inspect(q.path),
   "POST /api/site/setup": (q, body) => { const { root } = setup.create(body.path, body.plan || {}); const info = site.openSite(root); preview.startPreview(); return { site: info }; },
+
+  // adding a collection or page to the open site (the sidebar's +; lib/sections.js)
+  "GET /api/sections/options": () => sections.options(),
+  "POST /api/sections": (q, body) => { const made = sections.add(body.plan || {}); afterChange(".pages.yml"); afterChange(made.path); return made; },
 
   // everything the editor needs to draw itself
   "GET /api/config": () => ({ site: site.info(), ...loadConfig(), tags: allTags(), preview: preview.previewInfo() }),

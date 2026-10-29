@@ -175,6 +175,21 @@ photos and rearrange float at the bottom of the screen.
   can only reach the upload page; the editor is only reachable from your Mac. The link
   changes every time w·i·p cms starts.
 
+**Adding a collection or page:** the **+** at the bottom of the sidebar. Choose
+**Collection** (many entries, like blog posts) or **Page** (one, like About), give it a name,
+and it's added to `.pages.yml` with a place for its content, ready to write in.
+
+- **Fields** start as **Same as** one of the site's existing ones (so a new collection on
+  studiotomby.com is like Projects, and on dosa it's a list like dosa's projects). Picture
+  folders named after the one copied are renamed for the new one. Or start fresh: Posts
+  (title, picture, date, draft, tags) or Simple (title and text).
+- **Kept as:** Markdown files in a folder, or a list in one data file (collections); a
+  Markdown page, or a data file (pages). It starts as whatever the copied one uses.
+- Pages go under one of the sidebar's groups, or Site.
+- Only additions are made to `.pages.yml`: your comments and layout stay as they are.
+- What w·i·p cms can't do is make the site show it: that needs a template on the site, which
+  is different for every site. After adding, it says what the site needs.
+
 ## Other sites
 
 w·i·p cms isn't tied to studiotomby.com. What it needs from a site is a `.pages.yml` (the
@@ -268,6 +283,7 @@ lib/
   preview.js         the live preview (shadow copy + Eleventy)
   phone.js           phone uploads: the secret link, the QR code, who may connect
   setup.js           setting up a new site: writes its .pages.yml
+  sections.js        adding a collection or page to a site that's set up (the sidebar's +)
 public/
   index.html         the window: sidebar, list, toolbar, document, preview, inspector
   styles.css         all the styling; light and dark colors at the top
@@ -282,6 +298,7 @@ public/
     rich.js          the writing box: Markdown shown formatted, and turned back into Markdown
     code.js          color-coded Source view
     theme.js         themes and the Customize window
+    addsection.js    the "Add to the sidebar" window (the sidebar's +)
     settings.js      the Settings window (language, dates, interface size)
     i18n.js          English / Japanese words, and date styles
     api.js           talking to server.js

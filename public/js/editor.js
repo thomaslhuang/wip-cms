@@ -91,7 +91,8 @@ export async function openEditor({ file, section, config }) {
     || (section ? fields.find((f) => f.type === "rich-text") : null);
   // the big title: whichever field names the post (title, or the section's view.primary)
   const primary = section?.primary || "title";
-  const titleField = section && fields.find((f) => f.name === primary && (!f.type || f.type === "string"));
+  // (a single page with a title and text, like a Markdown page, gets one too)
+  const titleField = (section || blockField) && fields.find((f) => f.name === primary && (!f.type || f.type === "string"));
   // also in the document rather than the inspector: a long title, and galleries (several
   // images, or a list of pictures with captions)
   const subtitleField = titleField && fields.find((f) => ["longTitle", "subtitle", "fullTitle"].includes(f.name) && f.type === "string");

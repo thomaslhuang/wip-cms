@@ -743,3 +743,18 @@ select.input { appearance: auto; }
   .picker { height: 100%; border-radius: 14px; }
   .phone-panel { flex-direction: column; align-items: flex-start; }
 }
+
+/* the sidebar's + (add a collection or page) */
+.side-foot-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-foot .side-add { margin-left: auto; flex: none; }
+/* the "Add to the sidebar" window */
+.add-body { display: flex; flex-direction: column; gap: 10px; }
+.add-body > .segmented { align-self: flex-start; }
+.add-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; gap: 10px; }
+.add-control { min-width: 0; display: flex; }
+.add-control > * { flex: 1; min-width: 0; }
+.add-control > .segmented { flex: none; }
+.add-explain { margin: 0; }
+.field-input.mono { font-family: var(--mono); font-size: 12px; }
+@media (max-width: 760px) { .add-row { grid-template-columns: 1fr; gap: 4px; } }
+.add-control .segmented button { white-space: nowrap; }

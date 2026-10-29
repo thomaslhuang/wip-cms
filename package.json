@@ -5,14 +5,19 @@
   "private": true,
   "license": "MIT",
   "main": "server.js",
-  "bin": { "wip-cms": "server.js" },
+  "bin": {
+    "wip-cms": "server.js"
+  },
   "scripts": {
     "start": "node server.js"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "js-yaml": "^4.1.0",
     "markdown-it": "^14.1.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "yaml": "^2.9.1"
   }
 }

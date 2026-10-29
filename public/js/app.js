@@ -20,6 +20,7 @@ import { libraryBrowser, setMediaRoot } from "./media.js";
 import { ghost, autoScroll } from "./drag.js";
 import { openSetup } from "./setup.js";
 import { openSettings } from "./settings.js";
+import { openAddSection } from "./addsection.js";
 import { t, t2, tl, fmtDate, lang } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
@@ -108,7 +109,8 @@ function drawSidebar() {
       siteItems.map((s) => pageItem(s, "gear"))),
     h("div", { class: "side-foot" },
       changesCount == null ? null : h("span", { class: "dot" + (changesCount ? " on" : "") }),
-      changesCount == null ? "" : changesCount ? t2(changesCount, "{n} change ready to publish", "{n} changes ready to publish") : t("Everything is published")));
+      h("span", { class: "side-foot-text" }, changesCount == null ? "" : changesCount ? t2(changesCount, "{n} change to publish", "{n} changes to publish") : t("Everything is published")),
+      tbtn("plus", t("Add a collection or page"), () => openAddSection(sectionAdded), { cls: "side-add" })));
 }
 
 // ---------- the post list ----------
@@ -695,6 +697,25 @@ function showSettings() {
   });
 }
 
+// after adding a collection or page: reload (the sidebar comes from .pages.yml), open it, and
+// say what the site itself still needs
+function sectionAdded(made) {
+  try { sessionStorage.setItem("wip-added", JSON.stringify(made)); } catch { /* fine */ }
+  location.hash = made.kind === "collection" ? "#/s/" + made.name : "#/edit/" + made.path;
+  location.reload();
+}
+function showAdded() {
+  let made = null;
+  try { made = JSON.parse(sessionStorage.getItem("wip-added") || "null"); sessionStorage.removeItem("wip-added"); } catch { /* fine */ }
+  if (!made) return;
+  const overlay = h("div", { class: "overlay" }, h("div", { class: "dialog" },
+    h("p", { class: "dialog-title" }, made.kind === "collection" ? t("Collection added") : t("Page added")),
+    h("p", { class: "small" }, t("It's in .pages.yml and ready to write in.")),
+    h("p", { class: "muted small" }, made.next),
+    h("div", { class: "dialog-buttons" }, h("button", { class: "btn primary", onclick: () => overlay.remove() }, t("OK")))));
+  document.body.append(overlay);
+}
+
 // ---------- quitting ----------
 // saves, stops the editor (and its preview), and says so; open the Mac app again to restart
 async function quit() {
@@ -756,4 +777,5 @@ async function chooseSite(canCancel) {
   refreshChanges();
   setInterval(refreshChanges, 15000);
   waitForPreview();
+  showAdded();
 })();
