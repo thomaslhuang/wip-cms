@@ -218,11 +218,19 @@ button:disabled { cursor: default; }
 .list-items.selecting > a { cursor: default; }
 .row-item.picked, .text-item.picked, .row-item.picked:hover, .text-item.picked:hover { background: var(--accent); color: var(--on-accent); }
 .row-item.picked .row-sub, .text-item.picked .text-date, .text-item.picked .draft-dot { color: inherit; opacity: .85; }
-.pick-check { display: none; position: absolute; left: 6px; top: 6px; z-index: 2; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #fff; background: rgba(0,0,0,.25); color: #fff; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
-.pick-check svg { width: 12px; height: 12px; visibility: hidden; }
+/* while selecting, List and Titles only highlight edge to edge with square corners (the
+   list's 8px side padding is taken back, and the content stays where it was) */
+.list-items.selecting > .row-item, .list-items.selecting > .text-item { margin: 0 -8px; border-radius: 0; }
+.list-items.selecting > .row-item { padding-left: 14px; padding-right: 18px; }
+.list-items.selecting > .text-item { padding-left: calc(var(--indent, 10px) + 8px); padding-right: 18px; }
+/* Grid: a small round check at the bottom right, as in Photos; no title or frosting on the
+   pictures meanwhile (tiles without a picture keep their title, or they'd be blank) */
+.pick-check { display: none; position: absolute; right: 5px; bottom: 5px; z-index: 2; width: 15px; height: 15px; border-radius: 50%; border: 1.25px solid #fff; background: rgba(0,0,0,.2); color: #fff; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.pick-check svg { width: 9px; height: 9px; stroke-width: 2.6; visibility: hidden; }
 .list-items.selecting .pick-check { display: flex; }
-.tile.picked { box-shadow: inset 0 0 0 3px var(--accent); }
-.tile.picked .pick-check { background: var(--accent); border-color: var(--accent); }
+.list-items.selecting .tile:not(.no-pic) .tile-title { display: none; }
+.tile.picked::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 3px var(--accent); pointer-events: none; z-index: 1; }
+.tile.picked .pick-check { background: var(--accent); border-color: #fff; }
 .tile.picked .pick-check svg { visibility: visible; }
 .text-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* the day before each title, in fixed columns so every title starts at the same place:
@@ -1067,3 +1075,4 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 :root[data-theme="dark"] .set-range::-moz-range-thumb { background: #dcdcdc; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
 .set-range:focus-visible { outline: none; }
 .set-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+@media (max-width: 760px) { .list-items.selecting > .row-item { padding-left: 16px; } }
