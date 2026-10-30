@@ -286,7 +286,8 @@ button:disabled { cursor: default; }
 /* ---------- the document ---------- */
 .doc-scroll { padding: 44px 48px 140px; }
 .doc { max-width: 640px; margin: 0 auto; }
-.doc-title { display: block; width: 100%; border: 0; background: none; resize: none; overflow: hidden; padding: 0; outline: none;
+/* (a little room under the last line, so the tails of g, y and commas are never cut off) */
+.doc-title { display: block; width: 100%; border: 0; background: none; resize: none; overflow: hidden; padding: 0 0 .2em; outline: none;
   font: 400 calc(var(--writing-size) * 1.9)/1.18 var(--font-writing); letter-spacing: calc(-0.01em + var(--writing-tracking)); word-spacing: var(--writing-word-spacing); color: var(--text); }
 .doc-subtitle { display: block; width: 100%; border: 0; background: none; resize: none; overflow: hidden; padding: 0; outline: none; margin-top: 4px;
   font: 500 calc(var(--writing-size) * 1.15)/1.3 var(--font-writing); color: var(--text-2); }

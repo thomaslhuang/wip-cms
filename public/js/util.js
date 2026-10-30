@@ -154,6 +154,18 @@ export function autosize(t) {
   const fit = () => { t.style.height = "auto"; t.style.height = t.scrollHeight + 2 + "px"; };
   t.addEventListener("input", fit);
   requestAnimationFrame(fit);
+  // measure again when the box's width changes (a title that now wraps onto another line,
+  // from the window, the sidebar or the details panel) and when the writing font arrives
+  // (its letters are taller or wider than the stand-in's), so nothing is ever cut off
+  let width = 0;
+  if (window.ResizeObserver) new ResizeObserver(() => { if (t.offsetWidth && t.offsetWidth !== width) { width = t.offsetWidth; fit(); } }).observe(t);
+  document.fonts?.ready.then(fit);
+  let seen = false;
+  const onFonts = () => {
+    if (t.isConnected) { seen = true; fit(); }
+    else if (seen) document.fonts.removeEventListener("loadingdone", onFonts);   // gone from the page
+  };
+  document.fonts?.addEventListener?.("loadingdone", onFonts);
   return t;
 }
 
