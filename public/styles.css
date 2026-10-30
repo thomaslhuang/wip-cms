@@ -231,7 +231,7 @@ button:disabled { cursor: default; }
 .list-items.selecting .pick-check { display: flex; }
 .list-items.selecting .tile:not(.no-pic) .tile-title { display: none; }
 /* picked pictures darken a little, as in Photos */
-.tile.picked::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .05); pointer-events: none; z-index: 1; }
+.tile.picked::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .15); pointer-events: none; z-index: 1; }
 .tile.picked .pick-check { background: var(--accent); border-color: #fff; }
 .tile.picked .pick-check svg { visibility: visible; }
 .text-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
