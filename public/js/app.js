@@ -13,7 +13,7 @@
 //   #/s/blog         the blog posts list
 //   #/edit/<file>    a post or page
 //   #/images         the image library
-import { h, fill, icon, toast } from "./util.js";
+import { h, fill, icon, toast, confirmBox } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
 import { libraryBrowser, setMediaRoot, setUploadEdge } from "./media.js";
@@ -60,17 +60,26 @@ const tbtn = (name, label, onclick, extra = {}) => h("button", { class: "tbtn" +
 const segmented = (label, options, current, onpick) => h("div", { class: "segmented", role: "group", "aria-label": label },
   options.map(([value, text]) => h("button", { class: value === current ? "on" : "", "aria-pressed": String(value === current), onclick: () => onpick(value) }, text)));
 
-function popMenu(anchor, items) {
+// (at: {x, y} opens it at the pointer instead, as a right-click menu does)
+function popMenu(anchor, items, at = null) {
   document.querySelector(".popmenu")?.remove();
   const r = anchor.getBoundingClientRect();
   // the menu is drawn at the Interface Size, so its position is too
   const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
-  const menu = h("div", { class: "popmenu", role: "menu", style: { top: (r.bottom + 6) / scale + "px", right: Math.max(8, window.innerWidth - r.right) / scale + "px" } },
+  const place = at ? { top: at.y / scale + "px", left: at.x / scale + "px" }
+    : { top: (r.bottom + 6) / scale + "px", right: Math.max(8, window.innerWidth - r.right) / scale + "px" };
+  const menu = h("div", { class: "popmenu", role: "menu", style: place },
     items.map((it) => it === "-" ? h("div", { class: "popmenu-sep" })
       : it.heading ? h("div", { class: "popmenu-heading" }, it.heading)
       : h("button", { role: "menuitem", class: it.danger ? "danger" : "", onclick: () => { menu.remove(); it.run(); } },
           h("span", { class: "popmenu-check" }, it.checked ? icon("check") : null), it.label)));
   document.body.append(menu);
+  // a right-click menu near the window's edge: keep it inside
+  if (at) {
+    const m = menu.getBoundingClientRect();
+    if (m.right > window.innerWidth - 8) menu.style.left = (at.x - m.width * scale) / scale + "px";
+    if (m.bottom > window.innerHeight - 8) menu.style.top = Math.max(8, at.y - m.height * scale) / scale + "px";
+  }
   setTimeout(() => document.addEventListener("pointerdown", function close(e) { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener("pointerdown", close); } }), 0);
 }
 
@@ -137,6 +146,78 @@ function toggleFold(section, key) {
   drawList();
 }
 
+// Selecting several items to move them to the Trash: the Select button, or ⌘-click an item.
+// While selecting, clicking an item picks it instead of opening it. (Like the Media page.)
+let picking = null;   // { section, chosen: Set of item ids }
+const isPicking = (s) => picking?.section === s.name;
+function setPicking(s, on) { picking = on ? { section: s.name, chosen: new Set() } : null; drawList(); }
+function togglePick(s, file) {
+  if (!isPicking(s)) picking = { section: s.name, chosen: new Set() };
+  const c = picking.chosen;
+  c.has(file) ? c.delete(file) : c.add(file);
+  drawList();
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && picking && !document.querySelector(".overlay, .popmenu")) { picking = null; drawList(); }
+});
+
+// Move items of a section to the Trash (.cms-trash in the site), after asking. An open item
+// that's among them closes; an open item further down the same list follows its new place.
+async function trashItems(s, files) {
+  if (!files.length) return;
+  const all = lists[s.name] || [];
+  const one = all.find((e) => e.file === files[0]);
+  const message = files.length === 1
+    ? t("Move “{title}” to the Trash? It goes into the .cms-trash folder in your site, so you can get it back.", { title: one?.title || files[0] })
+    : t2(files.length, "Move {n} item to the Trash?", "Move {n} items to the Trash?") + " " + t("They go into the .cms-trash folder in your site, so you can get them back.");
+  if (!(await confirmBox(message, tl("Move to Trash")))) return;
+  try {
+    await editor?.flush();
+    const r = await api.removeMany(files);
+    if (r.failed?.length) toast(r.failed[0].error, "error");
+    else toast(files.length === 1 ? t("Moved to .cms-trash") : t2(r.deleted, "Moved {n} item to .cms-trash", "Moved {n} items to .cms-trash"));
+  } catch (err) { toast(err.message, "error"); }
+  if (picking?.section === s.name) picking = null;
+  await loadList(s.name, true);
+  await tables[s.name]?.refresh(true);
+  refreshChanges();
+  const open = route.file;
+  if (open && files.includes(open)) {
+    editor?.destroy(); editor = null;
+    location.hash = "#/s/" + s.name;
+    return drawList();
+  }
+  const m = open && s.store === "list" && open.startsWith(s.path + "#") && /#(\d+)$/.exec(open);
+  if (m) {
+    const i = Number(m[1]);
+    const gone = files.filter((f) => f.startsWith(s.path + "#") && Number(f.split("#").pop()) < i).length;
+    if (gone) { history.replaceState(null, "", editHref(`${s.path}#${i - gone}`)); return reopen(); }
+  }
+  drawList();
+}
+
+// clicks in the list while selecting (or ⌘-click), and the right-click menu
+function wirePicking(container, s) {
+  container.addEventListener("click", (e) => {
+    const a = e.target.closest("a[data-file]");
+    if (!a || !(isPicking(s) || e.metaKey || e.ctrlKey)) return;
+    e.preventDefault();
+    togglePick(s, a.dataset.file);
+  });
+  container.addEventListener("contextmenu", (e) => {
+    const a = e.target.closest("a[data-file]");
+    if (!a) return;
+    e.preventDefault();
+    const file = a.dataset.file;
+    // right-clicking one of several selected acts on all of them, as in the Finder
+    const several = isPicking(s) && picking.chosen.has(file) && picking.chosen.size > 1 ? [...picking.chosen] : null;
+    popMenu(a, [
+      ...(several ? [] : [{ label: tl("Open"), run: () => { location.hash = editHref(file); } }]),
+      { label: several ? t2(several.length, "Move {n} item to Trash", "Move {n} items to Trash") : tl("Move to Trash"), danger: true, run: () => trashItems(s, several || [file]) },
+    ], { x: e.clientX, y: e.clientY });
+  });
+}
+
 function drawList() {
   const s = config.sections.find((x) => x.name === route.section && x.kind === "collection");
   app.classList.toggle("no-list", !s);
@@ -145,6 +226,9 @@ function drawList() {
   const shown = all.filter((e) => !filter || (e.title + " " + (e.excerpt || "")).toLowerCase().includes(filter));
   const drafts = all.filter((e) => e.draft).length;
   const mode = listMode(s.name);
+  if (picking && !isPicking(s)) picking = null;   // another section: start fresh
+  const selecting = isPicking(s) && mode !== "table";
+  if (selecting) [...picking.chosen].forEach((f) => { if (!all.some((e) => e.file === f)) picking.chosen.delete(f); });
 
   // the spreadsheet (Settings → Advanced tools): the list column widens to hold it
   app.classList.toggle("table-view", mode === "table");
@@ -167,10 +251,12 @@ function drawList() {
   const head = (key, label, count, level) => h("button", { class: `tree-head ${level}`, "aria-expanded": String(open(key)), onclick: () => toggleFold(s.name, key) },
     icon("chevron", "tree-chev"), h("span", { class: "tree-label" }, label), h("span", { class: "tree-count" }, count));
   // a list kept in one data file, shown in its own order: drag items to reorder the site
-  const canReorder = s.store === "list" && view.sort === "order" && view.group === "none" && !filter && all.length > 1;
+  const canReorder = s.store === "list" && view.sort === "order" && view.group === "none" && !filter && all.length > 1 && !selecting;
   const box = (entries) => {
-    const el = h("div", { class: "list-items " + mode + (canReorder ? " reorderable" : "") }, entries.map(items));
+    const el = h("div", { class: "list-items " + mode + (canReorder ? " reorderable" : "") + (selecting ? " selecting" : "") }, entries.map(items));
+    if (selecting) el.querySelectorAll("a[data-file]").forEach((a) => a.classList.toggle("picked", picking.chosen.has(a.dataset.file)));
     if (canReorder) reorderable(el, s);
+    wirePicking(el, s);
     return el;
   };
   const rows = view.group === "none" ? [box(groups[0]?.entries || [])] : groups.map((g) => h("div", { class: "tree-year" },
@@ -188,14 +274,28 @@ function drawList() {
       h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
       h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
         h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
+      tbtn("check", t("Select several (or ⌘-click)"), () => setPicking(s, !selecting), { on: selecting }),
       tbtn("plus", t("Add new item"), () => newEntry(s))),
     // the view buttons first, so they stay put as the list gets wider or narrower; the search takes the rest
     h("div", { class: "list-tools" },
       viewSwitch(s, mode),
       viewButton(s, view),
       h("label", { class: "search" }, icon("search"), search)),
+    selecting ? selectBar(s, shown) : null,
     h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
+}
+
+// while selecting: how many, Select all, Move to Trash, Done
+function selectBar(s, shown) {
+  const c = picking.chosen;
+  const allPicked = shown.length && shown.every((e) => c.has(e.file));
+  return h("div", { class: "list-select-bar" },
+    h("span", { class: "select-count" }, c.size ? t("{n} selected", { n: c.size }) : t("Click items to select them")),
+    h("button", { class: "btn small", disabled: !shown.length, onclick: () => { allPicked ? shown.forEach((e) => c.delete(e.file)) : shown.forEach((e) => c.add(e.file)); drawList(); } },
+      allPicked ? tl("Select none") : tl("Select all")),
+    h("button", { class: "btn small danger", disabled: !c.size, title: tl("Move to Trash"), "aria-label": tl("Move to Trash"), onclick: () => trashItems(s, [...c]) }, icon("trash")),
+    h("button", { class: "btn small primary", onclick: () => setPicking(s, false) }, t("Done")));
 }
 
 // List / Grid / Titles only (and Spreadsheet, with Advanced tools on)
@@ -389,7 +489,7 @@ const editHref = (file) => "#/edit/" + String(file).replace(/#/g, "%23");
 const titleOf = (e) => (e.isBook ? h("i", {}, e.title) : e.title);
 const draftBadge = (e) => (e.draft ? h("span", { class: "badge" }, t("Draft")) : null);
 function rowItem(e, date) {
-  return h("a", { class: "row-item" + isActive(e), href: editHref(e.file) },
+  return h("a", { class: "row-item" + isActive(e), href: editHref(e.file), "data-file": e.file },
     e.featuredImage ? h("img", { class: "row-thumb", src: e.featuredImage, alt: "", loading: "lazy" }) : h("span", { class: "row-thumb empty" }),
     h("span", { class: "row-text" },
       h("span", { class: "row-title" }, titleOf(e)),
@@ -397,7 +497,8 @@ function rowItem(e, date) {
 }
 // the grid: square pictures edge to edge; the title shows when you point at one
 function tileItem(e) {
-  return h("a", { class: "tile" + isActive(e) + (e.featuredImage ? "" : " no-pic"), href: editHref(e.file), title: e.title, "aria-label": e.title },
+  return h("a", { class: "tile" + isActive(e) + (e.featuredImage ? "" : " no-pic"), href: editHref(e.file), title: e.title, "aria-label": e.title, "data-file": e.file },
+    h("span", { class: "pick-check" }, icon("check")),
     e.featuredImage ? h("img", { src: e.featuredImage, alt: "", loading: "lazy" }) : null,
     h("span", { class: "tile-title" }, titleOf(e)),
     draftBadge(e));
@@ -425,7 +526,7 @@ function textItem(e, date, group) {
       ? h("span", { class: "text-date western" }, span("td-day", p.day))
       : h("span", { class: "text-date japanese" }, h("span", { class: "td-date" }, jdot, p.day + "日"));
   const title = h("span", { class: "text-title" }, h("span", { class: "text-title-inner" }, titleOf(e)));
-  return h("a", { class: "text-item" + isActive(e), href: editHref(e.file), onmouseenter: () => marquee(title), onmouseleave: () => stopMarquee(title) },
+  return h("a", { class: "text-item" + isActive(e), href: editHref(e.file), "data-file": e.file, onmouseenter: () => marquee(title), onmouseleave: () => stopMarquee(title) },
     jdot ? null : dot, day, title, day ? null : draftBadge(e));
 }
 // scroll a title that doesn't fit, back and forth, at an even reading speed
@@ -603,10 +704,7 @@ function moreItems() {
   return [
     ...(editor ? [
       { label: tl("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
-      ...(editor.section ? [{ label: tl("Move to Trash"), danger: true, run: async () => {
-        const section = editor.section.name;
-        if (await editor.remove()) { editor.destroy(); editor = null; await loadList(section, true); location.hash = "#/s/" + section; }
-      } }] : []),
+      ...(editor.section ? [{ label: tl("Move to Trash"), danger: true, run: () => trashItems(editor.section, [route.file]) }] : []),
       "-",
     ] : []),
     { heading: t("Appearance") },

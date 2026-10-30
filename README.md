@@ -167,7 +167,11 @@ photos and rearrange float at the bottom of the screen.
 - Saving writes into the site folder. Publish the way you normally do: commit and push
   in GitHub Desktop.
 - **Move to Trash** moves the post and its image folder into `.cms-trash` in the site,
-  so you can get them back.
+  so you can get them back. It's in ⋯ while a post is open, and when you right-click a
+  post in the list.
+- **Select** (the ✓ beside +, or ⌘-click a post) picks several in the list, in any view
+  but Spreadsheet; then the trash button moves them all to `.cms-trash` together.
+  Esc or **Done** stops selecting.
 
 **Media** (in the sidebar, under Site): every picture, video and file in the site's media
 folder, shown as **icons**, a **list** (name, kind, size, date modified) or **columns** (a

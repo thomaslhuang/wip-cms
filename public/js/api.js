@@ -41,6 +41,7 @@ export const api = {
   copyMedia: (url, folder) => call("POST", "/api/media/copy", { url, folder }),
   create: (section, title, slug, extra) => call("POST", "/api/entry", { section, title, slug, extra }),
   remove: (file) => call("DELETE", "/api/entry?" + qs({ file })),
+  removeMany: (files) => call("POST", "/api/entries/trash", { files }),
   imageFolder: (file) => call("GET", "/api/image-folder?" + qs({ file })),
   media: (folder) => call("GET", "/api/media?" + qs(folder ? { folder } : {})),
   phoneLink: (folder, edge) => call("GET", "/api/phone-link?" + qs(edge ? { folder, edge } : { folder })),

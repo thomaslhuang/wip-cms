@@ -87,6 +87,8 @@ const routes = {
   "POST /api/move": (q, body) => { const r = entries.moveEntry(body.section, body.from, body.to); afterChange(entries.listFileOf(body.section)); return r; },
   "POST /api/entry": (q, body) => { const made = entries.createEntry(body.section, body.title, body.slug, body.extra); afterChange(made.file); return made; },
   "DELETE /api/entry": (q) => { const result = entries.deleteEntry(q.file); afterChange(q.file); return result; },
+  // several at once (the list's Select mode)
+  "POST /api/entries/trash": (q, body) => { const files = body.files || []; const r = entries.deleteEntries(files); new Set(files).forEach(afterChange); return r; },
 
   // unsaved edits -> the live preview only (your files are untouched)
   "PUT /api/draft": (q, body) => ({ ok: preview.writeDraft(String(body.file).replace(/#\d+$/, ""), entries.serialize(body.file, body.data, body.body)) }),
