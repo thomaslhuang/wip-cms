@@ -273,7 +273,8 @@ function drawList() {
     h("div", { class: "list-head" },
       h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
       h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
-        h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
+        h("div", { class: "list-count" }, selecting ? t("{n} selected", { n: picking.chosen.size })
+          : t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
       tbtn("select", t("Select several (or ⌘-click)"), () => setPicking(s, !selecting), { on: selecting }),
       tbtn("plus", t("Add new item"), () => newEntry(s))),
     // the view buttons first, so they stay put as the list gets wider or narrower; the search takes the rest
@@ -287,17 +288,18 @@ function drawList() {
   listEl.querySelector(".list-scroll").classList.toggle("under-bar", selecting);
 }
 
-// while selecting: a bar floating at the bottom of the list, with how many, Select all,
-// Move to Trash and Done (a checkmark)
+// while selecting: three icons floating at the bottom of the list: Select all (pressed when
+// everything shown is picked; press again for none), Move to Trash, and Done (a checkmark).
+// How many are picked shows under the list's title.
 function selectBar(s, shown) {
   const c = picking.chosen;
   const allPicked = shown.length && shown.every((e) => c.has(e.file));
+  const allLabel = allPicked ? tl("Select none") : tl("Select all");
   return h("div", { class: "glass-bar list-select-bar", role: "toolbar", "aria-label": t("Selection") },
-    h("span", { class: "select-count" }, c.size ? t("{n} selected", { n: c.size }) : t("Click items to select them")),
-    h("button", { class: "glass-text", disabled: !shown.length, onclick: () => { allPicked ? shown.forEach((e) => c.delete(e.file)) : shown.forEach((e) => c.add(e.file)); drawList(); } },
-      allPicked ? tl("Select none") : tl("Select all")),
+    h("button", { class: "glass-icon" + (allPicked ? " on" : ""), disabled: !shown.length, title: allLabel, "aria-label": allLabel, "aria-pressed": String(!!allPicked),
+      onclick: () => { allPicked ? shown.forEach((e) => c.delete(e.file)) : shown.forEach((e) => c.add(e.file)); drawList(); } }, icon("select-all")),
     h("button", { class: "glass-icon danger", disabled: !c.size, title: tl("Move to Trash"), "aria-label": tl("Move to Trash"), onclick: () => trashItems(s, [...c]) }, icon("trash")),
-    h("button", { class: "glass-icon primary", title: t("Done"), "aria-label": t("Done"), onclick: () => setPicking(s, false) }, icon("check")));
+    h("button", { class: "glass-icon", title: t("Done"), "aria-label": t("Done"), onclick: () => setPicking(s, false) }, icon("check")));
 }
 
 // List / Grid / Titles only (and Spreadsheet, with Advanced tools on)

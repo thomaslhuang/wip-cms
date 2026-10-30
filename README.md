@@ -170,8 +170,9 @@ photos and rearrange float at the bottom of the screen.
   so you can get them back. It's the red trash can in the toolbar while a post is open
   (it asks first), and in the menu when you right-click a post in the list.
 - **Select** (the checklist beside +, or ⌘-click a post) picks several in the list, in any
-  view but Spreadsheet. A bar floats at the bottom of the list: **Select all**, the trash
-  can (moves them all to `.cms-trash` together) and ✓ to stop selecting (or Esc).
+  view but Spreadsheet; how many shows under the list's title. Three icons float at the
+  bottom of the list: **Select all** (press again for none), the trash can (moves them all
+  to `.cms-trash` together) and ✓ to stop selecting (or Esc).
 - **Open on your site** (in ⋯) opens the post's page on the live preview in a new tab.
 
 **Media** (in the sidebar, under Site): every picture, video and file in the site's media
