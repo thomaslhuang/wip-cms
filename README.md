@@ -151,7 +151,7 @@ in this browser.
 - **⊕ Insert a block**, **Add photos** (one image block per photo), and **Rearrange**
   (each block shrinks to one line you can drag).
 - **Open on your site** in a new tab, and **show / hide the inspector**.
-- **⋯** has **Revert to when opened**, **Move to Trash**, **Appearance** (match your
+- **⋯** has **Revert to when opened**, **Open on your site**, **Appearance** (match your
   Mac, light or dark), **Customize…**, **Settings…**, **Open another site…** and **Quit**.
 - The sidebar button (top of the sidebar) hides the sidebar and list for more room.
 
@@ -167,11 +167,12 @@ photos and rearrange float at the bottom of the screen.
 - Saving writes into the site folder. Publish the way you normally do: commit and push
   in GitHub Desktop.
 - **Move to Trash** moves the post and its image folder into `.cms-trash` in the site,
-  so you can get them back. It's in ⋯ while a post is open, and when you right-click a
-  post in the list.
-- **Select** (the ✓ beside +, or ⌘-click a post) picks several in the list, in any view
-  but Spreadsheet; then the trash button moves them all to `.cms-trash` together.
-  Esc or **Done** stops selecting.
+  so you can get them back. It's the red trash can in the toolbar while a post is open
+  (it asks first), and in the menu when you right-click a post in the list.
+- **Select** (the checklist beside +, or ⌘-click a post) picks several in the list, in any
+  view but Spreadsheet. A bar floats at the bottom of the list: **Select all**, the trash
+  can (moves them all to `.cms-trash` together) and ✓ to stop selecting (or Esc).
+- **Open on your site** (in ⋯) opens the post's page on the live preview in a new tab.
 
 **Media** (in the sidebar, under Site): every picture, video and file in the site's media
 folder, shown as **icons**, a **list** (name, kind, size, date modified) or **columns** (a

@@ -3,7 +3,7 @@
 //   sidebar    sections (blog posts, projects), Images, pages and settings
 //   list       the posts in the chosen section, newest first, grouped by month
 //   toolbar    the open post's title and save state; Write / Split / Preview; insert,
-//              photos, rearrange, open on site, show/hide the inspector; the ⋯ menu
+//              photos, rearrange, show/hide the inspector, Move to Trash; the ⋯ menu
 //   docpane    the post as a document (editor.js)
 //   preview    the real site, updating as you type (lib/preview.js)
 //   inspector  the post's details (editor.js)
@@ -274,28 +274,30 @@ function drawList() {
       h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
       h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
         h("div", { class: "list-count" }, t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
-      tbtn("check", t("Select several (or ⌘-click)"), () => setPicking(s, !selecting), { on: selecting }),
+      tbtn("select", t("Select several (or ⌘-click)"), () => setPicking(s, !selecting), { on: selecting }),
       tbtn("plus", t("Add new item"), () => newEntry(s))),
     // the view buttons first, so they stay put as the list gets wider or narrower; the search takes the rest
     h("div", { class: "list-tools" },
       viewSwitch(s, mode),
       viewButton(s, view),
       h("label", { class: "search" }, icon("search"), search)),
-    selecting ? selectBar(s, shown) : null,
     h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
+    selecting ? selectBar(s, shown) : null,
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
+  listEl.querySelector(".list-scroll").classList.toggle("under-bar", selecting);
 }
 
-// while selecting: how many, Select all, Move to Trash, Done
+// while selecting: a bar floating at the bottom of the list, with how many, Select all,
+// Move to Trash and Done (a checkmark)
 function selectBar(s, shown) {
   const c = picking.chosen;
   const allPicked = shown.length && shown.every((e) => c.has(e.file));
-  return h("div", { class: "list-select-bar" },
+  return h("div", { class: "glass-bar list-select-bar", role: "toolbar", "aria-label": t("Selection") },
     h("span", { class: "select-count" }, c.size ? t("{n} selected", { n: c.size }) : t("Click items to select them")),
-    h("button", { class: "btn small", disabled: !shown.length, onclick: () => { allPicked ? shown.forEach((e) => c.delete(e.file)) : shown.forEach((e) => c.add(e.file)); drawList(); } },
+    h("button", { class: "glass-text", disabled: !shown.length, onclick: () => { allPicked ? shown.forEach((e) => c.delete(e.file)) : shown.forEach((e) => c.add(e.file)); drawList(); } },
       allPicked ? tl("Select none") : tl("Select all")),
-    h("button", { class: "btn small danger", disabled: !c.size, title: tl("Move to Trash"), "aria-label": tl("Move to Trash"), onclick: () => trashItems(s, [...c]) }, icon("trash")),
-    h("button", { class: "btn small primary", onclick: () => setPicking(s, false) }, t("Done")));
+    h("button", { class: "glass-icon danger", disabled: !c.size, title: tl("Move to Trash"), "aria-label": tl("Move to Trash"), onclick: () => trashItems(s, [...c]) }, icon("trash")),
+    h("button", { class: "glass-icon primary", title: t("Done"), "aria-label": t("Done"), onclick: () => setPicking(s, false) }, icon("check")));
 }
 
 // List / Grid / Titles only (and Spreadsheet, with Advanced tools on)
@@ -704,7 +706,7 @@ function moreItems() {
   return [
     ...(editor ? [
       { label: tl("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
-      ...(editor.section ? [{ label: tl("Move to Trash"), danger: true, run: () => trashItems(editor.section, [route.file]) }] : []),
+      ...(editor.url && !narrow() ? [{ label: tl("Open on your site"), run: () => window.open(`http://localhost:${config.preview.port}${editor.url}`, "_blank", "noopener") }] : []),
       "-",
     ] : []),
     { heading: t("Appearance") },
@@ -735,8 +737,9 @@ function drawToolbar() {
       if (b.hasPhotos()) right.push(tbtn("images", t("Add photos"), () => b.addPhotos()));
       right.push(tbtn("arrows", b.isRearranging() ? t("Done rearranging") : t("Rearrange blocks"), () => b.toggleRearrange(), { on: b.isRearranging() }));
     }
-    if (!narrow() && editor.url) right.push(h("a", { class: "tbtn", href: `http://localhost:${config.preview.port}${editor.url}`, target: "_blank", rel: "noopener", "aria-label": t("Open on your site"), title: t("Open on your site (new tab)") }, icon("external")));
     right.push(tbtn(narrow() ? "info" : "inspector", showInspector ? t("Hide details") : t("Show details"), () => toggleInspector(), { on: showInspector && !narrow() }));
+    // posts and list items can go to the Trash (after asking); pages can't
+    if (editor.section) right.push(tbtn("trash", tl("Move to Trash"), () => trashItems(editor.section, [route.file]), { cls: "danger" }));
   }
   const more = tbtn("more", t("More"), () => popMenu(more, moreItems()));
   right.push(more);

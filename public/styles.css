@@ -200,9 +200,25 @@ button:disabled { cursor: default; }
 .text-item:hover { background: var(--fill); }
 .text-item.active { background: var(--accent-soft); }
 /* selecting several (the list's Select, or ⌘-click): picked items are filled, like the Finder's */
-.list-select-bar { display: flex; align-items: center; gap: 6px; margin: 0 10px 8px; padding: 6px 6px 6px 10px; border-radius: 8px; background: var(--accent-soft); }
-.list-select-bar .btn.small { height: 24px; }
-.list-select-bar .btn .icon { width: 14px; height: 14px; }
+/* a floating bar of glass: see-through, blurring what's behind, with squircle corners */
+.glass-bar { display: flex; align-items: center; gap: 4px; padding: 5px 5px 5px 14px; border-radius: 20px; corner-shape: squircle;
+  background: color-mix(in srgb, var(--pop) 62%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, .55);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .16), 0 1px 3px rgba(0, 0, 0, .1), inset 0 1px 0 rgba(255, 255, 255, .6); }
+@supports (corner-shape: squircle) { .glass-bar { border-radius: 34px; } .glass-bar .glass-icon, .glass-bar .glass-text { border-radius: 24px; corner-shape: squircle; } }
+:root[data-theme="dark"] .glass-bar { border-color: rgba(255, 255, 255, .12); box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08); }
+.glass-bar .select-count { flex: 1; min-width: 0; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.glass-text { height: 30px; padding: 0 10px; border: 0; border-radius: 15px; background: none; color: var(--accent); font: inherit; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.glass-icon { width: 34px; height: 30px; flex: none; border: 0; border-radius: 15px; background: none; color: var(--text); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.glass-icon .icon { width: 17px; height: 17px; }
+.glass-text:hover:not(:disabled), .glass-icon:hover:not(:disabled) { background: var(--fill); }
+.glass-icon.danger { color: var(--danger); }
+.glass-icon.primary { background: var(--accent); color: var(--on-accent); }
+.glass-icon.primary:hover { background: var(--accent); filter: brightness(1.08); }
+.glass-bar button:disabled { opacity: .35; }
+.list-select-bar { position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 4; }
+.list-scroll.under-bar { padding-bottom: 72px; }
 .list-items.selecting > a { cursor: default; }
 .row-item.picked, .text-item.picked, .row-item.picked:hover, .text-item.picked:hover { background: var(--accent); color: var(--on-accent); }
 .row-item.picked .row-sub, .text-item.picked .text-date, .text-item.picked .draft-dot { color: inherit; opacity: .85; }
@@ -254,6 +270,7 @@ button:disabled { cursor: default; }
 .tbtn .icon { width: 18px; height: 18px; }
 .tbtn:hover { background: var(--fill); color: var(--text); }
 .tbtn.on { background: var(--fill-strong); color: var(--text); }
+.tbtn.danger, .tbtn.danger:hover { color: var(--danger); }
 .segmented { display: flex; background: var(--fill); border-radius: 7px; padding: 2px; flex: none; }
 .segmented button { border: 0; background: none; height: 24px; padding: 0 12px; border-radius: 5px; color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; }
 .segmented button.on { background: var(--seg-on); box-shadow: var(--shadow); color: var(--text); font-weight: 500; }

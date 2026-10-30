@@ -192,7 +192,7 @@ const JA = {
   "{n} of these are still used on the site, in {places}. Moving them to the Trash breaks those until you put them back.": "このうち {n} 件はサイトでまだ使われています（{places}）。ゴミ箱に移すと、戻すまで表示されなくなります。", " and {n} more": " ほか {n} 件",
   "Move {n} file to the Trash?": "{n} 件のファイルをゴミ箱に移しますか？", "Move {n} files to the Trash?": "{n} 件のファイルをゴミ箱に移しますか？", "They go into the .cms-trash folder in your site, so you can get them back.": "サイト内の .cms-trash フォルダに移るので、元に戻せます。",
   "Moved {n} file to .cms-trash": "{n} 件を .cms-trash に移しました", "Moved {n} files to .cms-trash": "{n} 件を .cms-trash に移しました", "Select several (or ⌘-click)": "複数を選択（⌘クリックでも）",
-  "Click items to select them": "項目をクリックして選択",
+  "Click items to select them": "項目をクリックして選択", "Selection": "選択",
   "Move {n} item to the Trash?": "{n} 件の項目をゴミ箱に移しますか？", "Move {n} items to the Trash?": "{n} 件の項目をゴミ箱に移しますか？",
   "Moved {n} item to .cms-trash": "{n} 件を .cms-trash に移しました", "Moved {n} items to .cms-trash": "{n} 件を .cms-trash に移しました",
   "Move {n} item to Trash": "{n} 件をゴミ箱に移動", "Move {n} items to Trash": "{n} 件をゴミ箱に移動",
