@@ -150,9 +150,11 @@ function toggleFold(section, key) {
 // While selecting, clicking an item picks it instead of opening it. (Like the Media page.)
 let picking = null;   // { section, chosen: Set of item ids }
 const isPicking = (s) => picking?.section === s.name;
-function setPicking(s, on) { picking = on ? { section: s.name, chosen: new Set() } : null; drawList(); }
+// starting to select closes an open post (it's saved first, as when you leave it any other way)
+const closeOpen = (s) => { if (route.page === "edit") location.hash = "#/s/" + s.name; };
+function setPicking(s, on) { picking = on ? { section: s.name, chosen: new Set() } : null; if (on) closeOpen(s); drawList(); }
 function togglePick(s, file) {
-  if (!isPicking(s)) picking = { section: s.name, chosen: new Set() };
+  if (!isPicking(s)) { picking = { section: s.name, chosen: new Set() }; closeOpen(s); }
   const c = picking.chosen;
   c.has(file) ? c.delete(file) : c.add(file);
   drawList();
