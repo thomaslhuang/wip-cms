@@ -134,8 +134,18 @@ export async function openEditor({ file, section, config }) {
   const has = (name) => fields.some((f) => f.name === name);
   function drawMeta(force) {
     if (!titleField) return;
-    // don't redraw while you're typing a tag in it
-    if (!force && meta.contains(document.activeElement) && document.activeElement.tagName === "INPUT" && document.activeElement.type !== "date") return;
+    // don't redraw while you're typing a tag in it, or while its date picker is open: a new
+    // input would close the calendar after every change (so going back several years took a
+    // fresh click each time). Then only the date shown beside the calendar icon is updated.
+    const active = document.activeElement;
+    if (!force && meta.contains(active) && active.tagName === "INPUT") {
+      if (active.classList.contains("meta-date-input")) {
+        const d = active.value ? new Date(active.value + "T12:00:00") : null;
+        const label = active.parentElement.querySelector(":scope > span:not(.icon)");
+        if (label && d && !isNaN(d)) label.textContent = fmtDate(d, "long");
+      }
+      return;
+    }
     const parts = [];
     const dateName = (fields.find((f) => f.name === "date" && f.type === "date") || fields.find((f) => f.type === "date"))?.name;
     if (dateName) {
