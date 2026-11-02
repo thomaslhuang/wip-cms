@@ -223,6 +223,10 @@ from the fields:
   `{primary}` work in templates.
 - **The date** is a field called `date`, or else the first date field.
 - **The list picture** is `featuredImage`, or else the first single-image field.
+- **A gallery shown one picture per row** is switched by a yes/no field called
+  `singleWidth`: when it's on, the gallery here is one picture per row instead of the
+  staggered grid, and changes as you flip it (a site whose gallery looks that way should
+  use that name for its switch).
 - **Grouping** offers every single-choice (select) field.
 - **New choices:** a select with `creatable: true` in its options (as in Pages CMS) lets you
   type a new value as well as pick one; typing an existing one in other capitals keeps its spelling.

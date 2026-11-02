@@ -20,6 +20,7 @@ import { t, t2, tl, fmtDate } from "./i18n.js";
 import { saveAfter } from "./settings.js";   // seconds after the last change before saving (Settings → Save after)
 const SKIP = new Set(["newTags"]);   // Pages CMS-only helpers
 const ROW_TYPES = new Set(["date", "boolean"]); // shown as "label …… control" rows in the inspector
+const ONE_PER_ROW = "singleWidth";   // a yes/no field with this name: the gallery is shown one picture per row
 
 export async function openEditor({ file, section, config }) {
   const entry = await api.read(file);
@@ -240,9 +241,18 @@ export async function openEditor({ file, section, config }) {
     for (const f of galleryFields) {
       const el = renderField(f, data, ctx);
       el?.querySelector(":scope > .field-label")?.remove();
-      if (el) doc.append(h("section", { class: "doc-gallery" },
+      if (!el) continue;
+      const gallery = h("section", { class: "doc-gallery" },
         h("div", { class: "doc-section-head" }, h("span", {}, tl(f.label || f.name)), Array.isArray(data[f.name]) ? h("span", { class: "muted" }, t2(data[f.name].length, "{n} item", "{n} items")) : null),
-        el));
+        el);
+      // A yes/no field called singleWidth means the site shows the gallery one picture per
+      // row, not staggered. The gallery here follows it, right away when you flip it.
+      if (has(ONE_PER_ROW)) {
+        const oneRow = () => gallery.classList.toggle("one-per-row", data[ONE_PER_ROW] === true);
+        oneRow();
+        changeListeners.add(oneRow);
+      }
+      doc.append(gallery);
     }
     // nothing long to write and no gallery (a printed-matter item: a picture and a caption):
     // its fields go in the document, under the title
