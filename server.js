@@ -24,6 +24,7 @@ const preview = require("./lib/preview");
 const phone = require("./lib/phone");
 const setup = require("./lib/setup");
 const sections = require("./lib/sections");
+const trash = require("./lib/trash");
 
 const PORT = Number(process.env.WIP_PORT) || 4321;
 // the code's git commit when it started (the Mac app restarts the editor when this changes)
@@ -95,8 +96,17 @@ const routes = {
   // forget unsaved edits: the preview goes back to what's saved
   "DELETE /api/draft": (q) => { preview.syncFromSite(String(q.file).replace(/#\d+$/, "")); return { ok: true }; },
 
-  // how many files changed since the last commit (the "ready to publish" count)
-  "GET /api/changes": () => changes(),
+  // which post or page makes this web address (the preview says which page it's on)
+  "GET /api/find": (q) => entries.findByUrl(q.url),
+
+  // the Trash (.cms-trash in the site): what's in it, and putting things back (lib/trash.js)
+  "GET /api/trash": () => trash.list(),
+  "POST /api/trash/restore": (q, body) => { const r = trash.restore(body.id); afterChange(r.file || r.restored); return r; },
+  "POST /api/trash/reveal": () => trash.reveal(),
+
+  // how many files changed since the last commit (the "ready to publish" count), and how
+  // many things are in the Trash
+  "GET /api/changes": () => ({ ...changes(), trash: trash.count() }),
 
   // stop w·i·p cms (the ⋯ menu's Quit, and the Mac app when it needs to restart a newer version)
   "POST /api/quit": () => { setTimeout(() => { try { preview.stopPreview(); } catch { /* fine */ } process.exit(0); }, 150); return { ok: true }; },
@@ -172,9 +182,13 @@ const server = http.createServer(async (req, res) => {
       return send(res, 403, { error: "Only photo uploads are allowed from other devices." });
     }
     if (req.method === "GET" && url.pathname === "/phone") return serveFile(res, path.join(PUBLIC, "phone.html"));
+    // the picture to crop from (its uncropped original, if it's been cropped before)
+    if (req.method === "GET" && url.pathname === "/api/media/original") return serveFile(res, media.cropSource(q.url));
+    // a picture in the Trash, for its thumbnail on the Trash page
+    if (req.method === "GET" && url.pathname === "/api/trash/file") return serveFile(res, trash.inTrash(q.id));
     // a new version of a picture, under the same name (public/js/media.js replaceImage)
     if (req.method === "POST" && url.pathname === "/api/media/replace") {
-      const r = media.replaceFile(q.url, await readBody(req, media.MAX_FILE + 1024));
+      const r = media.replaceFile(q.url, await readBody(req, media.MAX_FILE + 1024), { crop: q.crop === "1" });
       try { preview.syncFromSite(site.rel(site.imageUrlToFile(decodeURI(q.url)))); } catch { /* preview is optional */ }
       return send(res, 200, r);
     }

@@ -15,13 +15,12 @@ Key features:
 
 **Double-click `w·i·p cms.app`** in this folder.
 
-- It starts the editor in the background and opens it in its own window (an app window in
-  Chrome, Edge or Brave if you have one; otherwise your default browser).
+- It starts the editor in the background and opens it in your default browser.
 - The first time, and after you pull an update, it gets things ready for a moment first.
 - Drag it to the Dock to keep it handy. (It used to be called "wip cms.app": if the Dock
   shows a question mark, drag the new one there instead.) It can also live in Applications: it remembers
   where this folder is (and asks, if it ever can't find it).
-- **Quit** from the ⋯ menu stops the editor. Closing the window leaves it running quietly
+- **Quit** from the ⋯ menu stops the editor. Closing the tab leaves it running quietly
   in the background, so the next open is instant.
 - It needs Node.js (18 or newer). If it isn't installed, the app says so and opens
   nodejs.org. Messages go to `~/Library/Logs/wip cms.log`.
@@ -168,7 +167,9 @@ photos and rearrange float at the bottom of the screen.
 - Saving writes into the site folder. Publish the way you normally do: commit and push
   in GitHub Desktop.
 - **Move to Trash** moves the post and its image folder into `.cms-trash` in the site,
-  so you can get them back. It's the red trash can in the toolbar while a post is open
+  so you can get them back: **Trash** at the bottom of the sidebar lists what's there, newest
+  first, with **Put back** for each (a post comes back with its pictures, a list item goes back
+  to its place in the list). To empty it, delete `.cms-trash` in the Finder (**Show in Finder**). It's the red trash can in the toolbar while a post is open
   (it asks first), and in the menu when you right-click a post in the list.
 - **Select** (the checklist beside +, or ⌘-click a post) picks several in the list, in any
   view but Spreadsheet; how many shows under the list's title. Three icons float at the
@@ -184,6 +185,12 @@ Trash** moves them into `.cms-trash`, after saying which are still used on the s
 **Images**
 
 - Under an image field: **Choose from Library**, or upload from **Computer** or **Phone**.
+- **Crop and rotate** (point at a picture in a post for its tools): drag to move, zoom, turn a
+  quarter at a time or straighten. **Match the others** makes it exactly the shape most of the
+  pictures beside it share (the rest of its carousel or gallery; for a picture on its own, the
+  other single pictures in the post), for pictures that are nearly but not quite the same shape.
+  It's saved under the same name; the first crop keeps the uncropped original in
+  `.cms-trash/originals/`, and cropping again starts from that.
   You can also drag pictures from Finder straight onto an image field.
 - In carousels, collages and galleries, **drag a picture** to change the order: a copy
   follows the pointer, a faded spot shows where it will land, and dragging near the end
@@ -287,6 +294,11 @@ When a site opens, w·i·p cms:
 In Split or Preview, what you type goes into the shadow copy straight away, so the page
 updates in place without waiting for the save a moment later.
 
+Clicking a link in the preview opens that page's post (or page) in the editor, when one makes
+it; a listing page, say, leaves the editor as it is. To know which page the preview is on,
+http://localhost:8080 is a small go-between in front of Eleventy (which really runs at 9080)
+that adds one line of script to each page; nothing in your site changes.
+
 Changes you make outside w·i·p cms are copied into the shadow copy too, for example
 editing a template in VS Code or pulling in GitHub Desktop.
 
@@ -309,7 +321,8 @@ lib/
   frontmatter.js     the --- YAML --- at the top of .md files
   media.js           the image library: listing folders, saving uploads
   tags.js            keeps the tag suggestions in .pages.yml up to date
-  preview.js         the live preview (shadow copy + Eleventy)
+  preview.js         the live preview (shadow copy + Eleventy, and the go-between in front of it)
+  trash.js           the Trash page: what's in .cms-trash, and putting things back
   phone.js           phone uploads: the secret link, the QR code, who may connect
   setup.js           setting up a new site: writes its .pages.yml
   sections.js        adding a collection or page to a site that's set up (the sidebar's +)
@@ -323,6 +336,8 @@ public/
     fields.js        each kind of field (text, date, switch, tags, image…)
     blocks.js        the blocks: select, insert, move, rearrange, delete
     media.js         image uploads (WebP), the picker window, the Images page
+    crop.js          the Crop and rotate window
+    trash.js         the Trash page
     setup.js         the "Set up a site" window
     rich.js          the writing box: Markdown shown formatted, and turned back into Markdown
     code.js          color-coded Source view

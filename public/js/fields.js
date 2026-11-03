@@ -6,6 +6,7 @@
 import { h, fill, icon, autosize, isPlainObject, toast } from "./util.js";
 import { openPicker, chooseFiles, uploadFiles, kindOf, folderUrl, replaceImage } from "./media.js";
 import { api } from "./api.js";
+import { openCrop } from "./crop.js";
 import { ghost, autoScroll, sortable } from "./drag.js";
 import { renderBlocks } from "./blocks.js";
 import { richBox } from "./rich.js";
@@ -337,12 +338,44 @@ function imageSpot(field, ctx) {
   };
 }
 
+// A picture that holds its place while it loads. Pictures used to load only as you scrolled to
+// them, starting with no height, so a long post kept growing under you and scrolling stopped
+// at the "end" until the next ones came in. Now they all load straight away (they're on this
+// computer, so it's quick), each keeps a space its shape (4:3 until it's known), and shapes
+// are remembered, so a picture drawn again (after a change) takes its exact space at once.
+const shapes = new Map();   // picture address -> width / height
+export const shapeOf = (url) => shapes.get(String(url || "").split("?")[0]);
+function sizedImg(url) {
+  const key = String(url || "").split("?")[0];
+  const known = shapes.get(key);
+  const img = h("img", { src: url, alt: "", decoding: "async", class: "sized", style: { aspectRatio: String(known || 4 / 3) } });
+  const done = () => {
+    if (img.naturalWidth) shapes.set(key, img.naturalWidth / img.naturalHeight);
+    img.style.aspectRatio = "";
+    img.classList.remove("sized");
+  };
+  if (img.complete && img.naturalWidth) done(); else { img.addEventListener("load", done, { once: true }); img.addEventListener("error", () => { img.style.aspectRatio = ""; img.classList.remove("sized"); }, { once: true }); }
+  return img;
+}
+
+// Crop and rotate (crop.js). "Match the others" uses the pictures beside it: the rest of its
+// carousel, collage or gallery, or for a picture on its own, the other single pictures in the post.
+async function cropThumb(url, btn) {
+  const own = btn.closest(".thumb");
+  const group = own?.closest(".image-many") || own?.closest(".docpane, .inspector, .dialog");
+  const others = [...(group?.querySelectorAll(own?.closest(".image-many") ? ".thumb img" : ".image-one .thumb img") || [])]
+    .filter((i) => !own.contains(i)).map((i) => i.getAttribute("src")).filter(Boolean);
+  const done = await openCrop({ url, others });
+  if (done) shapes.set(String(url).split("?")[0], done.ratio);
+}
+
 // a picture in a field: Replace (a new version, same name, so everywhere using it updates) and Remove
 function thumb(url, onRemove, extra = []) {
   if (isLink(url) && !/\.(webp|jpe?g|png|gif|avif|svg)(\?|$)/i.test(url)) return linkThumb(url, onRemove);
   const canReplace = !isLink(url) && /\.(webp|jpe?g|png)(\?|$)/i.test(String(url || ""));
-  return h("div", { class: "thumb" }, h("img", { src: url, alt: "", loading: "lazy" }),
+  return h("div", { class: "thumb" }, sizedImg(url),
     h("div", { class: "thumb-tools" }, ...extra,
+      canReplace ? h("button", { class: "icon-btn", title: tr("Crop and rotate"), onclick: (e) => { e.stopPropagation(); cropThumb(url, e.currentTarget); } }, icon("crop")) : null,
       canReplace ? h("button", { class: "icon-btn", title: tr("Replace with a new version (same name, so everywhere it's used updates)"), onclick: (e) => { e.stopPropagation(); replaceImage(url); } }, icon("refresh")) : null,
       h("button", { class: "icon-btn", title: tr("Remove image"), onclick: onRemove }, icon("trash"))));
 }

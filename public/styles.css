@@ -1082,3 +1082,30 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .set-range:focus-visible { outline: none; }
 .set-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
 @media (max-width: 760px) { .list-items.selecting > .row-item { padding-left: 16px; } }
+
+/* ---------- the Trash page (Trash in the sidebar) ---------- */
+.trash-body { padding: 6px 14px 14px; }
+.trash-trip { margin: 10px 0 14px; }
+.trash-when { font-size: 11px; font-weight: 600; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.trash-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 6px; }
+.trash-row:hover { background: var(--fill); }
+.trash-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.trash-title { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trash-was { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* a picture still loading keeps its place (fields.js sizedImg) */
+.thumb img.sized { background: var(--fill); }
+.block-carousel .image-many .thumb img.sized { width: auto; }
+
+/* ---------- crop and rotate (crop.js) ---------- */
+.crop-dialog { width: min(760px, 100%); }
+.crop-stage { height: min(440px, 52vh); border-radius: 8px; overflow: hidden; background: #111; touch-action: none; }
+.crop-canvas { display: block; cursor: grab; touch-action: none; }
+.crop-canvas:active { cursor: grabbing; }
+.crop-tools { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; }
+.crop-slider { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px; }
+.crop-slider input { flex: 1; }
+.crop-value { font-size: 12px; color: var(--muted); width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+.crop-shape-row { display: flex; align-items: center; gap: 8px; }
+.crop-shapes { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+.crop-shapes .btn.on { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.crop-size { margin-right: auto; font-variant-numeric: tabular-nums; }

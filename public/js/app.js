@@ -13,6 +13,7 @@
 //   #/s/blog         the blog posts list
 //   #/edit/<file>    a post or page
 //   #/images         the image library
+//   #/trash          the Trash
 import { h, fill, icon, toast, confirmBox } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
@@ -24,6 +25,7 @@ import { openAddSection } from "./addsection.js";
 import { installQuotes } from "./quotes.js";
 import { onLaunch, advancedTools, imageEdge } from "./settings.js";
 import { tableView } from "./table.js";
+import { trashView } from "./trash.js";
 import { t, t2, tl, fmtDate, dayParts, lang, dateStyle } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
@@ -85,9 +87,9 @@ function popMenu(anchor, items, at = null) {
 
 // ---------- sidebar ----------
 
-let changesCount = null;
+let changesCount = null, trashCount = 0;
 async function refreshChanges() {
-  try { changesCount = (await api.changes()).count; } catch { changesCount = null; }
+  try { const c = await api.changes(); changesCount = c.count; trashCount = c.trash || 0; } catch { changesCount = null; }
   drawSidebar();
 }
 
@@ -119,7 +121,8 @@ function drawSidebar() {
       ]),
       h("div", { class: "side-group" }, t("Site")),
       item("#/images", "images", t("Media"), null, route.page === "images"),
-      siteItems.map((s) => pageItem(s, "gear"))),
+      siteItems.map((s) => pageItem(s, "gear")),
+      item("#/trash", "trash", tl("Trash"), trashCount || null, route.page === "trash")),
     h("div", { class: "side-foot" },
       changesCount == null ? null : h("span", { class: "dot" + (changesCount ? " on" : "") }),
       h("span", { class: "side-foot-text" }, changesCount == null ? "" : changesCount ? t2(changesCount, "{n} change to publish", "{n} changes to publish") : t("Everything is published")),
@@ -730,7 +733,7 @@ function drawToolbar() {
   else if (!showSidebar) left.push(tbtn("sidebar", t("Show sidebar"), () => toggleSidebar()));
   statusEl = h("div", { class: "doc-status" }, editor ? t(editor.status()) : "");
   const title = h("div", { class: "toolbar-title" },
-    h("div", { class: "toolbar-name" }, route.page === "images" ? t("Media") : editor ? editor.title : ""), editor ? statusEl : null);
+    h("div", { class: "toolbar-name" }, route.page === "images" ? t("Media") : route.page === "trash" ? tl("Trash") : editor ? editor.title : ""), editor ? statusEl : null);
 
   const right = [];
   const v = currentView();
@@ -776,7 +779,7 @@ function layout() {
   app.classList.toggle("has-file", !!editor);
   sizeTable();
   // phone: one column at a time
-  app.dataset.pane = route.page === "edit" || route.page === "images" ? "main" : route.page === "s" ? "list" : "nav";
+  app.dataset.pane = route.page === "edit" || route.page === "images" || route.page === "trash" ? "main" : route.page === "s" ? "list" : "nav";
   docpane.style.flex = v === "split" ? `${splitAt} 1 0` : "";
   previewpane.style.flex = v === "split" ? `${1 - splitAt} 1 0` : "";
   if (v !== "write") wirePreview();
@@ -817,11 +820,16 @@ drawPreviewBar();
 
 const LIVE = t("Live: shows changes as you type");
 let draftTimer = null;
+// two addresses for the same page? (/blog/x/ and /blog/x/index.html, %20 or a space)
+const samePage = (a, b) => {
+  const n = (u) => { let s = String(u || ""); try { s = decodeURI(s); } catch { /* as is */ } s = s.replace(/^https?:\/\/[^/]+/, "").split(/[?#]/)[0].replace(/\/index\.html?$/i, "/"); return s.endsWith("/") || /\.\w+$/.test(s) ? s : s + "/"; };
+  return n(a) === n(b);
+};
 function wirePreview() {
   if (!editor) return;
   const url = `http://localhost:${config.preview.port}${editor.url || "/"}`;
   const st = config.preview.status;
-  if (st === "ready" && previewFrame.dataset.url !== url) { previewFrame.dataset.url = url; previewFrame.src = url; }
+  if (st === "ready" && !(previewFrame.dataset.url && samePage(previewFrame.dataset.url, url))) { previewFrame.dataset.url = url; previewFrame.src = url; }
   previewNote.textContent = st === "ready" ? LIVE : st === "starting" ? t("Starting the preview…") : config.preview.message || t("The preview isn't running.");
   previewWait.hidden = st === "ready";
   previewWait.textContent = st === "starting" ? t("Starting the preview… The first time can take a little while.")
@@ -841,6 +849,23 @@ function watchForPreview(ed) {
   });
   ed.onStatus((st) => { if (statusEl) statusEl.textContent = t(st); if (st === "Saved") afterSave(); });
 }
+// Clicking through the preview opens the matching post or page in the editor. The preview tells
+// us which page it's on (lib/preview.js adds a line to each page for that); pages that no single
+// post makes (a listing page, say) leave the editor as it is.
+let following = 0;
+window.addEventListener("message", async (e) => {
+  if (e.source !== previewFrame.contentWindow || e.data?.wipPreview !== "nav") return;
+  const path = String(e.data.path || "/");
+  if (!editor || samePage(editor.url || "/", path)) return;
+  const mine = ++following;
+  let found;
+  try { found = await api.findByUrl(path); } catch { return; }
+  if (mine !== following || !found?.file || found.file === route.file) return;
+  // the preview is already showing it: don't load it again when the editor switches
+  previewFrame.dataset.url = `http://localhost:${config.preview.port}${path}`;
+  location.hash = editHref(found.file);
+});
+
 // Keep an eye on the preview: it may still be starting, restart after an update, or move to
 // another port. Whenever it becomes ready (again), the preview pane reloads, so it never sits
 // on a "can't connect" page.
@@ -883,7 +908,7 @@ function parseRoute() {
     return { page, file: value, section: section ? section.name : null };
   }
   if (page === "s") return { page, section: value, file: null };
-  if (page === "images") return { page, section: null, file: null };
+  if (page === "images" || page === "trash") return { page, section: null, file: null };
   return { page: "", section: null, file: null };
 }
 
@@ -916,6 +941,9 @@ async function go() {
   if (route.page === "images") {
     fill(docpane, libraryBrowser({ folder: config.site.mediaInput }).el);
     fill(inspectorEl);
+  } else if (route.page === "trash") {
+    fill(docpane, trashView({ onRestored: afterRestore }).el);
+    fill(inspectorEl);
   } else if (editor) {
     fill(docpane, h("div", { class: "doc-scroll" }, editor.doc));
     fill(inspectorEl, h("div", { class: "sheet-head" }, h("span", {}, t("Details")), h("button", { class: "link-btn", onclick: () => toggleInspector() }, t("Done"))), editor.inspector);
@@ -926,13 +954,20 @@ async function go() {
       s && s.kind === "collection" ? h("button", { class: "btn", onclick: () => newEntry(s) }, icon("compose"), t("New")) : null));
     fill(inspectorEl);
   }
-  app.classList.toggle("images-open", route.page === "images");
+  app.classList.toggle("images-open", route.page === "images" || route.page === "trash");
   drawSidebar();
   drawList();
   layout();
   document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · w·i·p cms`;
 }
 async function reopen() { editor?.destroy(); editor = null; await go(); }
+
+// something put back from the Trash: the lists (and the counts in the sidebar) catch up
+async function afterRestore() {
+  await Promise.all(config.sections.filter((s) => s.kind === "collection").map((s) => loadList(s.name, true).catch(() => {})));
+  Object.values(tables).forEach((tv) => tv.refresh(true));
+  await refreshChanges();
+}
 
 // ---------- files dragged in from Finder ----------
 // Anywhere on a post: pictures become image blocks, videos video blocks, other files links,

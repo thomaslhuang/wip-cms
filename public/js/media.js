@@ -13,6 +13,7 @@ import { t as tr, t2, fmtDate } from "./i18n.js";
 
 let LONGEST_EDGE = 1500;
 export const setUploadEdge = (n) => { LONGEST_EDGE = Number(n) > 0 ? Number(n) : 1500; };
+export const uploadEdge = () => LONGEST_EDGE;
 const FORMATS = { webp: "image/webp", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png" };
 
 // one file -> { blob, name } ready to save. as: "webp", "jpg" or "png" to make exactly that

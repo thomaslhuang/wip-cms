@@ -23,6 +23,10 @@ export const api = {
   version: () => call("GET", "/api/version"),
   restart: () => call("POST", "/api/restart"),
   changes: () => call("GET", "/api/changes"),
+  findByUrl: (url) => call("GET", "/api/find?" + qs({ url })),
+  trash: () => call("GET", "/api/trash"),
+  restoreFromTrash: (id) => call("POST", "/api/trash/restore", { id }),
+  revealTrash: () => call("POST", "/api/trash/reveal"),
   preview: () => call("GET", "/api/preview"),
   draft: (file, data, body) => call("PUT", "/api/draft", { file, data, body }),
   discardDraft: (file) => call("DELETE", "/api/draft?" + qs({ file })),
@@ -45,6 +49,6 @@ export const api = {
   imageFolder: (file) => call("GET", "/api/image-folder?" + qs({ file })),
   media: (folder) => call("GET", "/api/media?" + qs(folder ? { folder } : {})),
   phoneLink: (folder, edge) => call("GET", "/api/phone-link?" + qs(edge ? { folder, edge } : { folder })),
-  replaceMedia: (url, blob) => call("POST", "/api/media/replace?" + qs({ url }), blob, true),
+  replaceMedia: (url, blob, crop = false) => call("POST", "/api/media/replace?" + qs(crop ? { url, crop: 1 } : { url }), blob, true),
   upload: (folder, name, blob, kind) => call("POST", "/api/upload?" + qs(kind ? { folder, name, kind } : { folder, name }), blob, true),
 };
