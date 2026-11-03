@@ -1,18 +1,19 @@
 # w·i·p cms
 
-A local editor for static sites that use a `.pages.yml` (the Pages CMS settings file).
-It runs on your Mac and edits the site's files directly. Nothing goes online until you
-commit and push, for example in GitHub Desktop. It reads the same `.pages.yml` as Pages
-CMS, so you can use both.
+A local editor for static sites that use `.pages.yml` (it reads the same `.pages.yml` as Pages
+CMS, so you can use both.) It edits site files directly. Nothing goes online until you
+commit and push, for example in GitHub Desktop. 
 
-It's laid out like a Mac app (think Notes or Pages): your sections on the left, your
-posts next to them, the post itself as a document, and its details in an inspector on
-the right. It saves as you type, has a **live preview** of the real site beside your
-writing, and comes in light and dark.
+Key features:
+- Live preview for viewing changes before publishing
+- Automatic image conversion and sorting
+- Batch editing of posts for ease of data management
+- Document-like text editor
+- Direct file management (no Google Drive intermediary or need to manually go into local files on computer)
 
 ## Starting it
 
-**Double-click `w·i·p cms.app`** in this folder. That's it: no Terminal.
+**Double-click `w·i·p cms.app`** in this folder.
 
 - It starts the editor in the background and opens it in its own window (an app window in
   Chrome, Edge or Brave if you have one; otherwise your default browser).
