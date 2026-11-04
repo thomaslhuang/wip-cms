@@ -9,9 +9,11 @@
 //   When it opens   the last site, or the list of sites
 //   Advanced tools  the spreadsheet view in lists (editing many entries at once, pasting rows
 //                   from a spreadsheet)
+//   Other devices   use w·i·p cms from your phone (a password, and the addresses to open there);
+//                   kept on the Mac, not in this browser; not shown on another device
 //   Site            which site is open, its nickname, and opening another
 //
-// Everything is kept in this browser, like the themes.
+// Everything else is kept in this browser, like the themes.
 import { h, fill, toast } from "./util.js";
 import { api } from "./api.js";
 import { t, tl, fmtDate, lang, setLang, dateStyle, setDateStyle } from "./i18n.js";
@@ -31,7 +33,7 @@ export const onLaunch = () => (read("wip-on-launch", "last") === "list" ? "list"
 
 // beforeReload: save anything open first · onDates: redraw what shows dates · site: the open site
 // openSite: show the "Open a site" window
-export function openSettings({ beforeReload, onDates, site, openSite, onRename, onAdvanced, onImageEdge }) {
+export function openSettings({ beforeReload, onDates, site, remote = false, openSite, onRename, onAdvanced, onImageEdge }) {
   const body = h("div", { class: "custom-body" });
   const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey); };
   const onKey = (e) => { if (e.key === "Escape") close(); };
@@ -55,6 +57,45 @@ export function openSettings({ beforeReload, onDates, site, openSite, onRename, 
     return sw;
   };
   const hint = (text) => h("p", { class: "set-hint" }, text);
+
+  // Other devices: the part that's about your phone. It asks the Mac (not this browser) for how
+  // things stand, then draws itself.
+  function remoteBox() {
+    const box = h("div", { class: "set-remote" });
+    drawRemote(box);
+    return box;
+  }
+  async function drawRemote(box) {
+    let s;
+    try { s = await api.remote(); } catch (e) { return fill(box, hint(e.message)); }
+    const password = h("input", { class: "set-input", type: "password", autocomplete: "new-password", autocapitalize: "off", spellcheck: false,
+      placeholder: s.hasPassword ? t("New password") : t("Choose a password"), "aria-label": tl("Password"),
+      onkeydown: (e) => { if (e.key === "Enter") setPassword(); } });
+    const setPassword = async () => {
+      if (!password.value) return password.focus();
+      try { await api.setRemote({ password: password.value }); toast(s.hasPassword ? t("Password changed. Every device has to sign in again.") : t("Password set.")); }
+      catch (e) { toast(e.message, "error"); }
+      drawRemote(box);
+    };
+    const copy = (url) => navigator.clipboard?.writeText(url).then(() => toast(t("Copied {url}", { url })), () => toast(url));
+    fill(box,
+      group("Other devices",
+        row(tl("Let my other devices connect"), toggle(s.enabled, async (on) => {
+          try { await api.setRemote({ enabled: on }); } catch (e) { toast(e.message, "error"); }
+          drawRemote(box);
+        })),
+        row(tl("Password"), password, h("button", { class: "btn small", onclick: setPassword }, s.hasPassword ? t("Change") : t("Set"))),
+        s.hasPassword ? row(tl("Signed-in devices"), h("button", { class: "btn small", onclick: async () => {
+          try { await api.signOutEverywhere(); toast(t("Signed out everywhere.")); } catch (e) { toast(e.message, "error"); }
+        } }, t("Sign out all devices"))) : null,
+        ...(s.enabled ? s.addresses.map((a) => row(a.label, h("span", { class: "set-remote-url" }, h("b", {}, a.url)),
+          h("button", { class: "btn small", onclick: () => copy(a.url) }, t("Copy")))) : [])),
+      s.enabled && s.addresses.length ? h("div", { class: "set-remote-qr" }, h("div", { class: "phone-qr", html: s.qr }),
+        h("p", { class: "muted small" }, t("Open the first address on your phone (scan this with its camera). Tailscale has to be running on the phone too."))) : null,
+      s.enabled && !s.tailscale ? h("p", { class: "set-warn" }, t("Tailscale doesn't seem to be running on this Mac. Without it, these addresses only work on your home Wi-Fi. Install it from tailscale.com/download and sign in, then do the same on your phone.")) : null,
+      hint(t("Use w·i·p cms from your phone, from anywhere. Install Tailscale (free) on this Mac and on your phone, signed in to the same account; it makes a private, encrypted connection between them. Then open the address above on your phone and sign in with this password. Use a long one ({n}+ characters).", { n: s.minPassword })),
+      h("p", { class: "set-hint" }, t("Anyone who signs in can edit this site's files, so don't share the password or your Tailscale account, and don't turn on Tailscale's Funnel. If you lose your phone, change the password or sign out all devices here. This Mac has to stay awake and w·i·p cms open (closing the window is fine). What you write is saved on this Mac; publish in GitHub Desktop as usual.")));
+  }
 
   function draw() {
     const scale = uiScale();
@@ -84,12 +125,13 @@ export function openSettings({ beforeReload, onDates, site, openSite, onRename, 
       hint(t("\" and ' become “ ” and ‘ ’ as you type (apostrophes too), as in InDesign. Not in Source, HTML or web addresses.")),
       group("Starting up",
         row(tl("When w·i·p cms opens"), dropdown(tl("When w·i·p cms opens"), [["last", t("Open the last site")], ["list", t("Show the list of sites")]], onLaunch(), (v) => write("wip-on-launch", v)))),
+      remote ? null : remoteBox(),
       group("Advanced",
         row(tl("Advanced tools"), toggle(advancedTools(), (on) => { write("wip-advanced", on ? "on" : "off"); onAdvanced?.(on); }))),
       hint(t("Adds a spreadsheet view to lists: every entry as a row, edited right in the cells, and rows pasted in from Google Sheets, Numbers or Excel. Handy for lots of entries at once; the writing and pictures still open in the editor.")),
       site ? group("Site",
         row(h("span", { class: "set-site" }, h("b", {}, site.name), h("span", { class: "muted" }, site.root)),
-          h("button", { class: "btn small", onclick: () => { close(); openSite(); } }, tl("Open another site…"))),
+          remote ? null : h("button", { class: "btn small", onclick: () => { close(); openSite(); } }, tl("Open another site…"))),
         row(tl("Nickname"), h("input", { class: "set-input", value: site.nickname || "", placeholder: site.folder || "",
           onchange: async (e) => { try { const r = await api.setNickname(site.root, e.target.value); site.nickname = r.nickname; site.name = r.nickname || site.folder; onRename?.(); draw(); } catch (err) { toast(err.message, "error"); } } }))) : null,
       site ? hint(t("Your own name for this site, shown in the sidebar and the list of recent sites instead of its folder's name. Only on this Mac; the site itself doesn't change.")) : null,

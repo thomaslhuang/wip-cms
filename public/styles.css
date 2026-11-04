@@ -1109,3 +1109,13 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .crop-shapes { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
 .crop-shapes .btn.on { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .crop-size { margin-right: auto; font-variant-numeric: tabular-nums; }
+
+/* from another device: the site's name where the "open another site" button is */
+.site-btn.static { pointer-events: none; }
+
+/* Settings → Other devices */
+.set-remote-url { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.set-remote-url b { font-weight: 600; overflow-wrap: anywhere; user-select: all; -webkit-user-select: all; }
+.set-remote-qr { display: flex; align-items: center; gap: 14px; padding: 4px 4px 12px; }
+.set-remote-qr .phone-qr { width: 128px; height: 128px; }
+.set-warn { margin: 6px 4px 14px !important; padding: 8px 10px; border-radius: 8px; background: var(--fill); font-size: 12px; line-height: 1.45; }

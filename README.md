@@ -202,8 +202,8 @@ Trash** moves them into `.cms-trash`, after saying which are still used on the s
 - Uploads are converted in the browser to WebP, 1500px on the longest edge. They go
   into the post's own image folder, e.g. `src/images/blog/2026/10/my-post/`.
 - **From phone** shows a QR code. Your phone needs to be on the same Wi-Fi. The phone
-  can only reach the upload page; the editor is only reachable from your Mac. The link
-  changes every time w·i·p cms starts.
+  can only reach the upload page; the editor is only reachable from your Mac (unless you turn
+  on **Other devices**, below). The link changes every time w·i·p cms starts.
 
 **Adding a collection or page:** the **+** at the bottom of the sidebar. Choose
 **Collection** (many entries, like blog posts) or **Page** (one, like About), give it a name,
@@ -219,6 +219,43 @@ and it's added to `.pages.yml` with a place for its content, ready to write in.
 - Only additions are made to `.pages.yml`: your comments and layout stay as they are.
 - What w·i·p cms can't do is make the site show it: that needs a template on the site, which
   is different for every site. After adding, it says what the site needs.
+
+## Using it from your phone (or anywhere)
+
+⋯ → **Settings… → Other devices** lets a phone open the whole editor, so you can write a post
+away from your desk. It's off until you turn it on.
+
+1. Install **Tailscale** (free, tailscale.com/download) on the Mac and on the phone, and sign
+   in to the same account on both. It makes a private, encrypted connection between your
+   devices; nobody else can reach either one, and nothing is put on the public internet.
+2. In Settings → Other devices, choose a **password** (12 characters or more) and turn on
+   **Let my other devices connect**.
+3. On the phone, open the address shown there (or scan the QR code), sign in with the password,
+   and use it like on the Mac. Safari's Share → Add to Home Screen gives it an icon.
+
+The Mac has to be awake and w·i·p cms running (closing its window is fine). What you write is
+saved in the site's folder on the Mac, so you publish the way you always do, in GitHub Desktop.
+
+What a signed-in phone can't do: quit w·i·p cms, open other sites, show things in the Finder,
+or change this setting. It can edit and add posts and pictures, crop, move things to the Trash and
+put them back.
+
+**Safety**
+
+- The password is kept as a salted hash (`~/.wip-cms-remote.json`, readable by you only), five
+  wrong tries lock a device out for 15 minutes, and a sign-in lasts 60 days.
+- Changing the password, turning the setting off, or **Sign out all devices** signs every
+  device out at once. Do that if you lose a phone.
+- Anyone who signs in can edit the site's files. Don't share the password or the Tailscale
+  account, and don't turn on Tailscale's **Funnel** (it publishes things to the whole internet).
+- The connection runs over plain `http` inside Tailscale's encrypted network, so Safari calls the
+  page "not secure" and a few small conveniences, such as copying to the clipboard, may not work
+  there.
+- Even with this off, the preview is only reachable from this Mac. (Eleventy's own server used
+  to answer anyone on the same network; w·i·p cms now starts it so it only answers this
+  computer, and its go-between asks other devices to sign in.) Requests from other web pages
+  are refused, and a proxy on this Mac (Tailscale's `serve`, a tunnel) can't pass for the Mac
+  itself.
 
 ## Other sites
 
@@ -323,11 +360,14 @@ lib/
   tags.js            keeps the tag suggestions in .pages.yml up to date
   preview.js         the live preview (shadow copy + Eleventy, and the go-between in front of it)
   trash.js           the Trash page: what's in .cms-trash, and putting things back
-  phone.js           phone uploads: the secret link, the QR code, who may connect
+  phone.js           phone uploads: the secret link, the QR code, who counts as "this computer"
+  remote.js          Other devices: the password, signing in, locking out guessers, the addresses
+  bind-loopback.js   makes the preview's Eleventy answer only this computer
   setup.js           setting up a new site: writes its .pages.yml
   sections.js        adding a collection or page to a site that's set up (the sidebar's +)
 public/
   index.html         the window: sidebar, list, toolbar, document, preview, inspector
+  login.html         what another device sees until it has signed in
   styles.css         all the styling; light and dark colors at the top
   phone.html         the page your phone sees
   js/

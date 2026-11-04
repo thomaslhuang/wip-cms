@@ -7,6 +7,8 @@ async function call(method, url, body, isRaw = false) {
     body: body ? (isRaw ? body : JSON.stringify(body)) : undefined,
   });
   const data = await res.json().catch(() => ({}));
+  // signed out (a new password, or "Sign out all devices"): the page asks again
+  if (res.status === 401) { location.reload(); throw new Error(data.error || "Sign in first."); }
   if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
   return data;
 }
@@ -20,6 +22,9 @@ export const api = {
   inspectSite: (path) => call("GET", "/api/site/inspect?" + qs({ path })),
   setupSite: (path, plan) => call("POST", "/api/site/setup", { path, plan }),
   quit: () => call("POST", "/api/quit"),
+  remote: () => call("GET", "/api/remote"),
+  setRemote: (body) => call("POST", "/api/remote", body),
+  signOutEverywhere: () => call("POST", "/api/remote/signout"),
   version: () => call("GET", "/api/version"),
   restart: () => call("POST", "/api/restart"),
   changes: () => call("GET", "/api/changes"),

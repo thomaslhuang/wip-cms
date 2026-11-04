@@ -37,6 +37,11 @@ export function fill(el, ...children) {
   return el;
 }
 
+// where this window is running: remote is true on another device (your phone, signed in through
+// Settings → Other devices on the Mac), where the Mac-only things (quit, other sites, the
+// Finder, the phone upload code) aren't offered. app.js sets it as the page starts.
+export const env = { remote: false };
+
 // inline icons (from the Lucide set, like Pages CMS)
 const ICONS = {
   chevron: '<path d="m9 18 6-6-6-6"/>',

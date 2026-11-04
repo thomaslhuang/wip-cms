@@ -25,6 +25,7 @@ const phone = require("./lib/phone");
 const setup = require("./lib/setup");
 const sections = require("./lib/sections");
 const trash = require("./lib/trash");
+const remote = require("./lib/remote");
 
 const PORT = Number(process.env.WIP_PORT) || 4321;
 // the code's git commit when it started (the Mac app restarts the editor when this changes)
@@ -38,7 +39,9 @@ const codeStamp = () => {
 const STARTED_AS = codeStamp();
 const VERSION = (() => { try { return require("child_process").execFileSync("git", ["rev-parse", "HEAD"], { cwd: __dirname, encoding: "utf8" }).trim(); } catch { return "unknown"; } })();
 // Listens on the local network so your phone can reach the photo-upload page, but from
-// any other device only that page works (see lib/phone.js). The editor is this computer only.
+// any other device only that page works (see lib/phone.js). The editor is this computer only,
+// unless you turn on Other devices in Settings: then a device that signs in with your password
+// can use it too (lib/remote.js), minus the things in THIS_COMPUTER_ONLY below.
 const HOST = "0.0.0.0";
 const PUBLIC = path.join(__dirname, "public");
 
@@ -60,7 +63,7 @@ function afterChange(file) {
 
 const routes = {
   // which site is open, and recent ones (for the "Open site" screen)
-  "GET /api/site": () => ({ site: site.info(), recent: site.recentWithNames() }),
+  "GET /api/site": (q, body, ctx) => ({ site: site.info(), recent: ctx.remote ? [] : site.recentWithNames(), remote: !!ctx.remote }),
   // your own name for a site, shown instead of its folder's name
   "POST /api/site/nickname": (q, body) => site.setNickname(body.path, body.nickname),
   "POST /api/site": (q, body) => { const info = site.openSite(body.path); preview.startPreview(); return { site: info }; },
@@ -73,7 +76,7 @@ const routes = {
   "POST /api/sections": (q, body) => { const made = sections.add(body.plan || {}); afterChange(".pages.yml"); afterChange(made.path); return made; },
 
   // everything the editor needs to draw itself
-  "GET /api/config": () => ({ site: site.info(), ...loadConfig(), tags: allTags(), preview: preview.previewInfo() }),
+  "GET /api/config": (q, body, ctx) => ({ site: site.info(), ...loadConfig(), tags: allTags(), preview: preview.previewInfo(), remote: !!ctx.remote }),
   "GET /api/preview": () => preview.previewInfo(),
 
   // posts, projects, pages
@@ -95,6 +98,11 @@ const routes = {
   "PUT /api/draft": (q, body) => ({ ok: preview.writeDraft(String(body.file).replace(/#\d+$/, ""), entries.serialize(body.file, body.data, body.body)) }),
   // forget unsaved edits: the preview goes back to what's saved
   "DELETE /api/draft": (q) => { preview.syncFromSite(String(q.file).replace(/#\d+$/, "")); return { ok: true }; },
+
+  // Settings → Other devices: use this site from your phone (lib/remote.js). This computer only.
+  "GET /api/remote": () => remote.status(PORT),
+  "POST /api/remote": async (q, body) => { await remote.configure(body); return remote.status(PORT); },
+  "POST /api/remote/signout": () => { remote.signOutAll(); return { ok: true }; },
 
   // which post or page makes this web address (the preview says which page it's on)
   "GET /api/find": (q) => entries.findByUrl(q.url),
@@ -139,6 +147,18 @@ const routes = {
   "GET /api/phone-link": (q) => phone.phoneLink(PORT, q.folder || site.rel(site.imagesDir()), q.edge),
 };
 
+// What a device that signed in (Other devices) can't do: only this computer can quit, switch
+// to another folder on this Mac, set things up in one, show things in the Finder, or change who
+// may connect.
+const THIS_COMPUTER_ONLY = new Set([
+  "POST /api/quit", "POST /api/site", "POST /api/site/setup", "GET /api/site/inspect", "POST /api/site/nickname",
+  "POST /api/trash/reveal", "GET /api/phone-link",
+  "GET /api/remote", "POST /api/remote", "POST /api/remote/signout",
+]);
+
+// the few things that are fine to show before signing in: the sign-in page's own picture
+const BEFORE_SIGN_IN = new Set(["/favicon.png", "/apple-touch-icon.png"]);
+
 // git status of the open site; works without git too (count is then null)
 function changes() {
   try {
@@ -171,16 +191,52 @@ function serveFile(res, file) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const q = Object.fromEntries(url.searchParams);
   try {
-    // ----- other devices (your phone): only the upload page and uploads -----
-    if (!phone.isLocal(req)) {
-      if (!phone.validToken(q.t)) return send(res, 403, { error: "This link has expired. Scan the QR code in w·i·p cms again." });
-      if (req.method === "GET" && url.pathname === "/phone") return serveFile(res, path.join(PUBLIC, "phone.html"));
-      if (req.method === "POST" && url.pathname === "/api/upload") return send(res, 200, media.saveUpload(q.folder, q.name, await readBody(req)));
-      return send(res, 403, { error: "Only photo uploads are allowed from other devices." });
+    const url = new URL(req.url, "http://localhost");
+    const q = Object.fromEntries(url.searchParams);
+
+    // a page on some other web address can't make your browser change things here
+    if (!["GET", "HEAD", "OPTIONS"].includes(req.method) && req.headers.origin) {
+      let same = false;
+      try { same = new URL(req.headers.origin).host === req.headers.host; } catch { /* "null" and the like */ }
+      if (!same) return send(res, 403, { error: "That request came from another web page, so it was refused." });
     }
+
+    // ----- other devices (your phone) -----
+    const local = phone.isLocal(req);
+    if (!local) {
+      // the photo-upload page, by its secret link (From phone in the picker)
+      if (phone.validToken(q.t)) {
+        if (req.method === "GET" && url.pathname === "/phone") return serveFile(res, path.join(PUBLIC, "phone.html"));
+        if (req.method === "POST" && url.pathname === "/api/upload") return send(res, 200, media.saveUpload(q.folder, q.name, await readBody(req)));
+      }
+      if (!remote.enabled()) {
+        if (url.pathname === "/phone") return send(res, 403, { error: "This link has expired. Scan the QR code in w·i·p cms again." });
+        return send(res, 403, { error: "Only photo uploads are allowed from other devices." });
+      }
+      // Other devices is on: sign in with the password, then it's the editor
+      if (req.method === "POST" && url.pathname === "/api/login") {
+        const raw = await readBody(req, 4096);
+        let password;
+        try { password = JSON.parse(raw.toString() || "{}").password; } catch { /* no password */ }
+        try { await remote.login(req, password); }
+        catch (err) { if (err.retryAfter) res.setHeader("Retry-After", err.retryAfter); throw err; }
+        res.setHeader("Set-Cookie", remote.sessionCookie());
+        return send(res, 200, { ok: true });
+      }
+      if (req.method === "POST" && url.pathname === "/api/logout") { res.setHeader("Set-Cookie", remote.clearCookie()); return send(res, 200, { ok: true }); }
+      const left = remote.sessionLeft(req);
+      if (!left) {
+        if (req.method === "GET" && BEFORE_SIGN_IN.has(url.pathname)) return serveFile(res, path.join(PUBLIC, url.pathname));
+        if (url.pathname.startsWith("/api/")) return send(res, 401, { error: "Sign in first." });
+        return serveFile(res, path.join(PUBLIC, "login.html"));
+      }
+      // signed in: stay signed in while you keep using it
+      if (left < remote.SESSION_MS / 2) res.setHeader("Set-Cookie", remote.sessionCookie());
+    }
+    const key = `${req.method} ${url.pathname}`;
+    if (!local && THIS_COMPUTER_ONLY.has(key)) return send(res, 403, { error: "That only works on the Mac that w·i·p cms is running on." });
+
     if (req.method === "GET" && url.pathname === "/phone") return serveFile(res, path.join(PUBLIC, "phone.html"));
     // the picture to crop from (its uncropped original, if it's been cropped before)
     if (req.method === "GET" && url.pathname === "/api/media/original") return serveFile(res, media.cropSource(q.url));
@@ -197,10 +253,10 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, media.saveUpload(q.folder, q.name, await readBody(req, anyFile ? media.MAX_FILE + 1024 : undefined), anyFile));
     }
 
-    const route = routes[`${req.method} ${url.pathname}`];
+    const route = routes[key];
     if (route) {
       const raw = ["PUT", "POST"].includes(req.method) ? await readBody(req, 5 * 1024 * 1024) : null;
-      return send(res, 200, await route(q, raw && raw.length ? JSON.parse(raw) : {}));
+      return send(res, 200, await route(q, raw && raw.length ? JSON.parse(raw) : {}, { remote: !local }));
     }
     // the open site's images, so thumbnails show (e.g. /images/blog/x.webp)
     const s = site.info();
@@ -213,7 +269,7 @@ const server = http.createServer(async (req, res) => {
     }
     // the editor itself (public/...); any other address shows the app
     const file = path.join(PUBLIC, decodeURIComponent(url.pathname));
-    if (file.startsWith(PUBLIC) && fs.existsSync(file) && fs.statSync(file).isFile()) return serveFile(res, file);
+    if (file.startsWith(PUBLIC + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) return serveFile(res, file);
     return serveFile(res, path.join(PUBLIC, "index.html"));
   } catch (err) {
     if (!err.status || err.status >= 500) console.error(err);

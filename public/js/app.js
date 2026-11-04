@@ -14,7 +14,7 @@
 //   #/edit/<file>    a post or page
 //   #/images         the image library
 //   #/trash          the Trash
-import { h, fill, icon, toast, confirmBox } from "./util.js";
+import { h, fill, icon, toast, confirmBox, env } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
 import { libraryBrowser, setMediaRoot, setUploadEdge } from "./media.js";
@@ -110,7 +110,9 @@ function drawSidebar() {
   const pageItem = (s, iconName) => item("#/edit/" + s.path, iconName, tl(s.label), null, route.file === s.path);
   fill(sidebarEl,
     h("div", { class: "side-head" },
-      h("button", { class: "site-btn", title: t("Open another site"), onclick: () => chooseSite(true) }, h("span", {}, config.site.name), icon("chevrons")),
+      // (from your phone there's no other site to open: that's a choice for the Mac)
+      env.remote ? h("div", { class: "site-btn static" }, h("span", {}, config.site.name))
+        : h("button", { class: "site-btn", title: t("Open another site"), onclick: () => chooseSite(true) }, h("span", {}, config.site.name), icon("chevrons")),
       tbtn("sidebar", t("Hide sidebar"), () => toggleSidebar(), { cls: "side-hide" })),
     h("nav", { class: "side-scroll" },
       collections.length ? h("div", { class: "side-group" }, t("Collections")) : null,
@@ -713,7 +715,7 @@ function moreItems() {
   return [
     ...(editor ? [
       { label: tl("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
-      ...(editor.url && !narrow() ? [{ label: tl("Open on your site"), run: () => window.open(`http://localhost:${config.preview.port}${editor.url}`, "_blank", "noopener") }] : []),
+      ...(editor.url && !narrow() ? [{ label: tl("Open on your site"), run: () => window.open(`${previewBase()}${editor.url}`, "_blank", "noopener") }] : []),
       "-",
     ] : []),
     { heading: t("Appearance") },
@@ -722,8 +724,10 @@ function moreItems() {
     "-",
     // language, how dates are written, interface size
     { label: tl("Settings…"), run: showSettings },
-    { label: tl("Open another site…"), run: () => chooseSite(true) },
-    { label: t("Quit w·i·p cms"), run: quit },
+    ...(env.remote ? [] : [
+      { label: tl("Open another site…"), run: () => chooseSite(true) },
+      { label: t("Quit w·i·p cms"), run: quit },
+    ]),
   ];
 }
 
@@ -820,6 +824,9 @@ drawPreviewBar();
 
 const LIVE = t("Live: shows changes as you type");
 let draftTimer = null;
+// Where the preview is: on the same computer as this page, one port over. (On the Mac that's
+// localhost; on your phone it's the Mac's address, the one you opened this page at.)
+const previewBase = () => `${location.protocol}//${location.hostname}:${config.preview.port}`;
 // two addresses for the same page? (/blog/x/ and /blog/x/index.html, %20 or a space)
 const samePage = (a, b) => {
   const n = (u) => { let s = String(u || ""); try { s = decodeURI(s); } catch { /* as is */ } s = s.replace(/^https?:\/\/[^/]+/, "").split(/[?#]/)[0].replace(/\/index\.html?$/i, "/"); return s.endsWith("/") || /\.\w+$/.test(s) ? s : s + "/"; };
@@ -827,7 +834,7 @@ const samePage = (a, b) => {
 };
 function wirePreview() {
   if (!editor) return;
-  const url = `http://localhost:${config.preview.port}${editor.url || "/"}`;
+  const url = `${previewBase()}${editor.url || "/"}`;
   const st = config.preview.status;
   if (st === "ready" && !(previewFrame.dataset.url && samePage(previewFrame.dataset.url, url))) { previewFrame.dataset.url = url; previewFrame.src = url; }
   previewNote.textContent = st === "ready" ? LIVE : st === "starting" ? t("Starting the preview…") : config.preview.message || t("The preview isn't running.");
@@ -862,7 +869,7 @@ window.addEventListener("message", async (e) => {
   try { found = await api.findByUrl(path); } catch { return; }
   if (mine !== following || !found?.file || found.file === route.file) return;
   // the preview is already showing it: don't load it again when the editor switches
-  previewFrame.dataset.url = `http://localhost:${config.preview.port}${path}`;
+  previewFrame.dataset.url = `${previewBase()}${path}`;
   location.hash = editHref(found.file);
 });
 
@@ -1013,6 +1020,7 @@ function showSettings() {
     beforeReload: () => editor?.flush(),
     onDates: () => { drawList(); editor?.redrawMeta?.(); },
     site: config.site,
+    remote: env.remote,
     openSite: () => chooseSite(true),
     onRename: () => { drawSidebar(); document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · w·i·p cms`; },
     onAdvanced: () => { drawList(); layout(); },
@@ -1124,7 +1132,14 @@ async function updateServerIfNeeded() {
 
 (async () => {
   await updateServerIfNeeded();
-  const { site } = await api.site();
+  const { site, remote: fromAnotherDevice } = await api.site();
+  env.remote = !!fromAnotherDevice;
+  if (!site && env.remote) {
+    app.hidden = true;
+    document.body.append(h("div", { class: "overlay" }, h("div", { class: "dialog" }, h("p", { class: "dialog-title" }, t("No site is open yet")),
+      h("p", { class: "muted small" }, t("Open a site in w·i·p cms on your Mac first, then come back to this page.")))));
+    return;
+  }
   if (!site) { app.hidden = true; await chooseSite(false); return; }
   // the site's settings can't be read (moved, or .pages.yml deleted): pick a site again
   try { config = await api.config(); } catch (e) { app.hidden = true; await chooseSite(false); toast(t("Couldn't read that site's settings (.pages.yml), so pick a site to open."), "error"); return; }
@@ -1144,7 +1159,7 @@ async function updateServerIfNeeded() {
   showAdded();
   // Settings → When w·i·p cms opens → Show the list of sites: once per window (not on every reload)
   try {
-    if (onLaunch() === "list" && !sessionStorage.getItem("wip-launched")) chooseSite(true);
+    if (!env.remote && onLaunch() === "list" && !sessionStorage.getItem("wip-launched")) chooseSite(true);
     sessionStorage.setItem("wip-launched", "1");
   } catch { /* fine */ }
 })();

@@ -2,7 +2,7 @@
 // newest first, one group for each time something went to the Trash. Put back moves a post (with
 // its image folder), a list item (into its old place in the list) or a file back where it was.
 // Nothing is deleted from here: to empty the Trash, delete .cms-trash in the Finder.
-import { h, fill, icon, toast } from "./util.js";
+import { h, fill, icon, toast, env } from "./util.js";
 import { api } from "./api.js";
 import { t, tl, fmtDate } from "./i18n.js";
 
@@ -14,7 +14,7 @@ export function trashView({ onRestored = () => {} } = {}) {
   const el = h("div", { class: "library trash-page" },
     h("div", { class: "picker-head" },
       h("div", { class: "picker-crumbs" }, h("b", {}, tl("Trash"))),
-      h("button", { class: "btn small", onclick: () => api.revealTrash().catch((e) => toast(e.message, "error")) }, icon("folder"), t("Show in Finder"))),
+      env.remote ? null : h("button", { class: "btn small", onclick: () => api.revealTrash().catch((e) => toast(e.message, "error")) }, icon("folder"), t("Show in Finder"))),
     body);
 
   async function show() {

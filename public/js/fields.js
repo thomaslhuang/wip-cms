@@ -3,7 +3,7 @@
 // Every editor works the same way: it shows obj[field.name] and writes changes straight
 // back into obj, then calls ctx.changed() so the Save button lights up.
 // To support a new field type, add a function to EDITORS below.
-import { h, fill, icon, autosize, isPlainObject, toast } from "./util.js";
+import { h, fill, icon, autosize, isPlainObject, toast, env } from "./util.js";
 import { openPicker, chooseFiles, uploadFiles, kindOf, folderUrl, replaceImage } from "./media.js";
 import { api } from "./api.js";
 import { openCrop } from "./crop.js";
@@ -406,10 +406,11 @@ function imageButtons(folder, multiple, onPicked, links = false) {
       if (picked && picked.length) onPicked(picked);
     } }, icon("folder"), tr("Library")),
     h("span", { class: "image-buttons-label" }, tr("or upload from")),
-    h("button", { class: "btn small", title: tr("Upload from this computer"), onclick: () => chooseFiles(multiple, async (files) => {
+    h("button", { class: "btn small", title: env.remote ? tr("Upload from this device") : tr("Upload from this computer"), onclick: () => chooseFiles(multiple, async (files) => {
       try { onPicked(await uploadFiles(folder, files)); } catch (e) { toast(e.message, "error"); }
-    }) }, icon("laptop"), tr("Computer")),
-    h("button", { class: "btn small", title: tr("Upload from your phone"), onclick: async () => {
+    }) }, icon(env.remote ? "phone" : "laptop"), env.remote ? tr("This device") : tr("Computer")),
+    // (from your phone, "Phone" would be a QR code for the phone you're already holding)
+    env.remote ? null : h("button", { class: "btn small", title: tr("Upload from your phone"), onclick: async () => {
       const picked = await openPicker({ multiple, folder, phone: true });
       if (picked && picked.length) onPicked(picked);
     } }, icon("phone"), tr("Phone")),

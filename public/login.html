@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sign in · w·i·p cms</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <!-- Shown to another device (your phone) before it has signed in: Settings → Other devices
+       on the Mac turns that on. Everything is inline, because nothing else is served yet. -->
+  <style>
+    :root { color-scheme: light dark; --bg: #f5f5f7; --card: #fff; --text: #1d1d1f; --muted: #636366; --line: #d2d2d7; --accent: #0a66d8; --danger: #c62828; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #1c1c1e; --card: #2c2c2e; --text: #f2f2f7; --muted: #a1a1a6; --line: #48484a; --accent: #4c9bff; --danger: #ff7b72; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 16px;
+      background: var(--bg); color: var(--text); font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    main { width: 100%; max-width: 360px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; }
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    p { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+    input { width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--text); font: inherit; }
+    input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+    button { width: 100%; height: 44px; margin-top: 12px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; }
+    button:disabled { opacity: .6; }
+    #err { min-height: 1.4em; margin: 12px 0 0; color: var(--danger); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>w·i·p cms</h1>
+    <p>Enter the password you set on your Mac.</p>
+    <form id="form">
+      <input id="password" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Password" required autofocus>
+      <button id="go" type="submit">Sign in</button>
+      <p id="err" role="alert"></p>
+    </form>
+  </main>
+  <script>
+    const form = document.getElementById("form"), password = document.getElementById("password"), go = document.getElementById("go"), err = document.getElementById("err");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      err.textContent = "";
+      go.disabled = true;
+      try {
+        const res = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: password.value }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Couldn't sign in.");
+        location.reload();
+      } catch (ex) {
+        err.textContent = ex.message;
+        password.select();
+        go.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

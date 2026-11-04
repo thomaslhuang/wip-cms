@@ -7,7 +7,7 @@
 //
 // Replacing a picture (a new, sharper version of one already on the site) keeps its file name
 // and format, so every page that uses it shows the new one.
-import { h, fill, icon, toast, confirmBox } from "./util.js";
+import { h, fill, icon, toast, confirmBox, env } from "./util.js";
 import { api } from "./api.js";
 import { t as tr, t2, fmtDate } from "./i18n.js";
 
@@ -324,7 +324,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     ondragover: (e) => { if (e.dataTransfer.types.includes("Files")) e.preventDefault(); },
     ondrop: (e) => { if (e.dataTransfer.files.length) { e.preventDefault(); upload([...e.dataTransfer.files]); } } },
     h("div", { class: "picker-head" }, crumbs,
-      phoneBtn,
+      env.remote ? null : phoneBtn,
       h("button", { class: "btn", onclick: () => chooseFiles(multiple || !pickable, upload, pickable ? "image/*" : "") }, icon("upload"), h("span", { class: "label" }, tr("Upload"))),
       pickable ? null : viewSwitch,
       pickable ? null : selectBtn,
