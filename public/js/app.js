@@ -794,7 +794,10 @@ function layout() {
   app.classList.toggle("has-file", !!editor);
   sizeTable();
   // phone: one column at a time
-  app.dataset.pane = route.page === "edit" || route.page === "images" || route.page === "trash" ? "main" : route.page === "s" ? "list" : "nav";
+  const pane = route.page === "edit" || route.page === "images" || route.page === "trash" ? "main" : route.page === "s" ? "list" : "nav";
+  // which way the screen slides on a phone: deeper comes in from the right, back from the left
+  if (app.dataset.pane !== pane) { const depth = { nav: 0, list: 1, main: 2 }; app.dataset.dir = depth[pane] < depth[app.dataset.pane] ? "back" : "forward"; }
+  app.dataset.pane = pane;
   docpane.style.flex = v === "split" ? `${splitAt} 1 0` : "";
   previewpane.style.flex = v === "split" ? `${1 - splitAt} 1 0` : "";
   if (v !== "write") wirePreview();
