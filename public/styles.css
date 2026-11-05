@@ -235,12 +235,11 @@ button:disabled { cursor: default; }
 .tile.picked .pick-check { background: var(--accent); border-color: #fff; }
 .tile.picked .pick-check svg { visibility: visible; }
 .text-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* the day before each title, in fixed columns so every title starts at the same place:
-   western "Thu | 22" (day of the week left, number right), japanese "22 | 日 | (木)" (number right,
-   so 日 and the day of the week each make a straight line) */
+/* the date before each title when grouped by year, so every title starts at the same place:
+   western "10/22" (always two digits each, so they're all the same width), japanese "10月 | 22日"
+   (each ending at a fixed place, so 月 and 日 make straight lines). Grouped by month there is none. */
 .text-date { flex: none; display: inline-grid; align-items: baseline; font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.text-date .td-day { text-align: right; }
-.text-date.western { grid-template-columns: 2ch; }
+.text-date.western { grid-template-columns: auto; }
 /* japanese: a two-digit column for the number, starting where the month's name starts (like
    western's day of the week); numbers sit at its right, so a single-digit day starts one digit in,
    the way a tab stop works, and 日 and the day of the week each make a straight line */

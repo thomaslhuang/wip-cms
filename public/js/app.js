@@ -81,6 +81,16 @@ function popMenu(anchor, items, at = null) {
     const m = menu.getBoundingClientRect();
     if (m.right > window.innerWidth - 8) menu.style.left = (at.x - m.width * scale) / scale + "px";
     if (m.bottom > window.innerHeight - 8) menu.style.top = Math.max(8, at.y - m.height * scale) / scale + "px";
+  } else {
+    // A menu from a button lines up with the button's right edge. For a button at the left
+    // (the sort button, on a phone), that would push it off the screen: line it up with the
+    // button's left edge instead, and never closer than 8px to any side.
+    const inset = 8;
+    let m = menu.getBoundingClientRect();
+    if (m.left < inset) { menu.style.right = "auto"; menu.style.left = Math.max(inset, r.left) / scale + "px"; m = menu.getBoundingClientRect(); }
+    if (m.right > window.innerWidth - inset) { menu.style.right = "auto"; menu.style.left = Math.max(inset, window.innerWidth - inset - m.width) / scale + "px"; }
+    m = menu.getBoundingClientRect();
+    if (m.bottom > window.innerHeight - inset) menu.style.top = Math.max(inset, window.innerHeight - inset - m.height) / scale + "px";
   }
   setTimeout(() => document.addEventListener("pointerdown", function close(e) { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener("pointerdown", close); } }), 0);
 }
@@ -254,7 +264,7 @@ function drawList() {
   // nothing that matches is hidden
   const open = (key) => filter || !isFolded(s.name, key);
   // titles only, with Japanese dates: headings and dates share one right-aligned column
-  const jdates = mode === "text" && ["month", "year"].includes(view.group) && naturalGroup(s) === "month" && dateStyle() === "japanese";
+  const jdates = mode === "text" && view.group === "year" && naturalGroup(s) === "month" && dateStyle() === "japanese";
   const head = (key, label, count, level) => h("button", { class: `tree-head ${level}`, "aria-expanded": String(open(key)), onclick: () => toggleFold(s.name, key) },
     icon("chevron", "tree-chev"), h("span", { class: "tree-label" }, label), h("span", { class: "tree-count" }, count));
   // a list kept in one data file, shown in its own order: drag items to reorder the site
@@ -516,29 +526,27 @@ function tileItem(e) {
 }
 // Titles only: the date in fixed-width columns before the title, so the titles line up and
 // sit the same distance from it.
-//   grouped by month   western "22" · japanese "22日" (no day of the week: the month is right above)
-//   grouped by year    western "Oct 22" · japanese "10月22日"
-// Japanese dates sit in one column with the year and month headings, all ending at the same
-// place, so 年, 月 and 日 make one straight line down the list (as in a Japanese table of dates);
+//   grouped by month   no date: the month heading right above already says when, and a bare
+//                      day number beside a title read as part of the title
+//   grouped by year    western "10/22" · japanese "10月22日"
+// Japanese dates sit in one column with the year heading, ending at the same place, so 月 and 日
+// make one straight line down the list (as in a Japanese table of dates);
 // (no day of the week: it only added clutter).
 // A title too long for the list scrolls sideways while you point at it (the date stays put).
 function textItem(e, date, group) {
-  const p = date ? dayParts(date) : null;
+  const p = date && group !== "month" ? dayParts(date) : null;
   const span = (cls, text) => h("span", { class: cls }, text);
   // a draft: a small dot in the margin left of the date (so the dates stay lined up); with
   // Japanese dates (which end at the same place, not start), right before the date
   const dot = e.draft ? h("span", { class: "draft-dot", title: t("Draft"), "aria-label": t("Draft") }) : null;
   const jdot = p?.style === "japanese" ? dot : null;
   const day = !p ? null
-    : group === "year" ? (p.style === "western"
-      ? h("span", { class: "text-date western" }, span("td-wd", p.monthName), span("td-day", p.day))
-      : h("span", { class: "text-date japanese by-year" }, h("span", { class: "td-date" }, jdot, span("td-md", p.month + "月"), span("td-md", p.day + "日"))))
     : p.style === "western"
-      ? h("span", { class: "text-date western" }, span("td-day", p.day))
-      : h("span", { class: "text-date japanese" }, h("span", { class: "td-date" }, jdot, p.day + "日"));
+      ? h("span", { class: "text-date western md" }, p.month.padStart(2, "0") + "/" + p.day.padStart(2, "0"))
+      : h("span", { class: "text-date japanese by-year" }, h("span", { class: "td-date" }, jdot, span("td-md", p.month + "月"), span("td-md", p.day + "日")));
   const title = h("span", { class: "text-title" }, h("span", { class: "text-title-inner" }, titleOf(e)));
   return h("a", { class: "text-item" + isActive(e), href: editHref(e.file), "data-file": e.file, onmouseenter: () => marquee(title), onmouseleave: () => stopMarquee(title) },
-    jdot ? null : dot, day, title, day ? null : draftBadge(e));
+    jdot ? null : dot, day, title, day || group === "month" ? null : draftBadge(e));
 }
 // scroll a title that doesn't fit, back and forth, at an even reading speed
 // Nothing changes until it starts to move (the … stays till then), so the text never jumps.
