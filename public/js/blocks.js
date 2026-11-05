@@ -181,6 +181,7 @@ export function renderBlocks(field, list, ctx) {
       h("button", { class: "block-grip", "aria-label": tr("Drag to move"), title: tr("Drag to move"), onpointerdown: (e) => dragBlock(e, b) }, icon("grip")),
       h("div", { class: "block-bar" },
         h("span", { class: "block-type" }, icon(TYPE_ICONS[b[key]] || "text"), labelOf(b)),
+        h("button", { class: "icon-btn bar-grip", "aria-label": tr("Drag to move"), onpointerdown: (e) => dragBlock(e, b) }, icon("grip")),
         h("button", { class: "icon-btn", "aria-label": tr("Move up"), disabled: i === 0, onclick: () => move(b, -1) }, icon("up")),
         h("button", { class: "icon-btn", "aria-label": tr("Move down"), disabled: i === list.length - 1, onclick: () => move(b, 1) }, icon("down")),
         h("button", { class: "icon-btn danger", "aria-label": tr("Delete block"), onclick: () => remove(b) }, icon("trash"))),

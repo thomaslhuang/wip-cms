@@ -376,7 +376,9 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
   color: var(--faint); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; opacity: 0; transition: opacity .12s; }
 .block:hover > .block-grip, .block.selected > .block-grip, .block-grip:focus-visible { opacity: 1; }
 .block-grip:hover { background: var(--fill); color: var(--text); }
-@media (hover: none) { .block-grip { opacity: .6; left: -26px; } }
+/* touch: the margin has no room for the handle, so a selected block's bar carries it instead */
+.block-bar .bar-grip { display: none; touch-action: none; cursor: grab; }
+@media (hover: none) { .block-grip { display: none; } .block-bar .bar-grip { display: inline-flex; } }
 .block-pair .block > .block-grip { left: -26px; }
 .block-pair .block + .block > .block-grip { left: auto; right: 4px; top: 10px; background: var(--pop); box-shadow: var(--shadow); }
 .block.drag-source { opacity: .55; box-shadow: 0 0 0 1px var(--accent); background: var(--accent-soft); }
@@ -439,7 +441,8 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
 
 /* "aside next": two images side by side, like on the site */
 .block-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: start; }   /* 10px, like the site */
-.block-pair > .block { margin: 0; padding: 4px 0; }
+.block-pair { margin: 0 -5px; gap: 0; }   /* the images stay 10px apart, with room for the outline around each */
+.block-pair > .block { margin: 0; padding: 8px 5px; }
 .block-pair .block .field-grid > .secondary.col-a, .block-pair .block .field-grid > .secondary.col-b { grid-column: 1 / -1; }
 .block-pair .block .image-one .thumb img { max-height: 360px; }
 
@@ -831,7 +834,7 @@ html { touch-action: manipulation; }   /* no double-tap zoom */
   .side-item { height: 44px; font-size: 17px; }
   .side-group { font-size: 13px; padding-top: 18px; }
   .list-head { padding-top: env(safe-area-inset-top); height: calc(var(--toolbar-h) + env(safe-area-inset-top)); }
-  .list-head .back-btn { display: inline-flex; }
+  .list-head .back-btn { display: inline-flex; margin-left: -12px; position: relative; top: -1px; }   /* the same place as the editor's back arrow */
   .list-name { font-size: 17px; }
   .list-tools { margin: 0 14px 8px; }
   .row-item { padding-left: 8px; }
@@ -839,7 +842,7 @@ html { touch-action: manipulation; }   /* no double-tap zoom */
   .list { width: 100% !important; }
   .list-resize { display: none; }
   .text-item { height: 44px; font-size: 16px; }
-  .list-items.grid { margin: 0 -14px; }
+  .list-items.grid { margin: 0 -8px; }   /* the list's own side padding is 8px */
   .row-title { font-size: 15px; }
   .toolbar { display: flex; gap: 6px; padding: env(safe-area-inset-top) 6px 0 6px; height: calc(var(--toolbar-h) + env(safe-area-inset-top)); }
   .toolbar-side { flex: 1; }

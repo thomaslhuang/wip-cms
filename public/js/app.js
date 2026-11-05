@@ -522,7 +522,7 @@ function rowItem(e, date) {
 // the grid: square pictures edge to edge; the title shows when you point at one
 function tileItem(e) {
   return h("a", { class: "tile" + isActive(e) + (e.featuredImage ? "" : " no-pic"), href: editHref(e.file), title: e.title, "aria-label": e.title, "data-file": e.file },
-    h("span", { class: "pick-check" }, icon("check")),
+    h("span", { class: "pick-check" }, icon("tick")),
     e.featuredImage ? h("img", { src: e.featuredImage, alt: "", loading: "lazy" }) : null,
     h("span", { class: "tile-title" }, titleOf(e)),
     draftBadge(e));
@@ -776,7 +776,7 @@ function drawToolbar() {
   fill(phonebar, narrow() && b && v === "write" ? [
     b.hasPhotos() ? h("button", { "aria-label": t("Add photos"), onclick: () => b.addPhotos() }, icon("images")) : h("span"),
     h("button", { "aria-label": t("Insert a block"), class: "primary", onclick: () => b.insert() }, icon("plus")),
-    h("button", { "aria-label": t("Rearrange blocks"), class: b.isRearranging() ? "on" : "", onclick: () => b.toggleRearrange() }, icon("arrows")),
+    h("span"),   // (no Rearrange on a phone: select a block and drag its handle)
   ] : []);
 }
 
