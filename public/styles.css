@@ -631,14 +631,15 @@ select.input { appearance: auto; }
 
 /* ---------- menus, dialogs, notices ---------- */
 .popmenu { position: fixed; z-index: 300; min-width: 210px; padding: 5px; background: var(--pop); border-radius: 10px; box-shadow: var(--pop-shadow); }
-.popmenu button { display: flex; align-items: center; gap: 4px; width: 100%; height: 26px; padding: 0 10px 0 4px; border: 0; background: none; border-radius: 5px; text-align: left; }
+.popmenu button { display: flex; align-items: center; gap: 4px; width: 100%; height: 28px; padding: 0 10px 0 4px; border: 0; background: none; border-radius: 5px; text-align: left; }
 .popmenu button:hover { background: var(--accent); color: var(--on-accent); }
 .popmenu button.danger { color: var(--danger); }
 .popmenu button.danger:hover { color: #fff; background: var(--danger-fill); }
 .popmenu-check { width: 18px; display: inline-flex; justify-content: center; }
 .popmenu-check .icon { width: 13px; height: 13px; }
-.popmenu-heading { font-size: 11px; font-weight: 600; color: var(--muted); padding: 6px 10px 2px 22px; }
+.popmenu-heading { font-size: 11px; font-weight: 600; color: var(--muted); padding: 8px 10px 3px 26px; }
 .popmenu-sep { height: 1px; background: var(--line); margin: 5px 8px; }
+@media (pointer: coarse) { .popmenu button { height: 38px; } .popmenu-heading { padding-top: 10px; } .popmenu-sep { margin: 6px 8px; } }
 
 .overlay { position: fixed; inset: 0; z-index: 200; background: var(--overlay); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .dialog { background: var(--pop); border-radius: 14px; box-shadow: var(--pop-shadow); padding: 20px; width: min(380px, 100%); display: flex; flex-direction: column; gap: 12px; }
