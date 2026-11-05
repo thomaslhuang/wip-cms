@@ -1176,3 +1176,91 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
   .popmenu, .overlay, .overlay > .dialog, .block-bar, .app .sidebar, .app .list, .app .main, .inspector, .phonebar { animation: none !important; }
   button, .tbtn, .row-item, .text-item, .tile { transition: none !important; }
 }
+
+/* ---------- phones: the native feel (js/touch.js has the gestures) ---------- */
+.sheet-dim, .large-title { display: none; }
+.list-body { display: contents; }   /* (a phone makes it a real box, to pull down and refresh) */
+.sheet-backdrop { position: fixed; inset: 0; z-index: 500; background: var(--overlay); display: flex; align-items: flex-end; justify-content: center; animation: fade-in 220ms ease-out; }
+.sheet-backdrop.closing { opacity: 0; transition: opacity 240ms; }
+.sheet-menu { zoom: var(--ui-scale); width: min(calc(100% - 16px), 520px); max-height: 82vh; display: flex; flex-direction: column; margin: 0 8px calc(8px + env(safe-area-inset-bottom)); padding: 6px 8px 8px;
+  background: color-mix(in srgb, var(--pop) 80%, transparent); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, .4); border-radius: 30px; corner-shape: squircle; box-shadow: 0 20px 60px rgba(0, 0, 0, .3); animation: sheet-up 480ms var(--ios-ease); touch-action: pan-y; }
+:root[data-theme="dark"] .sheet-menu { border-color: rgba(255, 255, 255, .1); }
+.sheet-grab { display: block; width: 36px; height: 5px; border-radius: 3px; background: var(--faint); opacity: .6; margin: 4px auto 8px; flex: none; }
+.sheet-group { overflow-y: auto; display: flex; flex-direction: column; overscroll-behavior: contain; }
+.sheet-title, .sheet-heading { font-size: 13px; color: var(--muted); font-weight: 600; padding: 10px 16px 4px 42px; }
+.sheet-title { padding-left: 16px; text-align: center; }
+.sheet-row { display: flex; align-items: center; gap: 6px; flex: none; width: 100%; height: 52px; padding: 0 16px 0 12px; border: 0; background: none; border-radius: 16px; font-size: 17px; color: var(--text); text-align: left; transition: background-color 200ms; }
+.sheet-row:active { background: var(--fill-strong); transition-duration: 40ms; }
+.sheet-row.danger { color: var(--danger); }
+.sheet-check { width: 24px; flex: none; display: inline-flex; justify-content: center; }
+.sheet-check .icon { width: 18px; height: 18px; }
+.sheet-sep { height: 1px; background: var(--line); margin: 4px 16px; flex: none; }
+.sheet-cancel { height: 52px; margin-top: 8px; border: 0; border-radius: 18px; background: var(--fill); font-size: 17px; font-weight: 600; color: var(--text); flex: none; }
+.sheet-cancel:active { background: var(--fill-strong); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 760px) {
+  html, body { overscroll-behavior-y: none; }
+  .app[data-skip] .sidebar, .app[data-skip] .list, .app[data-skip] .main { animation: none !important; }
+
+  /* 44px touch targets, 16px fields (so the phone doesn't zoom in on them) */
+  .tbtn { width: 44px; height: 44px; border-radius: 22px; }
+  .tbtn .icon { width: 22px; height: 22px; }
+  .toolbar { gap: 2px; }
+  .segmented { border-radius: 10px; }
+  .segmented button { height: 32px; border-radius: 8px; padding: 0 14px; }
+  .segmented.icons button { padding: 0 12px; }
+  .list-tools .segmented button { height: 32px; }
+  .list-tools { margin: 0 14px 10px; gap: 8px; }
+  .search { height: 40px; border-radius: 12px; }
+  .search-input { font-size: 17px; }
+  .row-item { min-height: 68px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .field-label { font-size: 15px; }
+  input:not([type=checkbox]):not([type=radio]):not([type=range]), textarea, select { font-size: 16px; }
+
+  /* the list is the scroll container: a large title that shrinks into the bar */
+  .list { overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+  .list-head { position: sticky; top: 0; z-index: 8; background: color-mix(in srgb, var(--list) 78%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 .5px 0 transparent; transition: box-shadow 200ms; }
+  .list.scrolled .list-head { box-shadow: 0 .5px 0 var(--line-strong); }
+  .list-title { text-align: center; padding-left: 44px; pointer-events: none; }
+  .list-name { opacity: 0; transition: opacity 200ms; }
+  .list.scrolled .list-name, .list-head.sel .list-name { opacity: 1; }
+  .list-head .list-count { display: none; }
+  .list-body { display: block; position: relative; flex: none; min-height: calc(100% - var(--toolbar-h)); }
+  .large-title { display: block; padding: 2px 18px 10px; }
+  .large-title h1 { margin: 0; font-size: 34px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; }
+  .large-sub { margin-top: 2px; font-size: 15px; color: var(--muted); }
+  .list-scroll { flex: none; overflow: visible; padding: 0 14px 130px; }
+  .list-scroll.under-bar { padding-bottom: 130px; }
+  .list-items.grid { margin: 0 -14px; }
+
+  /* rows: no text selection or callout, so press and hold can open the menu */
+  .list-items > a { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .list-items { position: relative; }
+  .swipe-del { position: absolute; z-index: 0; border: 0; padding: 0; background: var(--danger-fill, #d93025); color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; overflow: hidden; white-space: nowrap; font-size: 16px; font-weight: 600; }
+  .swipe-del .icon { width: 20px; height: 20px; flex: none; }
+  .swipe-del.armed { filter: brightness(1.12); }
+  .ptr { position: absolute; z-index: 7; top: calc(env(safe-area-inset-top) + var(--toolbar-h) + 6px); left: 50%; margin-left: -14px; width: 28px; height: 28px; opacity: 0; pointer-events: none; }
+  .ptr-ring { display: block; width: 100%; height: 100%; border-radius: 50%; border: 2.5px solid var(--faint); border-top-color: var(--text-2); }
+  .ptr.spinning .ptr-ring { animation: spin .8s linear infinite; }
+
+  /* dragging from the left edge: the screen follows your finger, the one behind slides in */
+  .app.swiping { position: relative; overflow: hidden; }
+  .app.swiping .swipe-under { display: flex !important; position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; animation: none !important; transform: translateX(calc(-28% * (1 - var(--swipe, 0)))); }
+  .app.swiping .swipe-under::after { content: ""; position: absolute; inset: 0; background: #000; opacity: calc(.18 * (1 - var(--swipe, 0))); pointer-events: none; }
+  .app.swiping .swipe-over { position: absolute; inset: 0; z-index: 2; background: var(--window); animation: none !important; transform: translateX(calc(var(--swipe, 0) * 100%)); box-shadow: -10px 0 34px rgba(0, 0, 0, .22); }
+  .app.swiping.settling .swipe-over, .app.swiping.settling .swipe-under { transition: transform 300ms var(--ios-ease); }
+  .app.swiping.settling .swipe-under::after { transition: opacity 300ms; }
+
+  /* the Details sheet: a grab handle, a dimmed page behind, drag to half height, full or away */
+  .sheet-dim.show { display: block; position: fixed; inset: 0; z-index: 59; background: var(--overlay); animation: fade-in 250ms ease-out; }
+  .inspector { border-radius: 22px 22px 0 0; overscroll-behavior: contain; }
+  .sheet-head { padding-top: 22px; min-height: 60px; touch-action: none; }
+  .sheet-grab { position: absolute; top: 8px; left: 50%; margin: 0 0 0 -18px; }
+
+  /* floating bars rise above the keyboard */
+  .phonebar, .glass-bar.list-select-bar { bottom: calc(18px + env(safe-area-inset-bottom) + var(--kb, 0px)); }
+}

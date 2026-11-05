@@ -17,6 +17,7 @@
 import { h, fill, icon, toast, confirmBox, env } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
+import { haptic, actionSheet, closeSheets, edgeSwipe, listGestures, sheetDrag, trackKeyboard } from "./touch.js";
 
 // no pinch or double-tap zooming (iOS Safari ignores user-scalable=no, but honors this)
 document.addEventListener("gesturestart", (e) => e.preventDefault());
@@ -37,6 +38,8 @@ installQuotes();
 
 const $ = (id) => document.getElementById(id);
 const app = $("app"), sidebarEl = $("sidebar"), listEl = $("list"), toolbarEl = $("toolbar");
+const sheetDim = h("div", { class: "sheet-dim", onclick: () => toggleInspector() });
+document.body.append(sheetDim);
 const docpane = $("docpane"), previewpane = $("previewpane"), inspectorEl = $("inspector"), stage = $("stage"), phonebar = $("phonebar");
 
 let config;
@@ -68,6 +71,7 @@ const segmented = (label, options, current, onpick) => h("div", { class: "segmen
 // (at: {x, y} opens it at the pointer instead, as a right-click menu does)
 function popMenu(anchor, items, at = null) {
   document.querySelector(".popmenu")?.remove();
+  if (narrow()) return actionSheet(items);   // a phone gets a sheet from the bottom
   const r = anchor.getBoundingClientRect();
   // the menu is drawn at the Interface Size, so its position is too
   const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
@@ -175,6 +179,7 @@ function togglePick(s, file) {
   if (!isPicking(s)) { picking = { section: s.name, chosen: new Set() }; closeOpen(s); }
   const c = picking.chosen;
   c.has(file) ? c.delete(file) : c.add(file);
+  haptic();
   drawList();
 }
 document.addEventListener("keydown", (e) => {
@@ -289,23 +294,28 @@ function drawList() {
 
   const search = h("input", { class: "search-input", type: "search", placeholder: t("Search"), "aria-label": t("Search {label}", { label: t(s.label) }), value: filter,
     oninput: () => { filter = search.value.toLowerCase(); drawList(); const el = listEl.querySelector(".search-input"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); } });
+  const countText = selecting ? t("{n} selected", { n: picking.chosen.size })
+    : t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : "");
   fill(listEl,
-    h("div", { class: "list-head" },
+    h("div", { class: "list-head" + (selecting ? " sel" : "") },
       h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
-      h("div", { class: "list-title" }, h("div", { class: "list-name" }, tl(s.label)),
-        h("div", { class: "list-count" }, selecting ? t("{n} selected", { n: picking.chosen.size })
-          : t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : ""))),
+      h("div", { class: "list-title" }, h("div", { class: "list-name" }, selecting ? countText : tl(s.label)),
+        h("div", { class: "list-count" }, countText)),
       tbtn("select", t("Select several (or ⌘-click)"), () => setPicking(s, !selecting), { on: selecting }),
       tbtn("plus", t("Add new item"), () => newEntry(s))),
-    // the view buttons first, so they stay put as the list gets wider or narrower; the search takes the rest
-    h("div", { class: "list-tools" },
-      viewSwitch(s, mode),
-      viewButton(s, view),
-      h("label", { class: "search" }, icon("search"), search)),
-    h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
+    // (a phone shows the title large, above the list, and shrinks it into the bar as you scroll)
+    h("div", { class: "list-body" },
+      h("div", { class: "large-title" }, h("h1", {}, tl(s.label)), h("div", { class: "large-sub" }, countText)),
+      // the view buttons first, so they stay put as the list gets wider or narrower; the search takes the rest
+      h("div", { class: "list-tools" },
+        viewSwitch(s, mode),
+        viewButton(s, view),
+        h("label", { class: "search" }, icon("search"), search)),
+      h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet.")))),
     selecting ? selectBar(s, shown, !barShown) : null,
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
   listEl.querySelector(".list-scroll").classList.toggle("under-bar", selecting);
+  listEl.classList.toggle("scrolled", listEl.scrollTop > 40);
   barShown = selecting;
 }
 
@@ -727,6 +737,11 @@ const moreBtn = () => { const b = tbtn("more", t("More"), () => popMenu(b, moreI
 function moreItems() {
   return [
     ...(editor ? [
+      ...(narrow() ? [
+        { label: t("Details"), run: () => toggleInspector() },
+        ...(editor.section ? [{ label: tl("Move to Trash"), danger: true, run: () => trashItems(editor.section, [route.file]) }] : []),
+        "-",
+      ] : []),
       { label: tl("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
       ...(editor.url && !narrow() ? [{ label: tl("Open on your site"), run: () => window.open(`${previewBase()}${editor.url}`, "_blank", "noopener") }] : []),
       "-",
@@ -761,9 +776,10 @@ function drawToolbar() {
       if (b.hasPhotos()) right.push(tbtn("images", t("Add photos"), () => b.addPhotos()));
       right.push(tbtn("arrows", b.isRearranging() ? t("Done rearranging") : t("Rearrange blocks"), () => b.toggleRearrange(), { on: b.isRearranging() }));
     }
-    right.push(tbtn(narrow() ? "info" : "inspector", showInspector ? t("Hide details") : t("Show details"), () => toggleInspector(), { on: showInspector && !narrow() }));
+    // (a phone keeps Details and Trash in the ⋯ menu, so the bar stays clear)
+    if (!narrow()) right.push(tbtn("inspector", showInspector ? t("Hide details") : t("Show details"), () => toggleInspector(), { on: showInspector }));
     // posts and list items can go to the Trash (after asking); pages can't
-    if (editor.section) right.push(tbtn("trash", tl("Move to Trash"), () => trashItems(editor.section, [route.file]), { cls: "danger" }));
+    if (editor.section && !narrow()) right.push(tbtn("trash", tl("Move to Trash"), () => trashItems(editor.section, [route.file]), { cls: "danger" }));
   }
   const more = tbtn("more", t("More"), () => popMenu(more, moreItems()));
   right.push(more);
@@ -793,6 +809,8 @@ function layout() {
   app.dataset.view = v;
   app.classList.toggle("hide-sidebar", !showSidebar);
   app.classList.toggle("hide-inspector", !showInspector || !editor);
+  if (!showInspector || !editor) inspectorEl.style.top = "";
+  sheetDim.classList.toggle("show", narrow() && !!editor && showInspector);
   app.classList.toggle("has-file", !!editor);
   sizeTable();
   // phone: one column at a time
@@ -969,7 +987,7 @@ async function go() {
     fill(inspectorEl);
   } else if (editor) {
     fill(docpane, h("div", { class: "doc-scroll" }, editor.doc));
-    fill(inspectorEl, h("div", { class: "sheet-head" }, h("span", {}, t("Details")), h("button", { class: "link-btn", onclick: () => toggleInspector() }, t("Done"))), editor.inspector);
+    fill(inspectorEl, h("div", { class: "sheet-head" }, h("span", { class: "sheet-grab" }), h("span", {}, t("Details")), h("button", { class: "link-btn", onclick: () => toggleInspector() }, t("Done"))), editor.inspector);
   } else {
     const s = config.sections.find((x) => x.name === route.section);
     fill(docpane, h("div", { class: "doc-empty" },
@@ -1164,6 +1182,30 @@ async function updateServerIfNeeded() {
   if (narrow()) showInspector = false;
   await Promise.all(config.sections.filter((s) => s.kind === "collection").map((s) => loadList(s.name).catch(() => {})));
   window.addEventListener("hashchange", go);
+  // phone gestures (js/touch.js)
+  const sectionNow = () => config.sections.find((x) => x.name === route.section && x.kind === "collection");
+  listGestures(listEl, {
+    canSwipe: (row) => narrow() && !picking && !row.closest(".grid") && !!sectionNow(),
+    trash: (file) => { const sec = sectionNow(); if (sec) trashItems(sec, [file]); },
+    menu: (file) => {
+      const sec = sectionNow();
+      if (!sec || picking) return;
+      actionSheet([
+        { label: tl("Open"), run: () => { location.hash = editHref(file); } },
+        { label: t("Select"), run: () => { setPicking(sec, true); togglePick(sec, file); } },
+        { label: tl("Move to Trash"), danger: true, run: () => trashItems(sec, [file]) },
+      ]);
+    },
+    refresh: async () => { const sec = sectionNow(); if (sec) { await loadList(sec.name, true); drawList(); } await refreshChanges(); },
+  });
+  listEl.addEventListener("scroll", () => listEl.classList.toggle("scrolled", listEl.scrollTop > 40), { passive: true });
+  edgeSwipe(app, {
+    pane: () => app.dataset.pane,
+    under: () => (app.dataset.pane === "main" && route.section ? "list" : "nav"),
+    go: () => { location.hash = app.dataset.pane === "main" && route.section ? "#/s/" + route.section : "#/"; },
+  });
+  sheetDrag(inspectorEl, { close: () => toggleInspector() });
+  trackKeyboard();
   let wasNarrow = narrow();
   window.addEventListener("resize", () => { if (narrow() !== wasNarrow) { wasNarrow = narrow(); layout(); } });
   await go();

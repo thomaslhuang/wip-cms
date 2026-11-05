@@ -257,6 +257,17 @@ put them back.
   are refused, and a proxy on this Mac (Tailscale's `serve`, a tunnel) can't pass for the Mac
   itself.
 
+### What it does on a phone
+
+It behaves like an app rather than a small desktop window:
+
+- **Go back** by dragging from the left edge; the screen follows your finger.
+- **Swipe a row left** for Trash (swipe all the way to trash it right away). **Press and hold** a row for Open, Select, Move to Trash.
+- **Pull the list down** to refresh it.
+- **Menus are sheets** from the bottom: swipe down to dismiss. **Details** is a sheet you can drag to half height, full height, or away.
+- Lists have a large title that shrinks into the bar as you scroll. Buttons are 44px, and floating bars rise above the keyboard.
+- **Add it to your Home Screen** (Share → Add to Home Screen) and it opens full screen, without Safari's bars.
+
 ## Other sites
 
 w·i·p cms isn't tied to studiotomby.com. What it needs from a site is a `.pages.yml` (the
@@ -377,6 +388,7 @@ public/
     blocks.js        the blocks: select, insert, move, rearrange, delete
     media.js         image uploads (WebP), the picker window, the Images page
     crop.js          the Crop and rotate window
+    touch.js         phone gestures and sheets: edge-swipe back, swipe a row to Trash, press and hold, pull to refresh, bottom sheets, haptics
     trash.js         the Trash page
     setup.js         the "Set up a site" window
     rich.js          the writing box: Markdown shown formatted, and turned back into Markdown

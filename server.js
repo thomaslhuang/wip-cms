@@ -48,7 +48,7 @@ const PUBLIC = path.join(__dirname, "public");
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".json": "application/json", ".svg": "image/svg+xml", ".webp": "image/webp", ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".avif": "image/avif", ".woff2": "font/woff2",
+  ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".avif": "image/avif", ".woff2": "font/woff2", ".webmanifest": "application/manifest+json",
   ".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm", ".mp3": "audio/mpeg", ".pdf": "application/pdf",
 };
 
@@ -157,7 +157,7 @@ const THIS_COMPUTER_ONLY = new Set([
 ]);
 
 // the few things that are fine to show before signing in: the sign-in page's own picture
-const BEFORE_SIGN_IN = new Set(["/favicon.png", "/apple-touch-icon.png"]);
+const BEFORE_SIGN_IN = new Set(["/favicon.png", "/apple-touch-icon.png", "/manifest.webmanifest"]);
 
 // git status of the open site; works without git too (count is then null)
 function changes() {
