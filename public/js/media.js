@@ -215,6 +215,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     const link = (label, target) => h("button", { class: "crumb", onclick: () => show(target) }, label);
     crumbs.append(link(tr("Media"), ROOT));
     parts.forEach((p, i) => crumbs.append(" / ", link(p, ROOT + "/" + parts.slice(0, i + 1).join("/"))));
+    crumbs.classList.toggle("at-root", parts.length === 0);   // (a phone only needs the path once you are inside a folder)
     if (!list.exists) crumbs.append(h("span", { class: "muted" }, "  " + tr("(new folder: made when you upload)")));
 
     shown = pickable ? list.images : list.items || list.images;
@@ -309,7 +310,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     }, 1500);
   }
   const phoneBtn = h("button", { class: "btn", onclick: () => startPhone() }, icon("phone"), h("span", { class: "label" }, tr("From phone")));
-  const selectBtn = h("button", { class: "btn", title: tr("Select several (or ⌘-click)"), onclick: () => setSelecting(!selecting) }, icon("check"), h("span", { class: "label" }, tr("Select")));
+  const selectBtn = h("button", { class: "btn", title: tr("Select several (or ⌘-click)"), onclick: () => setSelecting(!selecting) }, icon("select"), h("span", { class: "label" }, tr("Select")));
 
   async function upload(files) {
     try {

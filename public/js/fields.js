@@ -196,12 +196,12 @@ function stringList(field, obj, ctx) {
   const draw = () => {
     fill(box, 
       ...list.map((value, i) => h("div", { class: "string-row" },
+        h("span", { class: "obj-grip", title: tr("Drag to move"), "aria-label": tr("Drag to move") }, icon("grip")),
         h("input", { type: "text", class: "input", value, oninput: (e) => { list[i] = e.target.value; ctx.changed(); } }),
-        h("button", { class: "icon-btn", title: tr("Move up"), disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; ctx.changed(); draw(); } }, icon("up")),
-        h("button", { class: "icon-btn", title: tr("Move down"), disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; ctx.changed(); draw(); } }, icon("down")),
         h("button", { class: "icon-btn", title: tr("Remove"), onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash")))),
-      h("button", { class: "btn small", onclick: () => { list.push(""); ctx.changed(); draw(); box.querySelector(".string-row:last-of-type input")?.focus(); } }, icon("plus"), tr("Add")));
+      h("button", { class: "btn small sort-fixed", onclick: () => { list.push(""); ctx.changed(); draw(); box.querySelector(".string-row:last-of-type input")?.focus(); } }, icon("plus"), tr("Add")));
   };
+  sortable(box, { handle: ".obj-grip", onMove: (from, to) => { const [it] = list.splice(from, 1); list.splice(to, 0, it); ctx.changed(); draw(); } });
   draw();
   return box;
 }
@@ -683,32 +683,32 @@ function objectCards(field, obj, ctx) {
     for (const v of kept) { const item = { ...fresh(), [picField.name]: v }; opened.add(item); list.push(item); }
     if (kept.length) { ctx.changed(); draw(); }
   };
-  const move = (i, j) => { [list[i], list[j]] = [list[j], list[i]]; ctx.changed(); draw(); };
   const draw = () => {
     fill(box,
       ...list.map((item, i) => {
         const pic = picField && item[picField.name];
         const card = h("div", { class: "object-card" + (isOpen(item) ? "" : " closed") },
           h("div", { class: "object-head" },
+            h("span", { class: "obj-grip", title: tr("Drag to move"), "aria-label": tr("Drag to move") }, icon("grip")),
             h("button", { class: "object-toggle", "aria-expanded": String(isOpen(item)), onclick: () => {
               if (isOpen(item)) { opened.delete(item); closed.add(item); } else { closed.delete(item); opened.add(item); }
               draw();
             } }, icon("chevron", "chev"),
               picField ? (pic && !isLink(pic) ? h("img", { class: "object-pic", src: spot.show(pic), alt: "", loading: "lazy" }) : h("span", { class: "object-pic empty" }, pic ? icon("link") : null)) : null,
               h("span", { class: "object-title" }, titleOf(item, i))),
-            h("button", { class: "icon-btn", title: tr("Move up"), disabled: i === 0, onclick: () => move(i, i - 1) }, icon("up")),
-            h("button", { class: "icon-btn", title: tr("Move down"), disabled: i === list.length - 1, onclick: () => move(i, i + 1) }, icon("down")),
             h("button", { class: "icon-btn", title: tr("Remove"), onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash"))),
           isOpen(item) ? h("div", { class: "object-body" }, renderFields(fields, item, ctx)) : null);
         return card;
       }),
-      h("div", { class: "object-add" },
+      h("div", { class: "object-add sort-fixed" },
         picField ? [h("span", { class: "image-buttons-label" }, tr("Add pictures:")), imageButtons(spot.folder, true, addPictures, !!picField.options?.links)] : null,
         h("button", { class: "btn small", onclick: () => { const item = fresh(); opened.add(item); list.push(item); ctx.changed(); draw(); } }, icon("plus"), picField ? tr("Add an empty one") : tr("Add"))),
-      list.length > 4 ? h("div", { class: "object-fold" },
+      list.length > 4 ? h("div", { class: "object-fold sort-fixed" },
         h("button", { class: "link-btn", onclick: () => { list.forEach((x) => { closed.delete(x); opened.add(x); }); draw(); } }, tr("Open all")),
         h("button", { class: "link-btn", onclick: () => { list.forEach((x) => { opened.delete(x); closed.add(x); }); draw(); } }, tr("Fold all"))) : null);
   };
+  // drag the handle (⠿) to reorder, on a computer or a phone
+  sortable(box, { handle: ".obj-grip", onMove: (from, to) => { const [it] = list.splice(from, 1); list.splice(to, 0, it); ctx.changed(); draw(); } });
   if (picField) acceptDrops(box, spot.folder, addPictures);
   draw();
   return box;
