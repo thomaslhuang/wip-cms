@@ -13,7 +13,7 @@
   /* base colors (a theme replaces these) */
   --window: #ffffff;  --sidebar: #f0f0f3;  --list: #ffffff;  --panel: #f6f6f8;  --card: #ffffff;
   --text: #1d1d1f;  --muted: #636366;  --accent: #0a66d8;  --on-accent: #ffffff;
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-writing: var(--font);
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
   --writing-size: 16px;
@@ -162,7 +162,7 @@ button:disabled { cursor: default; }
 @media (hover: hover) { .tree-head:hover { background: var(--fill); color: var(--text); } }
 .tree-head.year { font-size: 13px; font-weight: 400; color: var(--text); margin-top: 6px; }
 .tree-head.month { font-size: 11px; font-weight: 400; padding-left: 18px; }
-.tree-chev { width: 12px; height: 12px; transition: transform .15s; color: var(--faint); }
+.tree-chev { width: 12px; height: 12px; transition: transform 300ms var(--ios-ease); color: var(--faint); }
 .tree-head[aria-expanded="true"] .tree-chev { transform: rotate(90deg); }
 .tree-label { flex: 1; min-width: 0; }
 .tree-count { font-size: 11px; font-weight: 400; color: var(--faint); font-variant-numeric: tabular-nums; }
@@ -190,7 +190,7 @@ button:disabled { cursor: default; }
   font-size: 11px; font-weight: 600; line-height: 1.25; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .3);
   background: linear-gradient(transparent 45%, rgba(10, 10, 14, .3)), rgba(20, 20, 24, .18);
   -webkit-backdrop-filter: blur(1.5px) saturate(150%) brightness(.8); backdrop-filter: blur(1.5px) saturate(150%) brightness(.8);
-  opacity: 0; transform: none; transition: opacity .18s ease; overflow: hidden; }
+  opacity: 0; transform: none; transition: opacity 250ms var(--ios-ease); overflow: hidden; }
 @media (hover: hover) { .tile:hover .tile-title, .tile:focus-visible .tile-title { opacity: 1; } }
 .tile.no-pic .tile-title { opacity: 1; transform: none; position: static; height: 100%; background: none; box-shadow: none; text-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; color: var(--text-2); padding: 8px; display: flex; align-items: flex-end; }
 .tile.active { box-shadow: inset 0 0 0 3px var(--accent); }
@@ -373,7 +373,7 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
 .block-list { display: flex; flex-direction: column; position: relative; }
 /* the handle for dragging a block, in the margin to its left */
 .block-grip { position: absolute; left: -30px; top: 6px; width: 22px; height: 28px; border: 0; background: none; border-radius: 5px; padding: 0;
-  color: var(--faint); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; opacity: 0; transition: opacity .12s; }
+  color: var(--faint); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; opacity: 0; transition: opacity 200ms var(--ios-ease); }
 @media (hover: hover) { .block:hover > .block-grip, .block.selected > .block-grip, .block-grip:focus-visible { opacity: 1; } }
 @media (hover: hover) { .block-grip:hover { background: var(--fill); color: var(--text); } }
 /* touch: the margin has no room for the handle, so a selected block's bar carries it instead */
@@ -479,9 +479,9 @@ textarea.source, .block .primary textarea.source, .doc .doc-body textarea.source
 .insert-line { height: 22px; display: flex; align-items: center; justify-content: center; position: relative; }
 /* the + above the first block: a shorter strip, so the writing starts close under the title */
 .block-list > .insert-line:first-child { height: 14px; }
-.insert-line::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line-strong); opacity: 0; transition: opacity .12s; }
+.insert-line::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line-strong); opacity: 0; transition: opacity 200ms var(--ios-ease); }
 .insert-line button { position: relative; z-index: 1; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--window);
-  color: var(--muted); display: flex; align-items: center; justify-content: center; padding: 0; opacity: 0; transition: opacity .12s; }
+  color: var(--muted); display: flex; align-items: center; justify-content: center; padding: 0; opacity: 0; transition: opacity 200ms var(--ios-ease); }
 .insert-line button .icon { width: 13px; height: 13px; }
 @media (hover: hover) { .insert-line:hover::before, .insert-line:hover button, .insert-line button:focus-visible { opacity: 1; } }
 @media (hover: hover) { .insert-line button:hover { color: var(--accent-text); border-color: var(--accent); } }
@@ -540,8 +540,8 @@ select.input { appearance: auto; }
 .prose-preview p { margin: 0 0 .7em; }
 .prose-preview img { max-width: 100%; }
 
-.switch { width: 38px; height: 22px; flex: none; border-radius: 11px; border: 0; background: var(--fill-strong); position: relative; padding: 0; transition: background .15s; }
-.switch .knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: left .15s; }
+.switch { width: 38px; height: 22px; flex: none; border-radius: 11px; border: 0; background: var(--fill-strong); position: relative; padding: 0; transition: background 300ms var(--ios-ease); }
+.switch .knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: left 450ms var(--spring); }
 .switch[aria-checked="true"] { background: var(--accent); }
 .switch[aria-checked="true"] .knob { left: 18px; }
 
@@ -564,7 +564,7 @@ select.input { appearance: auto; }
 
 .thumb { position: relative; width: 112px; height: 112px; border-radius: 8px; overflow: hidden; background: var(--fill); flex: none; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.thumb-tools { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 2px; padding: 2px; background: rgba(30, 30, 30, 0.72); color: #fff; border-radius: 7px; opacity: 0; transition: opacity .15s; }
+.thumb-tools { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 2px; padding: 2px; background: rgba(30, 30, 30, 0.72); color: #fff; border-radius: 7px; opacity: 0; transition: opacity 300ms var(--ios-ease); }
 .thumb-tools .icon-btn { color: #fff; }
 @media (hover: hover) { .thumb:hover .thumb-tools, .thumb:focus-within .thumb-tools { opacity: 1; } }
 @media (hover: none) { .thumb-tools { opacity: 1; } }
@@ -575,7 +575,7 @@ select.input { appearance: auto; }
 /* dragging pictures into a new order */
 .image-many .thumb { cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .image-many .thumb img { pointer-events: none; }
-.image-many.reordering .thumb { cursor: grabbing; transition: transform .12s; }
+.image-many.reordering .thumb { cursor: grabbing; transition: transform 200ms var(--ios-ease); }
 .image-many .image-buttons { margin-top: 8px; }
 
 .field-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 16px; }
@@ -587,7 +587,7 @@ select.input { appearance: auto; }
 .object-card { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 4px 10px; background: var(--window); }
 .object-head { display: flex; align-items: center; gap: 2px; }
 .object-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; border: 0; background: none; padding: 6px 0; text-align: left; }
-.object-toggle .chev { transform: rotate(90deg); transition: transform .15s; color: var(--muted); }
+.object-toggle .chev { transform: rotate(90deg); transition: transform 300ms var(--ios-ease); color: var(--muted); }
 .object-card.closed .object-toggle .chev { transform: none; }
 .object-card.closed .object-body { display: none; }
 .object-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -760,7 +760,7 @@ select.input { appearance: auto; }
 .recent-text .field-input { padding: 3px 6px; font-size: 13px; }
 
 .toast { position: fixed; left: 50%; bottom: 24px; z-index: 400; transform: translate(-50%, 8px); background: var(--pop); box-shadow: var(--pop-shadow);
-  border-radius: 20px; padding: 9px 16px; opacity: 0; transition: all .2s; pointer-events: none; }
+  border-radius: 20px; padding: 9px 16px; opacity: 0; transition: all 250ms var(--ios-ease); pointer-events: none; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.error { color: var(--danger); }
 
@@ -1089,7 +1089,7 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .set-range::-moz-range-track { height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text) 16%, transparent); }
 .set-range::-moz-range-progress { height: 5px; border-radius: 3px; background: var(--accent); }
 .set-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 14px; margin-top: -4.5px; border: 0; border-radius: 7px;
-  background: #fff; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .18), 0 1px 3px rgba(0, 0, 0, .22); transition: transform .1s; }
+  background: #fff; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .18), 0 1px 3px rgba(0, 0, 0, .22); transition: transform 150ms var(--ios-ease); }
 .set-range::-moz-range-thumb { width: 20px; height: 14px; border: 0; border-radius: 7px; background: #fff; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .18), 0 1px 3px rgba(0, 0, 0, .22); }
 .set-range:active::-webkit-slider-thumb { transform: scale(1.06); }
 :root[data-theme="dark"] .set-range::-webkit-slider-thumb { background: #dcdcdc; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
@@ -1136,7 +1136,7 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .set-warn { margin: 6px 4px 14px !important; padding: 8px 10px; border-radius: 8px; background: var(--fill); font-size: 12px; line-height: 1.45; }
 
 /* ---------- smooth, springy motion (the same spring as the cook book app) ---------- */
-:root { --ios-ease: cubic-bezier(0.32, 0.72, 0, 1); --spring: linear(0, 0.06 2%, 0.25 5%, 0.53 9%, 0.81 14%, 0.97 19%, 1.04 24%, 1.05 28%, 1.03 35%, 1 45%, 0.995 55%, 1); }
+:root { --glass: color-mix(in srgb, var(--pop) 58%, transparent); --glass-edge: rgba(255, 255, 255, .55); --glass-hi: rgba(255, 255, 255, .6); --ios-ease: cubic-bezier(0.32, 0.72, 0, 1); --spring: linear(0, 0.06 2%, 0.25 5%, 0.53 9%, 0.81 14%, 0.97 19%, 1.04 24%, 1.05 28%, 1.03 35%, 1 45%, 0.995 55%, 1); }
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes pop-in { from { transform: scale(0.9); opacity: 0; } }
 @keyframes sheet-up { from { transform: translateY(100%); } }
@@ -1150,7 +1150,7 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .overlay { animation: fade-in 200ms ease-out; }
 .overlay > .dialog { animation: pop-in 380ms var(--spring); }
 .block-bar { animation: bar-pop 300ms var(--spring); }
-.toast { transition: opacity .2s, transform 400ms var(--spring); }
+.toast { transition: opacity 250ms var(--ios-ease), transform 400ms var(--spring); }
 
 @media (max-width: 760px) {
   /* a phone moves from screen to screen like a navigation stack */
@@ -1263,4 +1263,34 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 
   /* floating bars rise above the keyboard */
   .phonebar, .glass-bar.list-select-bar { bottom: calc(18px + env(safe-area-inset-bottom) + var(--kb, 0px)); }
+}
+
+:root[data-theme="dark"] { --glass-edge: rgba(255, 255, 255, .12); --glass-hi: rgba(255, 255, 255, .08); }
+
+/* a segmented control's selected part slides to the new choice (js/touch.js adds the thumb) */
+.segmented { position: relative; }
+.segmented > button { position: relative; z-index: 1; }
+.seg-thumb { position: absolute; z-index: 0; top: 2px; bottom: 2px; left: 0; width: 0; border-radius: 5px; background: var(--seg-on); box-shadow: var(--shadow); pointer-events: none; transition: transform 450ms var(--spring), width 450ms var(--spring); }
+.segmented.has-thumb > button.on { background: none; box-shadow: none; }
+
+@media (max-width: 760px) {
+  /* liquid glass: round glass buttons floating over content that blurs away beneath them */
+  .toolbar .tbtn, .list-head .tbtn { background: var(--glass); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--glass-edge); box-shadow: 0 4px 16px rgba(0, 0, 0, .1), inset 0 1px 0 var(--glass-hi); color: var(--text); }
+  .toolbar .tbtn.on, .list-head .tbtn.on { background: color-mix(in srgb, var(--accent) 30%, var(--glass)); }
+  .list-head { gap: 8px; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+  .list-head::before, .app.has-file .toolbar::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; bottom: -16px; pointer-events: none;
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent);
+    background: linear-gradient(color-mix(in srgb, var(--list) 90%, transparent), transparent); opacity: 0; transition: opacity 250ms var(--ios-ease); }
+  .list.scrolled .list-head::before, .app.has-file .toolbar::before { opacity: 1; }
+  .app.has-file .toolbar::before { background: linear-gradient(color-mix(in srgb, var(--window) 90%, transparent), transparent); }
+  .app.has-file .toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 12; background: none; border: 0; box-shadow: none; }
+  .app.has-file .doc-scroll { padding-top: calc(var(--toolbar-h) + env(safe-area-inset-top) + 18px); }
+  .app.has-file .previewpane { padding-top: calc(var(--toolbar-h) + env(safe-area-inset-top)); }
+  .toolbar .segmented { background: var(--glass); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--glass-edge); box-shadow: 0 4px 16px rgba(0, 0, 0, .1), inset 0 1px 0 var(--glass-hi); border-radius: 22px; padding: 3px; }
+  .toolbar .segmented button { height: 36px; border-radius: 18px; }
+  .toolbar .seg-thumb { top: 3px; bottom: 3px; border-radius: 18px; background: color-mix(in srgb, var(--text) 12%, transparent); box-shadow: inset 0 1px 0 var(--glass-hi); }
+  .list-tools .seg-thumb { border-radius: 8px; }
+  .sheet-menu, .phonebar, .glass-bar.list-select-bar { box-shadow: 0 10px 30px rgba(0, 0, 0, .16), inset 0 1px 0 var(--glass-hi); }
 }

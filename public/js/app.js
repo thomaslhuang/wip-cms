@@ -17,7 +17,7 @@
 import { h, fill, icon, toast, confirmBox, env } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
-import { haptic, actionSheet, closeSheets, edgeSwipe, listGestures, sheetDrag, trackKeyboard } from "./touch.js";
+import { haptic, actionSheet, closeSheets, edgeSwipe, listGestures, sheetDrag, trackKeyboard, slidingSegments } from "./touch.js";
 
 // no pinch or double-tap zooming (iOS Safari ignores user-scalable=no, but honors this)
 document.addEventListener("gesturestart", (e) => e.preventDefault());
@@ -1206,6 +1206,7 @@ async function updateServerIfNeeded() {
   });
   sheetDrag(inspectorEl, { close: () => toggleInspector() });
   trackKeyboard();
+  slidingSegments();
   let wasNarrow = narrow();
   window.addEventListener("resize", () => { if (narrow() !== wasNarrow) { wasNarrow = narrow(); layout(); } });
   await go();

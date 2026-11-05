@@ -285,3 +285,44 @@ export function sheetDrag(sheet, { close }) {
     } else sheet.style.top = (top > H() * 0.3 ? half() : full()) + "px";
   });
 }
+
+// ---------- segmented controls: the selected part slides ----------
+// Every .segmented gets a thumb under the pressed button. The controls are redrawn from scratch
+// on each change, so where the thumb last was is remembered by the control's name, and the
+// new thumb starts there and moves to its place.
+const lastThumb = new Map();
+function addThumb(seg) {
+  if (seg.dataset.thumb) return;
+  const on = seg.querySelector(":scope > button.on");
+  if (!on || !seg.offsetWidth) return;
+  seg.dataset.thumb = "1";
+  const key = seg.getAttribute("aria-label") || seg.className;
+  const thumb = h("span", { class: "seg-thumb", "aria-hidden": "true" });
+  seg.prepend(thumb);
+  const to = { x: on.offsetLeft, w: on.offsetWidth };
+  const from = lastThumb.get(key) || to;
+  thumb.style.transition = "none";
+  thumb.style.width = from.w + "px"; thumb.style.transform = `translateX(${from.x}px)`;
+  seg.classList.add("has-thumb");
+  thumb.getBoundingClientRect();   // (so the starting place counts before it moves)
+  thumb.style.transition = "";
+  thumb.style.width = to.w + "px"; thumb.style.transform = `translateX(${to.x}px)`;
+  lastThumb.set(key, to);
+}
+export function slidingSegments() {
+  const scan = () => document.querySelectorAll(".segmented:not([data-thumb])").forEach(addThumb);
+  let queued = false;
+  new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; scan(); }); } })
+    .observe(document.body, { childList: true, subtree: true });
+  // a control that changes in place (rather than being redrawn) slides its thumb too
+  document.addEventListener("click", (e) => {
+    const seg = e.target.closest?.(".segmented.has-thumb");
+    if (!seg) return;
+    requestAnimationFrame(() => {
+      if (!seg.isConnected) return;
+      const on = seg.querySelector(":scope > button.on"), thumb = seg.querySelector(":scope > .seg-thumb");
+      if (on && thumb) { thumb.style.width = on.offsetWidth + "px"; thumb.style.transform = `translateX(${on.offsetLeft}px)`; lastThumb.set(seg.getAttribute("aria-label") || seg.className, { x: on.offsetLeft, w: on.offsetWidth }); }
+    });
+  });
+  scan();
+}
