@@ -303,19 +303,21 @@ function drawList() {
       viewButton(s, view),
       h("label", { class: "search" }, icon("search"), search)),
     h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet."))),
-    selecting ? selectBar(s, shown) : null,
+    selecting ? selectBar(s, shown, !barShown) : null,
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
   listEl.querySelector(".list-scroll").classList.toggle("under-bar", selecting);
+  barShown = selecting;
 }
 
 // while selecting: three icons floating at the bottom of the list: Select all (pressed when
 // everything shown is picked; press again for none), Move to Trash, and Done (a checkmark).
 // How many are picked shows under the list's title.
-function selectBar(s, shown) {
+let barShown = false;   // so the bar only animates in when it first appears, not on every pick
+function selectBar(s, shown, fresh) {
   const c = picking.chosen;
   const allPicked = shown.length && shown.every((e) => c.has(e.file));
   const allLabel = allPicked ? tl("Select none") : tl("Select all");
-  return h("div", { class: "glass-bar list-select-bar", role: "toolbar", "aria-label": t("Selection") },
+  return h("div", { class: "glass-bar list-select-bar" + (fresh ? " enter" : ""), role: "toolbar", "aria-label": t("Selection") },
     h("button", { class: "glass-icon" + (allPicked ? " on" : ""), disabled: !shown.length, title: allLabel, "aria-label": allLabel, "aria-pressed": String(!!allPicked),
       onclick: () => { allPicked ? shown.forEach((e) => c.delete(e.file)) : shown.forEach((e) => c.add(e.file)); drawList(); } }, icon("select-all")),
     h("button", { class: "glass-icon danger", disabled: !c.size, title: tl("Move to Trash"), "aria-label": tl("Move to Trash"), onclick: () => trashItems(s, [...c]) }, icon("trash")),

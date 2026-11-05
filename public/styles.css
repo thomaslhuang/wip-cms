@@ -871,7 +871,8 @@ html { touch-action: manipulation; }   /* no double-tap zoom */
   .phonebar button.on, .list-select-bar button.on { background: var(--fill-strong); }
   .phonebar button.primary { background: none; color: var(--accent); }
   .phonebar button.primary .icon { width: 30px; height: 30px; stroke-width: 2.2; }
-  .glass-bar.list-select-bar { gap: 0; bottom: calc(18px + env(safe-area-inset-bottom)); animation: bar-in 500ms var(--spring); }
+  .glass-bar.list-select-bar { gap: 0; bottom: calc(18px + env(safe-area-inset-bottom)); }
+  .glass-bar.list-select-bar.enter { animation: bar-in 500ms var(--spring); }
   .list-scroll.under-bar { padding-bottom: 110px; }
   .picker { height: 100%; border-radius: 14px; }
   .phone-panel { flex-direction: column; align-items: flex-start; }
