@@ -86,6 +86,7 @@ export function renderBlocks(field, list, ctx) {
     // put the cursor in the new block
     requestAnimationFrame(() => {
       const el = [...listEl.querySelectorAll(".block")].find((c) => c.blockRef === b);
+      el?.classList.add("fresh");   // (it eases in, once)
       el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       el?.querySelector(".rich-box:not([hidden]), textarea:not([hidden]), input")?.focus();
     });
@@ -344,7 +345,7 @@ export function renderBlocks(field, list, ctx) {
       } else items.push(blockEl(list[i], i));
     }
     if (choosing !== null && choosing >= list.length) items.push(chooser(list.length));
-    else if (!rearranging) items.push(insertLine(list.length));
+    else if (!rearranging && list.length) items.push(insertLine(list.length));
     fill(listEl, items);
     if (!list.length && choosing === null) {
       listEl.prepend(h("div", { class: "blocks-empty" }, h("p", { class: "muted" }, tr("Nothing here yet.")),

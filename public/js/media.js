@@ -205,7 +205,39 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
   const fileAttrs = (img, cls) => ({ class: cls + (isChosen(img) ? " selected" : ""), title: img.name, draggable: !pickable, "data-url": img.url,
     ondragstart: (e) => e.dataTransfer.setData("text/plain", img.url), onclick: (e) => clickFile(img, e) });
 
+  // on a phone the list view opens folders in place, with their contents indented underneath
+  const phone = () => window.matchMedia("(max-width: 760px)").matches;
+  const openFolders = new Set();
+  const fileRow = (img) => h("button", fileAttrs(img, "media-row picker-image"),
+    h("span", { class: "media-name" }, h("span", { class: "media-thumb" }, previewOf(img, true)), h("span", { class: "media-label" }, img.name), h("span", { class: "picker-check" }, icon("tick"))),
+    h("span", {}, kindLabel(img)), h("span", { class: "num" }, fmtSize(img.size)), h("span", {}, fmtWhen(img.modified)));
+  async function fillSub(sub, folder) {
+    let l;
+    try { l = await api.media(folder); } catch { l = { folders: [], items: [] }; }
+    const files = pickable ? l.images : l.items || l.images;
+    fill(sub, ...l.folders.map(branch), ...files.map(fileRow));
+    if (!l.folders.length && !files.length) fill(sub, h("p", { class: "muted media-empty" }, tr("Nothing here yet.")));
+    markChosen();
+  }
+  function branch(f) {
+    const sub = h("div", { class: "media-sub", hidden: !openFolders.has(f.folder) });
+    const row = h("button", { class: "media-row folder" + (openFolders.has(f.folder) ? " open" : ""), "aria-expanded": String(openFolders.has(f.folder)) },
+      h("span", { class: "media-name" }, icon("chevron", "media-chev"), h("span", { class: "media-thumb" }, icon("folder")), h("span", { class: "media-label" }, f.name)),
+      h("span", {}, tr("Folder")), h("span", { class: "num" }, "—"), h("span", {}, fmtWhen(f.modified)));
+    row.onclick = async () => {
+      const open = !openFolders.has(f.folder);
+      open ? openFolders.add(f.folder) : openFolders.delete(f.folder);
+      row.classList.toggle("open", open);
+      row.setAttribute("aria-expanded", String(open));
+      if (open && !sub.childNodes.length) await fillSub(sub, f.folder);
+      sub.hidden = !open;
+    };
+    if (openFolders.has(f.folder)) fillSub(sub, f.folder);
+    return h("div", { class: "media-branch" }, row, sub);
+  }
+
   async function show(path) {
+    if (phone() && view === "columns") view = "list";
     current = path;
     let list;
     try { list = await api.media(path); } catch (e) { fill(grid, h("p", { class: "muted picker-empty" }, e.message)); return; }
@@ -226,12 +258,11 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
     if (view === "list") {
       fill(grid,
         h("div", { class: "media-row media-head" }, h("span", {}, tr("Name")), h("span", {}, tr("Kind")), h("span", { class: "num" }, tr("Size")), h("span", {}, tr("Date modified"))),
-        ...list.folders.map((f) => h("button", { class: "media-row folder", onclick: () => show(f.folder) },
-          h("span", { class: "media-name" }, h("span", { class: "media-thumb" }, icon("folder")), h("span", { class: "media-label" }, f.name)),
-          h("span", {}, tr("Folder")), h("span", { class: "num" }, "—"), h("span", {}, fmtWhen(f.modified)))),
-        ...shown.map((img) => h("button", fileAttrs(img, "media-row picker-image"),
-          h("span", { class: "media-name" }, h("span", { class: "media-thumb" }, previewOf(img, true)), h("span", { class: "media-label" }, img.name), h("span", { class: "picker-check" }, icon("tick"))),
-          h("span", {}, kindLabel(img)), h("span", { class: "num" }, fmtSize(img.size)), h("span", {}, fmtWhen(img.modified)))),
+        ...list.folders.map((f) => phone() ? branch(f)
+          : h("button", { class: "media-row folder", onclick: () => show(f.folder) },
+            h("span", { class: "media-name" }, h("span", { class: "media-thumb" }, icon("folder")), h("span", { class: "media-label" }, f.name)),
+            h("span", {}, tr("Folder")), h("span", { class: "num" }, "—"), h("span", {}, fmtWhen(f.modified)))),
+        ...shown.map(fileRow),
         empty);
     } else if (view === "columns") {
       // one column per folder from the top down to this one, then the chosen file's preview
