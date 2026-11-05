@@ -858,19 +858,21 @@ html { touch-action: manipulation; }   /* no double-tap zoom */
   .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 0 18px; font-weight: 600; font-size: 17px; position: sticky; top: 0; background: var(--inspector); z-index: 2; }
   .field.row > .field-label { font-size: 15px; }
   /* the bottom bar: glass like the list's Select bar, three equal slots with Insert in the middle */
-  .phonebar { display: grid; grid-template-columns: 1fr 1fr 1fr; position: fixed; left: 50%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 40; height: 56px; border-radius: 28px; corner-shape: squircle;
+  .phonebar, .glass-bar.list-select-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; position: fixed; left: 50%; right: auto; top: auto; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 40; height: 56px; border-radius: 28px; corner-shape: squircle;
     align-items: center; justify-items: center; padding: 0 6px;
     background: color-mix(in srgb, var(--pop) 55%, transparent);
     -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, .55);
     box-shadow: 0 10px 30px rgba(0, 0, 0, .16), 0 1px 3px rgba(0, 0, 0, .1), inset 0 1px 0 rgba(255, 255, 255, .6); }
-  :root[data-theme="dark"] .phonebar { border-color: rgba(255, 255, 255, .12); box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08); }
+  :root[data-theme="dark"] .phonebar, :root[data-theme="dark"] .glass-bar.list-select-bar { border-color: rgba(255, 255, 255, .12); box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08); }
   .phonebar:empty { display: none; }
-  .phonebar button { width: 48px; height: 44px; border: 0; background: none; color: var(--text); display: flex; align-items: center; justify-content: center; border-radius: 22px; }
-  .phonebar button .icon { width: 24px; height: 24px; }
-  .phonebar button.on { background: var(--fill-strong); }
+  .phonebar button, .list-select-bar button { width: 48px; height: 44px; border: 0; background: none; color: var(--text); display: flex; align-items: center; justify-content: center; border-radius: 22px; }
+  .phonebar button .icon, .list-select-bar button .icon { width: 24px; height: 24px; }
+  .phonebar button.on, .list-select-bar button.on { background: var(--fill-strong); }
   .phonebar button.primary { background: none; color: var(--accent); }
   .phonebar button.primary .icon { width: 30px; height: 30px; stroke-width: 2.2; }
+  .glass-bar.list-select-bar { gap: 0; bottom: calc(18px + env(safe-area-inset-bottom)); animation: bar-in 500ms var(--spring); }
+  .list-scroll.under-bar { padding-bottom: 110px; }
   .picker { height: 100%; border-radius: 14px; }
   .phone-panel { flex-direction: column; align-items: flex-start; }
 }
@@ -1133,12 +1135,12 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 .set-warn { margin: 6px 4px 14px !important; padding: 8px 10px; border-radius: 8px; background: var(--fill); font-size: 12px; line-height: 1.45; }
 
 /* ---------- smooth, springy motion (the same spring as the cook book app) ---------- */
-:root { --spring: linear(0, 0.06 2%, 0.25 5%, 0.53 9%, 0.81 14%, 0.97 19%, 1.04 24%, 1.05 28%, 1.03 35%, 1 45%, 0.995 55%, 1); }
+:root { --ios-ease: cubic-bezier(0.32, 0.72, 0, 1); --spring: linear(0, 0.06 2%, 0.25 5%, 0.53 9%, 0.81 14%, 0.97 19%, 1.04 24%, 1.05 28%, 1.03 35%, 1 45%, 0.995 55%, 1); }
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes pop-in { from { transform: scale(0.9); opacity: 0; } }
 @keyframes sheet-up { from { transform: translateY(100%); } }
-@keyframes pane-forward { from { transform: translateX(28%); opacity: 0; } }
-@keyframes pane-back { from { transform: translateX(-18%); opacity: 0; } }
+@keyframes pane-forward { from { transform: translateX(22%); opacity: 0; } }
+@keyframes pane-back { from { transform: translateX(-12%); opacity: 0; } }
 @keyframes bar-in { from { transform: translateX(-50%) translateY(24px) scale(.92); opacity: 0; } }
 @keyframes bar-pop { from { transform: translateY(6px) scale(.94); opacity: 0; } }
 
@@ -1151,9 +1153,9 @@ select.sheet-input { padding-right: 4px; -webkit-appearance: none; appearance: n
 
 @media (max-width: 760px) {
   /* a phone moves from screen to screen like a navigation stack */
-  .app .sidebar, .app .list, .app .main { animation: pane-forward 420ms var(--spring); }
+  .app .sidebar, .app .list, .app .main { animation: pane-forward 380ms var(--ios-ease); }
   .app[data-dir="back"] .sidebar, .app[data-dir="back"] .list, .app[data-dir="back"] .main { animation-name: pane-back; }
-  .inspector { animation: sheet-up 520ms var(--spring); }
+  .inspector { animation: sheet-up 420ms var(--ios-ease); }
   .phonebar { animation: bar-in 500ms var(--spring); }
   .popmenu { transform-origin: top right; }
 }
