@@ -17,6 +17,9 @@
 import { h, fill, icon, toast, confirmBox, env } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
+
+// no pinch or double-tap zooming (iOS Safari ignores user-scalable=no, but honors this)
+document.addEventListener("gesturestart", (e) => e.preventDefault());
 import { libraryBrowser, setMediaRoot, setUploadEdge } from "./media.js";
 import { ghost, autoScroll } from "./drag.js";
 import { openSetup } from "./setup.js";
@@ -771,9 +774,9 @@ function drawToolbar() {
   // phone: the most-used block actions float at the bottom
   const b = editor?.blocks;
   fill(phonebar, narrow() && b && v === "write" ? [
-    b.hasPhotos() ? h("button", { "aria-label": t("Add photos"), onclick: () => b.addPhotos() }, icon("images")) : null,
-    h("button", { "aria-label": t("Rearrange blocks"), class: b.isRearranging() ? "on" : "", onclick: () => b.toggleRearrange() }, icon("arrows")),
+    b.hasPhotos() ? h("button", { "aria-label": t("Add photos"), onclick: () => b.addPhotos() }, icon("images")) : h("span"),
     h("button", { "aria-label": t("Insert a block"), class: "primary", onclick: () => b.insert() }, icon("plus")),
+    h("button", { "aria-label": t("Rearrange blocks"), class: b.isRearranging() ? "on" : "", onclick: () => b.toggleRearrange() }, icon("arrows")),
   ] : []);
 }
 

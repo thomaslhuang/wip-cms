@@ -223,6 +223,7 @@ button:disabled { cursor: default; }
 .list-items.selecting > .row-item, .list-items.selecting > .text-item { margin: 0 -8px; border-radius: 0; }
 .list-items.selecting > .row-item { padding-left: 14px; padding-right: 18px; }
 .list-items.selecting > .text-item { padding-left: calc(var(--indent, 10px) + 8px); padding-right: 18px; }
+.list-items.selecting > .text-item > .draft-dot { left: calc(var(--indent, 10px) - 4px); }   /* the row moved 8px left; the dot stays put */
 /* Grid: a small round check at the bottom right, as in Photos; no title or frosting on the
    pictures meanwhile (tiles without a picture keep their title, or they'd be blank) */
 .pick-check { display: none; position: absolute; right: 5px; bottom: 5px; z-index: 2; width: 15px; height: 15px; border-radius: 50%; border: 1.25px solid #fff; background: rgba(0,0,0,.2); color: #fff; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
@@ -806,6 +807,7 @@ select.input { appearance: auto; }
 
 /* ---------- the floating bar on phones ---------- */
 .phonebar { display: none; }
+html { touch-action: manipulation; }   /* no double-tap zoom */
 
 /* ---------- smaller windows: fewer columns while you write ---------- */
 @media (max-width: 1180px) {
@@ -852,13 +854,20 @@ select.input { appearance: auto; }
   .inspector { position: fixed; left: 0; right: 0; bottom: 0; top: 8vh; width: auto; z-index: 60; border: 0; border-radius: 14px 14px 0 0; box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25); }
   .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 0 18px; font-weight: 600; font-size: 17px; position: sticky; top: 0; background: var(--inspector); z-index: 2; }
   .field.row > .field-label { font-size: 15px; }
-  .phonebar { display: flex; position: fixed; left: 16px; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 40; height: 56px; border-radius: 28px;
-    align-items: center; justify-content: space-around; padding: 0 8px; background: var(--pop); box-shadow: var(--pop-shadow); }
+  /* the bottom bar: glass like the list's Select bar, three equal slots with Insert in the middle */
+  .phonebar { display: grid; grid-template-columns: 1fr 1fr 1fr; position: fixed; left: 50%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 40; height: 56px; border-radius: 28px; corner-shape: squircle;
+    align-items: center; justify-items: center; padding: 0 6px;
+    background: color-mix(in srgb, var(--pop) 55%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, .55);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .16), 0 1px 3px rgba(0, 0, 0, .1), inset 0 1px 0 rgba(255, 255, 255, .6); }
+  :root[data-theme="dark"] .phonebar { border-color: rgba(255, 255, 255, .12); box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08); }
   .phonebar:empty { display: none; }
   .phonebar button { width: 48px; height: 44px; border: 0; background: none; color: var(--text); display: flex; align-items: center; justify-content: center; border-radius: 22px; }
   .phonebar button .icon { width: 24px; height: 24px; }
   .phonebar button.on { background: var(--fill-strong); }
-  .phonebar button.primary { width: 44px; background: var(--accent); color: var(--on-accent); }
+  .phonebar button.primary { background: none; color: var(--accent); }
+  .phonebar button.primary .icon { width: 30px; height: 30px; stroke-width: 2.2; }
   .picker { height: 100%; border-radius: 14px; }
   .phone-panel { flex-direction: column; align-items: flex-start; }
 }
