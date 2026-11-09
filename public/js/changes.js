@@ -1,7 +1,7 @@
 // The Changes page (the "N changes to publish" line at the bottom of the sidebar): every file
 // that's different from the last commit. Read-only: publishing stays in GitHub Desktop, where
 // you commit and push. Show in Finder reveals a file there (on this Mac only).
-import { h, fill, icon, toast, env } from "./util.js";
+import { h, fill, icon, toast, env, pageTitle } from "./util.js";
 import { api } from "./api.js";
 import { t, t2, tl } from "./i18n.js";
 
@@ -10,7 +10,7 @@ const LABEL = { new: "New", modified: "Changed", deleted: "Deleted", renamed: "R
 export function changesView() {
   const body = h("div", { class: "trash-body" });
   const el = h("div", { class: "library trash-page" },
-    h("div", { class: "picker-head" }, h("div", { class: "picker-crumbs" }, h("b", {}, tl("Changes")))),
+    pageTitle(tl("Changes")),
     body);
 
   async function show() {

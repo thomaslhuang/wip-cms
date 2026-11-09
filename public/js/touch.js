@@ -3,7 +3,7 @@
 //   haptic()         a light tick (Android vibrates; iPhone Safari 17.4+ ticks when a hidden switch is toggled)
 //   actionSheet()    menus as a sheet from the bottom, swipe down to dismiss
 //   edgeSwipe()      drag from the left edge to go back, the screen following your finger
-//   listGestures()   swipe a row left for Trash, press and hold a row for a menu, pull the list down to refresh
+//   listGestures()   swipe a row left for Trash, right to make it a draft (or publish it), press and hold a row for a menu, pull the list down to refresh
 //   sheetDrag()      the Details sheet: drag its top to move between half and full height, or down to close
 //   trackKeyboard()  tells the CSS how tall the keyboard is (--kb), so floating bars rise above it
 import { h, icon } from "./util.js";
@@ -166,6 +166,26 @@ export function listGestures(listEl, hooks) {
     r.style.top = row.offsetTop + "px"; r.style.height = row.offsetHeight + "px";
     return r;
   }
+  // swiping right: Draft / Publish, which happens when you let go past the line (it doesn't stay open)
+  function leadFor(row) {
+    const host = row.parentElement;
+    let r = host.querySelector(":scope > .swipe-lead");
+    if (!r) {
+      const to = hooks.leadLabel(row.dataset.file);
+      r = h("div", { class: "swipe-lead " + to.cls, "aria-hidden": "true" }, icon(to.icon), h("span", {}, to.label));
+      host.append(r);
+    }
+    r.style.top = row.offsetTop + "px"; r.style.height = row.offsetHeight + "px";
+    return r;
+  }
+  function placeLead(row, x, animate) {
+    const r = leadFor(row);
+    row.style.transition = animate ? `transform 380ms ${ease}` : "none";
+    row.style.transform = x ? `translateX(${x}px)` : "";
+    r.style.transition = animate ? `width 380ms ${ease}` : "none";
+    r.style.left = row.offsetLeft - 14 + "px"; r.style.width = (x ? x + 14 : 0) + "px";
+    r.classList.toggle("armed", x >= FULL());
+  }
   function place(row, x, animate) {
     const r = revealFor(row);
     row.style.transition = animate ? `transform 380ms ${ease}` : "none";
@@ -205,6 +225,7 @@ export function listGestures(listEl, hooks) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       clearTimeout(g.timer);
       if (g.row && hooks.canSwipe(g.row) && Math.abs(dx) > Math.abs(dy) * 1.2 && (dx < 0 || (openRow && openRow.row === g.row))) { g.mode = "swipe"; g.base = openRow && openRow.row === g.row ? -OPEN : 0; }
+      else if (g.row && !openRow && dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.2 && hooks.canLead?.(g.row)) g.mode = "lead";
       else if (g.atTop && dy > 0 && Math.abs(dy) > Math.abs(dx) && listEl.scrollTop <= 0) g.mode = "pull";
       else { g.mode = "none"; return; }
     }
@@ -213,6 +234,13 @@ export function listGestures(listEl, hooks) {
       const x = Math.min(0, Math.max(-window.innerWidth * 0.9, g.base + dx));
       place(g.row, x, false);
       const armed = -x >= FULL();
+      if (armed !== g.armed) { g.armed = armed; haptic(); }
+      g.x = x;
+    } else if (g.mode === "lead") {
+      e.preventDefault();
+      const x = Math.max(0, Math.min(window.innerWidth * 0.9, dx));
+      placeLead(g.row, x, false);
+      const armed = x >= FULL();
       if (armed !== g.armed) { g.armed = armed; haptic(); }
       g.x = x;
     } else if (g.mode === "pull") {
@@ -244,6 +272,12 @@ export function listGestures(listEl, hooks) {
       if (-x >= FULL()) { const f = cur.row.dataset.file; place(cur.row, 0, true); setTimeout(() => cur.row.parentElement?.querySelector(":scope > .swipe-del")?.remove(), 400); hooks.trash(f); }
       else if (-x >= 56) { openRow = { row: cur.row }; place(cur.row, -OPEN, true); }
       else { openRow = { row: cur.row }; closeRow(); }
+      suppressUntil = Date.now() + 350;
+    } else if (m === "lead") {
+      const x = cur.x ?? 0, f = cur.row.dataset.file;
+      placeLead(cur.row, 0, true);
+      setTimeout(() => cur.row.parentElement?.querySelector(":scope > .swipe-lead")?.remove(), 400);
+      if (x >= FULL()) hooks.toggleDraft(f);
       suppressUntil = Date.now() + 350;
     } else if (m === "pull") {
       if (cur.pull >= 60) {

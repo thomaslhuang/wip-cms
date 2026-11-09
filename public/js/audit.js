@@ -1,6 +1,6 @@
 // Check pictures (Media page): pictures nothing uses, and pictures without alt text.
 // Unused pictures can be moved to the Trash (they're kept there, as with any Trash).
-import { h, fill, icon, toast, confirmBox, env } from "./util.js";
+import { h, fill, icon, toast, confirmBox, env, pageTitle } from "./util.js";
 import { api } from "./api.js";
 import { t, t2, tl } from "./i18n.js";
 
@@ -9,7 +9,7 @@ const size = (n) => n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + " KB" 
 export function auditView({ onOpen, onTrashed = () => {} }) {
   const body = h("div", { class: "trash-body" }, h("p", { class: "muted picker-empty" }, t("Checking…")));
   const el = h("div", { class: "library trash-page" },
-    h("div", { class: "picker-head" }, h("div", { class: "picker-crumbs" }, h("b", {}, tl("Check pictures")))),
+    pageTitle(tl("Check pictures")),
     body);
   let data = null;
   const chosen = new Set();

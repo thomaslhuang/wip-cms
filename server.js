@@ -174,7 +174,7 @@ const THIS_COMPUTER_ONLY = new Set([
 ]);
 
 // the few things that are fine to show before signing in: the sign-in page's own picture
-const BEFORE_SIGN_IN = new Set(["/favicon.png", "/apple-touch-icon.png", "/manifest.webmanifest"]);
+const BEFORE_SIGN_IN = new Set(["/favicon.png", "/apple-touch-icon.png", "/icon-192.png", "/icon-512.png", "/manifest.webmanifest"]);
 
 // ---------- plumbing ----------
 

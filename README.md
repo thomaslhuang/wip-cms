@@ -256,6 +256,18 @@ and it's added to `.pages.yml` with a place for its content, ready to write in.
   version back** first keeps the current text in `.cms-trash/replaced-versions/`.
 - **Can't reach your Mac:** if the connection drops, a banner appears, what you type stays in the
   page, and it saves when the connection is back.
+- **Slash menu:** type **/** on an empty line in a text block to open the block menu (↑ ↓ and Return,
+  Esc to go back). What you choose replaces the empty line.
+- **Pictures** (beside the writing): the pictures in this post's own folder. Drag one into the post, or
+  click it. An image block with no alt text says so; click the note to type one.
+- **Keyboard shortcuts:** press **?** for the list.
+- **Edges:** drag the edge of the sidebar or the details column to resize it (double-click puts it
+  back; with the keyboard, focus the edge and use ← →). In Split, the preview follows the writing as
+  you scroll (after updating, quit and reopen w·i·p cms once so the preview learns this).
+- **Sorting:** in a collection's sort menu, **Recently edited** (posts kept as files). The status under
+  the title shows when it was last saved if you hover it.
+- **On a phone:** swipe a row right to make it a draft (or take it out of drafts), with Undo; the
+  formatting bar rides above the keyboard; the page can be added to the Home Screen.
 - **Accessibility:** works with the keyboard and screen readers (skip link, labeled fields,
   dialogs that trap and return focus, reduced-motion respected); pinch zoom is allowed.
 

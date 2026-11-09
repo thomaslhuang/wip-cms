@@ -41,6 +41,9 @@ import { searchView } from "./search.js";
 import { auditView } from "./audit.js";
 import { openPalette, paletteIsOpen } from "./palette.js";
 import { openHistory } from "./history.js";
+import { PICTURE_TYPE } from "./picturepanel.js";
+import { wirePanes } from "./panes.js";
+import { openShortcuts } from "./shortcuts.js";
 import { watchConnection } from "./connection.js";
 import { t, t2, tl, fmtDate, dayParts, lang, dateStyle } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
@@ -242,7 +245,7 @@ function showPalette() {
     items.push({ group: t("This one"), label: tl("Version history…"), run: () => openHistory({ file: route.file, title: editor.title, editor, onRestored: reopen }) });
     if (editor.url && !narrow()) items.push({ group: t("This one"), label: tl("Open on your site"), run: () => window.open(`${previewBase()}${editor.url}`, "_blank", "noopener") });
   }
-  items.push({ group: t("Other"), label: tl("Settings…"), run: showSettings }, { group: t("Other"), label: tl("Customize…"), run: () => openAppearance() });
+  items.push({ group: t("Other"), label: tl("Keyboard shortcuts"), hint: "?", run: openShortcuts }, { group: t("Other"), label: tl("Settings…"), run: showSettings }, { group: t("Other"), label: tl("Customize…"), run: () => openAppearance() });
   openPalette({ items, onOpenResult: (r) => { location.hash = editHref(r.file); } });
 }
 document.addEventListener("keydown", (e) => {
@@ -252,12 +255,27 @@ document.addEventListener("keydown", (e) => {
   if (mod && !e.altKey && e.key.toLowerCase() === "k") { e.preventDefault(); if (!overlayOpen) showPalette(); return; }
   if (overlayOpen) return;
   if (mod && !e.altKey && e.key === "\\") { if (editor) { e.preventDefault(); cycleView(); } return; }
+  if ((e.key === "?" || (e.key === "/" && e.shiftKey)) && !e.metaKey && !e.ctrlKey && !e.altKey && !typingIn(e.target)) { e.preventDefault(); openShortcuts(); return; }
   if ((e.metaKey || e.ctrlKey) && e.altKey && e.code === "KeyN") { const s = currentSection(); if (s) { e.preventDefault(); newEntry(s); } return; }
   // ⌘Z / ⇧⌘Z undo and redo block changes (an insert, a delete, a move); in a writing box they stay the box's own
   if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "z" && editor?.blocks && !typingIn(e.target)) {
     if (e.shiftKey ? editor.blocks.redo() : editor.blocks.undo()) e.preventDefault();
   }
 });
+
+// The draft switch, from the list (swipe a row right, or its press-and-hold menu), without opening it.
+const entryNow = (file) => (lists[route.section] || []).find((e) => e.file === file);
+async function toggleDraftFor(sec, file) {
+  if (editor?.file === file) await editor.flush();
+  try {
+    const r = await api.read(file);
+    const now = !r.data.draft;
+    await api.save(file, { ...r.data, draft: now }, r.body, r.version);
+    await loadList(sec.name, true); drawList(); refreshChanges();
+    haptic();
+    toast(now ? t("Made a draft") : t("Not a draft anymore"), "", { action: { label: t("Undo"), run: () => toggleDraftFor(sec, file) } });
+  } catch (e) { toast(e.message, "error"); }
+}
 
 // Move items of a section to the Trash (.cms-trash in the site), after asking. An open item
 // that's among them closes; an open item further down the same list follows its new place.
@@ -505,7 +523,7 @@ function setListMode(name, mode) { listModes[name] = mode; pref.set("list-modes"
 // the site's own pages keep their order).
 //   group: "month" (years, then months), "year", "field:<name>" (by a choice field, such as
 //          a project's category), or "none"
-//   sort:  "newest", "oldest" or "title"
+//   sort:  "newest", "oldest", "title" or "edited" (last edited; files only)
 // Sections whose files are filed by month (a {month} in the filename template, like blog
 // posts) start grouped by month; other dated sections by year; the rest not at all.
 // Sections kept as one list in a data file (dosa's projects.json) also have "order": the
@@ -533,7 +551,7 @@ function listView(s, mode = listMode(s.name)) {
   if (v.group.startsWith("field:") && !choiceFields(s).some((f) => "field:" + f.name === v.group)) v.group = fallback.group;
   if (!hasDates(s) && v.group === "month") v.group = dated ? "year" : "none";
   if (!dated && v.group === "year") v.group = "none";
-  if (v.sort === "order" && s.store !== "list") v.sort = fallback.sort;
+  if ((v.sort === "order" || v.sort === "edited") && s.store === "list" || v.sort === "order" && s.store !== "list") v.sort = fallback.sort;
   return v;
 }
 function setListView(s, change) {
@@ -550,6 +568,7 @@ function sortEntries(entries, sort) {
   const list = [...entries];
   if (sort === "order") return list.sort((a, b) => a.order - b.order);
   if (sort === "title") return list.sort(byTitle);
+  if (sort === "edited") return list.sort((a, b) => (b.modified || 0) - (a.modified || 0) || byTitle(a, b));
   // undated entries go last either way
   return list.sort((a, b) => (!a.date) - (!b.date) || (sort === "oldest" ? byDate(a, b) : byDate(b, a)) || byTitle(a, b));
 }
@@ -599,7 +618,7 @@ function viewButton(s, view) {
       .map(([g, label]) => ({ label, checked: view.group === g, run: () => setListView(s, { group: g }) })),
     "-",
     { heading: tl("Sort by") },
-    ...(s.store === "list" ? [["order", tl("Order on the site")]] : []).concat(dated ? [["newest", tl("Newest first")], ["oldest", tl("Oldest first")]] : [], [["title", tl("Title")]])
+    ...(s.store === "list" ? [["order", tl("Order on the site")]] : []).concat(dated ? [["newest", tl("Newest first")], ["oldest", tl("Oldest first")]] : [], [["title", tl("Title")]], s.store === "list" ? [] : [["edited", tl("Recently edited")]])
       .map(([o, label]) => ({ label, checked: view.sort === o, run: () => setListView(s, { sort: o }) })),
   ]), { cls: "view-btn" });
   return btn;
@@ -843,6 +862,7 @@ function moreItems() {
     { label: tl("Customize…"), run: () => openAppearance() },
     "-",
     // language, how dates are written, interface size
+    ...(narrow() ? [] : [{ label: tl("Keyboard shortcuts"), run: openShortcuts }]),
     { label: tl("Settings…"), run: showSettings },
     ...(env.remote ? [] : [
       { label: tl("Open another site…"), run: () => chooseSite(true) },
@@ -855,7 +875,7 @@ function drawToolbar() {
   const left = [];
   if (narrow()) left.push(h("a", { class: "tbtn", href: route.section ? "#/s/" + route.section : "#/", "aria-label": t("Back") }, icon("back")));
   else if (!showSidebar) left.push(tbtn("sidebar", t("Show sidebar"), () => toggleSidebar()));
-  statusEl = h("div", { class: "doc-status" }, editor ? t(editor.status()) : "");
+  statusEl = h("div", { class: "doc-status", role: "status" }, editor ? t(editor.status()) : "");
   const title = h("div", { class: "toolbar-title" },
     h("div", { class: "toolbar-name" }, route.page === "images" ? t("Media") : route.page === "trash" ? tl("Trash") : route.page === "changes" ? tl("Changes") : route.page === "search" ? t("Search") : route.page === "audit" ? tl("Check pictures") : editor ? editor.title : ""), editor ? statusEl : null);
 
@@ -980,8 +1000,22 @@ function watchForPreview(ed) {
       catch (e) { previewNote.textContent = e.message; }
     }, 400);
   });
-  ed.onStatus((st) => { if (statusEl) statusEl.textContent = t(st); if (st === "Saved") afterSave(); });
+  ed.onStatus((st) => {
+    if (statusEl) { statusEl.textContent = t(st); statusEl.title = st === "Saved" ? t("Saved at {time}", { time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) }) : ""; }
+    if (st === "Saved") afterSave();
+  });
 }
+// In Split, the preview follows the writing: scrolling the document scrolls the preview to the same
+// share of its length (the preview is another address, so it's asked by message; see lib/preview.js).
+let scrollTick = 0;
+docpane.addEventListener("scroll", () => {
+  if (currentView() !== "split" || scrollTick) return;
+  scrollTick = requestAnimationFrame(() => {
+    scrollTick = 0;
+    const max = docpane.scrollHeight - docpane.clientHeight;
+    previewFrame.contentWindow?.postMessage({ wipScroll: max > 0 ? docpane.scrollTop / max : 0 }, "*");
+  });
+}, { passive: true });
 // Clicking through the preview opens the matching post or page in the editor. The preview tells
 // us which page it's on (lib/preview.js adds a line to each page for that); pages that no single
 // post makes (a listing page, say) leave the editor as it is.
@@ -1095,7 +1129,7 @@ async function go() {
   } else {
     const s = config.sections.find((x) => x.name === route.section);
     fill(docpane, h("div", { class: "doc-empty" },
-      h("p", {}, s ? t("Choose one of your {label}, or start a new one.", { label: lang() === "ja" ? t(s.label) : s.label.toLowerCase() }) : t("Choose something from the sidebar.")),
+      h("p", {}, s ? t("Choose something in {label}, or start a new one.", { label: tl(s.label) }) : t("Choose something from the sidebar.")),
       s && s.kind === "collection" ? h("button", { class: "btn", onclick: () => newEntry(s) }, icon("compose"), t("New")) : null));
     fill(inspectorEl);
   }
@@ -1140,6 +1174,22 @@ window.addEventListener("dragenter", (e) => {
   }
 });
 window.addEventListener("dragleave", (e) => { if (hasFiles(e) && --dragDepth <= 0) clearFileDrag(); });
+// a thumbnail dragged from the Pictures panel (beside the writing) into the post
+const hasPicture = (e) => [...(e.dataTransfer?.types || [])].includes(PICTURE_TYPE);
+window.addEventListener("dragover", (e) => {
+  if (!hasPicture(e) || !editor?.blocks) return;
+  e.preventDefault();
+  if (docpane.contains(e.target)) editor.blocks.showDropAt(e.clientY); else editor.blocks.hideDrop();
+});
+window.addEventListener("drop", (e) => {
+  if (!hasPicture(e) || !editor?.blocks) return;
+  e.preventDefault();
+  const url = e.dataTransfer.getData(PICTURE_TYPE);
+  const at = docpane.contains(e.target) ? editor.blocks.showDropAt(e.clientY) : undefined;
+  editor.blocks.hideDrop();
+  if (url) editor.blocks.addPictures([url], at);
+});
+window.addEventListener("dragend", () => editor?.blocks?.hideDrop());
 window.addEventListener("dragover", (e) => {
   if (!hasFiles(e)) return;
   e.preventDefault();
@@ -1295,12 +1345,18 @@ async function updateServerIfNeeded() {
   listGestures(listEl, {
     canSwipe: (row) => narrow() && !picking && !row.closest(".grid") && !!sectionNow(),
     trash: (file) => { const sec = sectionNow(); if (sec) trashItems(sec, [file]); },
+    // swipe right: make it a draft, or take it out of drafts (only where the section has a draft switch)
+    canLead: (row) => { const sec = sectionNow(); return narrow() && !picking && !row.closest(".grid") && !!sec && sec.fields.some((f) => f.name === "draft"); },
+    leadLabel: (file) => (entryNow(file)?.draft
+      ? { cls: "to-live", icon: "eye", label: t("Not a draft") } : { cls: "to-draft", icon: "compose", label: t("Make draft") }),
+    toggleDraft: (file) => { const sec = sectionNow(); if (sec) toggleDraftFor(sec, file); },
     menu: (file) => {
       const sec = sectionNow();
       if (!sec || picking) return;
       actionSheet([
         { label: tl("Open"), run: () => { location.hash = editHref(file); } },
         { label: t("Select"), run: () => { setPicking(sec, true); togglePick(sec, file); } },
+        ...(sec.fields.some((f) => f.name === "draft") ? [{ label: entryNow(file)?.draft ? t("Not a draft") : t("Make draft"), run: () => toggleDraftFor(sec, file) }] : []),
         { label: tl("Move to Trash"), danger: true, run: () => trashItems(sec, [file]) },
       ]);
     },
@@ -1318,6 +1374,7 @@ async function updateServerIfNeeded() {
   let wasNarrow = narrow();
   window.addEventListener("resize", () => { if (narrow() !== wasNarrow) { wasNarrow = narrow(); layout(); } });
   watchDialogs();
+  wirePanes({ app, get: pref.get, set: pref.set });
   watchConnection({ onBack: () => editor?.flush() });
   $("skip").addEventListener("click", () => docpane.focus());
   await go();

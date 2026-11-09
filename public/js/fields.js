@@ -267,7 +267,8 @@ function richText(field, obj, ctx) {
   const source = codeArea(t, isHtml ? "html" : "markdown");
   // Write: formatted
   const box = isHtml ? htmlBox(value(), set) : richBox({ value: value(), placeholder: tr("Write something…"), onChange: set,
-    onPasteFiles: ctx.pasteFiles ? (files) => ctx.pasteFiles(files, obj) : null });
+    onPasteFiles: ctx.pasteFiles ? (files) => ctx.pasteFiles(files, obj) : null,
+    onSlash: ctx.slash ? () => ctx.slash(obj) : null });
 
   const insert = (before, after = "", placeholder = "") => {
     const { selectionStart: s, selectionEnd: e, value: v } = t;
@@ -299,7 +300,10 @@ function richText(field, obj, ctx) {
     h("button", { class: "tool", title: tr("Link"), onclick: act("link", () => insert("[", "](https://)", tr("link text"))) }, tr("link")),
     h("button", { class: "tool", title: tr("Line break: a new line in the same paragraph (⇧↩)"), onclick: act("break", () => insert("\\\n")) }, icon("linebreak"), tr("line break")),
   ];
-  const el = h("div", { class: "rich" }, h("div", { class: "rich-bar" }, ...tools, tabs), box.el, source);
+  const bar = h("div", { class: "rich-bar" }, ...tools, tabs);
+  const el = h("div", { class: "rich" }, bar, box.el, source);
+  // on a phone the bar rides above the keyboard (see styles.css) and leaves a gap of its own height behind
+  el.addEventListener("focusin", () => { if (getComputedStyle(bar).position !== "fixed") el.style.setProperty("--bar-h", bar.offsetHeight + (parseFloat(getComputedStyle(bar).marginBottom) || 0) + "px"); });
   setMode(mode);
   return el;
 }

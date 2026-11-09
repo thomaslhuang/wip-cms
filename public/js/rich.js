@@ -6,6 +6,7 @@
 // (toMarkdown below). Text you don't touch keeps its Markdown as it was.
 //
 // Typing *word* or **word** formats it as you go. ⌘B / ⌘I work too. Pasting pastes plain text, except:
+//   - "/" on an empty line calls onSlash (the block menu)
 //   - a picture on the clipboard (a screenshot, a copied file) goes to onPasteFiles, if there is one
 //   - a web address pasted over selected text makes that text a link
 // The link button opens a box that can search your own posts and pages (js/linkpicker.js).
@@ -117,7 +118,7 @@ export function toHtml(text, isInline = false) {
 //   value      the Markdown
 //   inline     captions: one paragraph, no headings or lists
 //   onChange   called with the new Markdown as you type
-export function richBox({ value = "", inline: isInline = false, placeholder = "", onChange, onPasteFiles = null }) {
+export function richBox({ value = "", inline: isInline = false, placeholder = "", onChange, onPasteFiles = null, onSlash = null }) {
   const keepNbsp = / /.test(value);
   const el = h("div", { class: "rich-box" + (isInline ? " inline" : ""), contenteditable: "true", role: "textbox", "aria-multiline": String(!isInline), "data-placeholder": placeholder, spellcheck: "true" });
   const setEmpty = () => el.classList.toggle("is-empty", !el.textContent.trim() && !el.querySelector("img"));
@@ -149,6 +150,8 @@ export function richBox({ value = "", inline: isInline = false, placeholder = ""
       changed();
       return;
     }
+    // "/" on an empty line opens the block menu (see blocks.js), as in Notion
+    if (e.key === "/" && onSlash && !isInline && !e.metaKey && !e.ctrlKey && !e.altKey && !el.textContent.trim()) { e.preventDefault(); onSlash(); return; }
     if (isInline && e.key === "Enter") e.preventDefault();          // captions are one line
     if (e.key === "Enter" && e.shiftKey && !isInline) { e.preventDefault(); document.execCommand("insertLineBreak"); }
   });

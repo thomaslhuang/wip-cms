@@ -47,3 +47,6 @@ body = b"".join(t + struct.pack(">I", len(d) + 8) + d for t, d in entries)
 open(out + "/AppIcon.icns", "wb").write(b"icns" + struct.pack(">I", len(body) + 8) + body)
 big.resize((180, 180), Image.LANCZOS).save(out + "/apple-touch-icon.png")
 big.resize((64, 64), Image.LANCZOS).save(out + "/favicon.png")
+# the sizes a phone browser asks for when the page is added to the Home Screen
+big.resize((192, 192), Image.LANCZOS).save(out + "/icon-192.png")
+big.resize((512, 512), Image.LANCZOS).save(out + "/icon-512.png")

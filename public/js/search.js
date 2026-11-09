@@ -1,6 +1,6 @@
 // Search (top of the sidebar): looks through the titles and text of every section at once.
 // Click a result to open it.
-import { h, fill, icon } from "./util.js";
+import { h, fill, icon, pageTitle } from "./util.js";
 import { api } from "./api.js";
 import { t, tl } from "./i18n.js";
 
@@ -10,6 +10,7 @@ export function searchView({ onOpen }) {
   const input = h("input", { class: "search-input", type: "search", placeholder: t("Search everything"), "aria-label": t("Search everything"), autocomplete: "off",
     oninput: () => { clearTimeout(timer); timer = setTimeout(run, 180); } });
   const el = h("div", { class: "library trash-page" },
+    pageTitle(tl("Search")),
     h("div", { class: "picker-head" }, h("label", { class: "search", style: "flex:1" }, icon("search"), input)),
     body);
 

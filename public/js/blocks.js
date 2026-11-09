@@ -37,6 +37,7 @@ export function renderBlocks(field, list, ctx) {
   let rearranging = false;
   let selected = null;                 // the selected block (one of list)
   let choosing = null;                 // index where the "insert a block" menu is showing
+  let slashFrom = null;                // the empty text block a "/" was typed in (it's replaced by what you choose)
   const listeners = new Set();
   const changedState = () => listeners.forEach((fn) => fn());
 
@@ -85,12 +86,38 @@ export function renderBlocks(field, list, ctx) {
   root.addEventListener("keydown", (e) => { if (e.key === "Escape") { select(null); if (choosing !== null) { choosing = null; draw(); } document.activeElement?.blur(); } });
 
   // ----- adding -----
+  // what the picture field of an image block is called on this site (image, src...)
+  const imgKey = (def) => (def?.fields || []).find((f) => f.type === "image")?.name || "image";
   function newBlock(def) {
     const b = { [key]: def.name };
     for (const f of def.fields || []) if (f.default !== undefined) b[f.name] = f.default;
     return b;
   }
   const insertIndex = () => (selected && list.includes(selected) ? list.indexOf(selected) + 1 : list.length);
+
+  // the empty text block that "/" was typed in goes away when you pick a block to put there
+  function dropSlashBlock(at) {
+    const from = slashFrom; slashFrom = null;
+    const i = from ? list.indexOf(from) : -1;
+    if (i < 0 || hasContent(from)) return at;
+    list.splice(i, 1);
+    if (selected === from) selected = null;
+    return i < at ? at - 1 : at;
+  }
+
+  // pictures that are already in the library (from the Pictures panel): one image block each
+  function addPictures(urls, at = insertIndex()) {
+    const def = defs.find((d) => d.name === "image");
+    if (!def || !urls.length) return;
+    const made = urls.map((url) => ({ ...newBlock(def), [imgKey(def)]: url }));
+    snapshot();
+    list.splice(at, 0, ...made);
+    selected = made[made.length - 1];
+    ctx.changed();
+    draw();
+    announce(tr("Picture added"));
+    requestAnimationFrame(() => [...listEl.querySelectorAll(".block")].find((c) => c.blockRef === selected)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+  }
 
   async function choose(def, at) {
     choosing = null;
@@ -99,8 +126,9 @@ export function renderBlocks(field, list, ctx) {
       const urls = await openPicker({ multiple: true, folder: ctx.imageFolder });
       if (urls && urls.length) {
         const imageDef = defs.find((d) => d.name === "image");
-        const made = urls.map((url) => ({ ...(imageDef ? newBlock(imageDef) : { [key]: "image" }), image: url }));
+        const made = urls.map((url) => ({ ...(imageDef ? newBlock(imageDef) : { [key]: "image" }), [imgKey(imageDef)]: url }));
         snapshot();
+        at = dropSlashBlock(at);
         list.splice(at, 0, ...made);
         selected = made[made.length - 1];
         ctx.changed();
@@ -109,6 +137,7 @@ export function renderBlocks(field, list, ctx) {
     }
     const b = newBlock(def);
     snapshot();
+    at = dropSlashBlock(at);
     list.splice(at, 0, b);
     selected = b;
     ctx.changed();
@@ -127,17 +156,35 @@ export function renderBlocks(field, list, ctx) {
   const offered = () => defs.filter((d) => !(isMulti(d) && imageDef()));
 
   function chooser(at) {
-    return h("div", { class: "chooser", role: "menu" },
+    return h("div", { class: "chooser", role: "group", "aria-label": tr("Insert"), onkeydown: chooserKeys },
       h("div", { class: "chooser-head" }, h("span", {}, tr("Insert")),
         h("button", { class: "icon-btn", "aria-label": tr("Cancel"), onclick: () => { choosing = null; draw(); } }, icon("x"))),
       h("div", { class: "chooser-options" }, offered().map((d) =>
-        h("button", { class: "chooser-option", role: "menuitem", onclick: () => choose(d, at) }, icon(TYPE_ICONS[d.name] || "plus"), tl(d.label || d.name)))));
+        h("button", { class: "chooser-option", onclick: () => choose(d, at) }, icon(TYPE_ICONS[d.name] || "plus"), tl(d.label || d.name)))));
   }
-  function openChooser(at) {
+  // ↑ ↓ Home End move through the menu, Esc closes it (and goes back to the text you were in)
+  function chooserKeys(e) {
+    const opts = [...e.currentTarget.querySelectorAll(".chooser-option")], i = opts.indexOf(document.activeElement);
+    const go = (n) => { e.preventDefault(); opts[(n + opts.length) % opts.length]?.focus(); };
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") go(i + 1);
+    else if (e.key === "ArrowUp" || e.key === "ArrowLeft") go(i < 0 ? -1 : i - 1);
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(opts.length - 1);
+    else if (e.key === "Escape") {
+      e.preventDefault(); e.stopPropagation();
+      const from = slashFrom; slashFrom = null; choosing = null; draw();
+      requestAnimationFrame(() => [...listEl.querySelectorAll(".block")].find((c) => c.blockRef === from)?.querySelector(".rich-box:not([hidden])")?.focus());
+    }
+  }
+  function openChooser(at, { focus = false } = {}) {
     if (rearranging) toggleRearrange();
     choosing = at;
     draw();
-    requestAnimationFrame(() => listEl.querySelector(".chooser")?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+    requestAnimationFrame(() => {
+      const c = listEl.querySelector(".chooser");
+      c?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      if (focus) c?.querySelector(".chooser-option")?.focus();
+    });
   }
 
   // ----- moving and deleting -----
@@ -173,9 +220,10 @@ export function renderBlocks(field, list, ctx) {
   const layoutKey = () => list.map((b, i) => (pairsWith(i) ? "p" : "-")).join("");
   let drawnLayout = "";
   // a change that pairs or unpairs images redraws, so they move next to each other straight away
-  const blockCtx = { ...ctx, changed: () => { ctx.changed(); if (layoutKey() !== drawnLayout) draw(); },
+  const blockCtx = { ...ctx, changed: () => { ctx.changed(); if (layoutKey() !== drawnLayout) draw(); else refreshAltNotes(); },
     // a picture pasted into a text block becomes an image block right after it
-    pasteFiles: (files, b) => addFiles(files, list.indexOf(b) + 1) };
+    pasteFiles: (files, b) => addFiles(files, list.indexOf(b) + 1),
+    slash: (b) => { const i = list.indexOf(b); if (i >= 0) { slashFrom = b; openChooser(i + 1, { focus: true }); } } };
 
   // ----- one block -----
   const previewOf = (b) => firstWords(b.text || b.caption || b.alt || "", 8) || (Array.isArray(b.images) ? t2(b.images.length, "{n} photo", "{n} photos") : tr("empty"));
@@ -196,7 +244,7 @@ export function renderBlocks(field, list, ctx) {
       // an image block that gets several pictures keeps the first and adds a block for each other one
       const fieldCtx = b[key] === "image" ? { ...blockCtx, splitImages: (urls) => {
         const at = list.indexOf(b) + 1;
-        const made = urls.map((url) => ({ ...newBlock(def), image: url }));
+        const made = urls.map((url) => ({ ...newBlock(def), [imgKey(def)]: url }));
         snapshot();
         list.splice(at, 0, ...made);
         selected = made[made.length - 1];
@@ -229,7 +277,20 @@ export function renderBlocks(field, list, ctx) {
     return el;
   }
   // a line under carousels and collages saying which is which, even when not selected
+  // an image with no alt text says so (it goes when you add some): click to type it
+  const altField = (b) => (b[key] === "image" ? (defOf(b)?.fields || []).find((f) => f.name === "alt") : null);
+  const needsAlt = (b) => altField(b) && b[imgKey(defOf(b))] && !String(b[altField(b).name] || "").trim();
+  function altNote(b) {
+    return h("button", { class: "alt-note", type: "button", hidden: !needsAlt(b), onclick: () => {
+      select(b);
+      requestAnimationFrame(() => [...listEl.querySelectorAll(".block")].find((c) => c.blockRef === b)?.querySelector('[data-name="alt"] input, [data-name="alt"] textarea')?.focus());
+    } }, tr("No alt text · add"));
+  }
+  function refreshAltNotes() {
+    for (const el of listEl.querySelectorAll(".block")) { const n = el.querySelector(".alt-note"); if (n && el.blockRef) n.hidden = !needsAlt(el.blockRef); }
+  }
   function kindNote(b) {
+    if (altField(b)) return altNote(b);
     if (b[key] === "carousel") return h("div", { class: "carousel-note" }, icon("carousel"), tr("carousel · one at a time, changes every {s} seconds", { s: b.seconds || 3 }));
     if (b[key] === "collage") return h("div", { class: "carousel-note" }, icon("grid"), tr("collage · all at once, staggered"));
     return null;
@@ -325,7 +386,7 @@ export function renderBlocks(field, list, ctx) {
     const textDef = defs.find((d) => d.name === "text");
     const htmlDef = defs.find((d) => d.name === "html");
     for (const f of await uploadAny(ctx.imageFolder, files)) {
-      if (f.kind === "image" && imageDef) made.push({ ...newBlock(imageDef), image: f.url });
+      if (f.kind === "image" && imageDef) made.push({ ...newBlock(imageDef), [imgKey(imageDef)]: f.url });
       else if (f.kind === "video" && htmlDef) made.push({ ...newBlock(htmlDef), html: `<video src="${f.url}" controls playsinline preload="metadata"></video>` });
       else if (textDef) made.push({ ...newBlock(textDef), text: `[${f.name.replace(/[[\]]/g, "")}](${f.url})` });
     }
@@ -396,7 +457,7 @@ export function renderBlocks(field, list, ctx) {
     addPhotos: () => { const d = defs.find(isMulti) || imageDef(); if (d) choose({ ...d, name: "photos" }, insertIndex()); },
     hasPhotos: () => !!(defs.find(isMulti) || imageDef()),
     toggleRearrange,
-    showDropAt, hideDrop, addFiles,
+    showDropAt, hideDrop, addFiles, addPictures,
     isRearranging: () => rearranging,
     undo, redo, canUndo: () => undoStack.length > 0, canRedo: () => redoStack.length > 0,
     onState: (fn) => listeners.add(fn),

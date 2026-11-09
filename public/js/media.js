@@ -7,7 +7,7 @@
 //
 // Replacing a picture (a new, sharper version of one already on the site) keeps its file name
 // and format, so every page that uses it shows the new one.
-import { h, fill, icon, toast, confirmBox, env } from "./util.js";
+import { h, fill, icon, toast, confirmBox, env, pageTitle } from "./util.js";
 import { api } from "./api.js";
 import { t as tr, t2, fmtDate } from "./i18n.js";
 
@@ -372,6 +372,7 @@ function libraryView({ folder, multiple = false, pickable = true, onPick = () =>
 export function libraryBrowser({ folder } = {}) {
   const view = libraryView({ folder, pickable: false });
   view.show(folder || ROOT);
+  view.el.prepend(pageTitle(tr("Media")));
   view.el.append(h("p", { class: "muted small picker-tip" }, tr("Drop files here to upload into this folder. Click one to copy its address; ⌘-click or Select to pick several.")));
   return view;
 }

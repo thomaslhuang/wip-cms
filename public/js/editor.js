@@ -15,6 +15,7 @@ function localOffset() {
 }
 import { api } from "./api.js";
 import { renderField } from "./fields.js";
+import { picturePanel } from "./picturepanel.js";
 import { t, t2, tl, fmtDate } from "./i18n.js";
 
 import { saveAfter } from "./settings.js";   // seconds after the last change before saving (Settings → Save after)
@@ -291,6 +292,7 @@ export async function openEditor({ file, section, config }) {
   const inspector = h("div", { class: "inspector-body" });
   // list items with no page of their own (a list of stockists) have no address
   const url = entry.url || (section?.store === "list" ? null : guessPageUrl(file));
+  let panelRefresh = null;
   function refreshInspector() {
   const scroll = inspector.parentNode?.scrollTop;
   fill(inspector);
@@ -316,6 +318,13 @@ export async function openEditor({ file, section, config }) {
   }
   // (a list item whose "slug" field is shown above already has its permalink there)
   if (url && !(section?.store === "list" && fields.some((f) => f.name === "slug"))) inspector.append(h("div", { class: "group-wrap" }, h("div", { class: "group-label" }, t("Permalink")), h("div", { class: "address" }, url)));
+  // the pictures in this post's folder, to drag into the writing
+  if (blocksEl?.api?.hasPhotos()) {
+    const panel = picturePanel({ folder: imageFolder, blocks: blocksEl.api });
+    inspector.append(panel.el);
+    if (panelRefresh) changeListeners.delete(panelRefresh);   // (the inspector is redrawn now and then)
+    changeListeners.add(panelRefresh = panel.refresh);
+  }
   if (scroll && inspector.parentNode) inspector.parentNode.scrollTop = scroll;
   }
   refreshInspector();

@@ -87,6 +87,7 @@ test("the list of posts shows title, date and draft state", () => {
   assert.strictEqual(post.draft, false);
   assert.strictEqual(post.url, "/blog/2026/10/cafe-opening/");
   assert.match(post.excerpt, /We opened the doors/);
+  assert.ok(post.modified > 0, "has a last-edited time, for sorting");
 });
 
 test("slugify makes web-safe addresses", () => {

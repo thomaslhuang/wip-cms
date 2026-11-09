@@ -15,7 +15,7 @@ export function openPalette({ items = [], onOpenResult }) {
   open = true;
   let shown = [], active = 0, found = [], timer = null, latest = 0, previous = document.activeElement;
   const input = h("input", { class: "palette-input", type: "text", role: "combobox", "aria-expanded": "true", "aria-controls": "palette-list", "aria-autocomplete": "list",
-    "aria-label": t("Go to, or search"), placeholder: t("Go to a page, start something new, or search"), autocomplete: "off", spellcheck: false });
+    "aria-label": t("Go to, or search"), placeholder: matchMedia("(max-width: 760px)").matches ? t("Go to, or search") : t("Go to a page, start something new, or search"), autocomplete: "off", spellcheck: false });
   const list = h("div", { class: "palette-list", id: "palette-list", role: "listbox", "aria-label": t("Results") });
   const status = h("div", { class: "sr-only", role: "status" });
   const close = () => { open = false; overlay.remove(); document.removeEventListener("keydown", onKey, true); if (previous?.isConnected) previous.focus?.(); };
@@ -62,8 +62,8 @@ export function openPalette({ items = [], onOpenResult }) {
   // (captured, so a key meant for the box never reaches the page behind it)
   const onKey = (e) => {
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
-    else if (e.key === "ArrowDown") { e.preventDefault(); if (shown.length) { active = (active + 1) % shown.length; mark(); } }
-    else if (e.key === "ArrowUp") { e.preventDefault(); if (shown.length) { active = (active - 1 + shown.length) % shown.length; mark(); } }
+    else if (e.key === "ArrowDown") { list.classList.add("kb"); e.preventDefault(); if (shown.length) { active = (active + 1) % shown.length; mark(); } }
+    else if (e.key === "ArrowUp") { list.classList.add("kb"); e.preventDefault(); if (shown.length) { active = (active - 1 + shown.length) % shown.length; mark(); } }
     else if (e.key === "Enter" && shown[active]) { e.preventDefault(); choose(shown[active]); }
     else if (e.key === "Tab") { e.preventDefault(); input.focus(); }
   };
