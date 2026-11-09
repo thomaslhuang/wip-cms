@@ -26,6 +26,9 @@ const setup = require("./lib/setup");
 const sections = require("./lib/sections");
 const trash = require("./lib/trash");
 const remote = require("./lib/remote");
+const changesLib = require("./lib/changes");
+const search = require("./lib/search");
+const audit = require("./lib/audit");
 
 const PORT = Number(process.env.WIP_PORT) || 4321;
 // the code's git commit when it started (the Mac app restarts the editor when this changes)
@@ -103,6 +106,8 @@ const routes = {
   "GET /api/remote": () => remote.status(PORT),
   "POST /api/remote": async (q, body) => { await remote.configure(body); return remote.status(PORT); },
   "POST /api/remote/signout": () => { remote.signOutAll(); return { ok: true }; },
+  // an https address for the phone, through Tailscale (lib/remote.js)
+  "POST /api/remote/https": async (q, body) => { await remote.setHttps(!!body.on, PORT); return remote.status(PORT); },
 
   // which post or page makes this web address (the preview says which page it's on)
   "GET /api/find": (q) => entries.findByUrl(q.url),
@@ -114,7 +119,13 @@ const routes = {
 
   // how many files changed since the last commit (the "ready to publish" count), and how
   // many things are in the Trash
-  "GET /api/changes": () => ({ ...changes(), trash: trash.count() }),
+  "GET /api/changes": () => ({ ...changesLib.status(), trash: trash.count() }),
+  // show one of the changed files in the Finder (this computer only)
+  "POST /api/changes/reveal": (q, body) => changesLib.reveal(String(body.path || "")),
+
+  // searching every section at once; and checks on the pictures (unused, no alt text)
+  "GET /api/search": (q) => search.run(q.q, entries),
+  "GET /api/audit": () => audit.run(),
 
   // stop w·i·p cms (the ⋯ menu's Quit, and the Mac app when it needs to restart a newer version)
   "POST /api/quit": () => { setTimeout(() => { try { preview.stopPreview(); } catch { /* fine */ } process.exit(0); }, 150); return { ok: true }; },
@@ -153,20 +164,11 @@ const routes = {
 const THIS_COMPUTER_ONLY = new Set([
   "POST /api/quit", "POST /api/site", "POST /api/site/setup", "GET /api/site/inspect", "POST /api/site/nickname",
   "POST /api/trash/reveal", "GET /api/phone-link",
-  "GET /api/remote", "POST /api/remote", "POST /api/remote/signout",
+  "GET /api/remote", "POST /api/remote", "POST /api/remote/signout", "POST /api/remote/https", "POST /api/changes/reveal",
 ]);
 
 // the few things that are fine to show before signing in: the sign-in page's own picture
 const BEFORE_SIGN_IN = new Set(["/favicon.png", "/apple-touch-icon.png", "/manifest.webmanifest"]);
-
-// git status of the open site; works without git too (count is then null)
-function changes() {
-  try {
-    const out = require("child_process").execFileSync("git", ["status", "--porcelain"], { cwd: site.requireSite().root, encoding: "utf8", timeout: 5000 });
-    const files = out.split("\n").filter((l) => l.trim() && !l.includes(".cms-trash/"));
-    return { count: files.length };
-  } catch { return { count: null }; }
-}
 
 // ---------- plumbing ----------
 
@@ -221,10 +223,10 @@ const server = http.createServer(async (req, res) => {
         try { password = JSON.parse(raw.toString() || "{}").password; } catch { /* no password */ }
         try { await remote.login(req, password); }
         catch (err) { if (err.retryAfter) res.setHeader("Retry-After", err.retryAfter); throw err; }
-        res.setHeader("Set-Cookie", remote.sessionCookie());
+        res.setHeader("Set-Cookie", remote.sessionCookie(req));
         return send(res, 200, { ok: true });
       }
-      if (req.method === "POST" && url.pathname === "/api/logout") { res.setHeader("Set-Cookie", remote.clearCookie()); return send(res, 200, { ok: true }); }
+      if (req.method === "POST" && url.pathname === "/api/logout") { res.setHeader("Set-Cookie", remote.clearCookie(req)); return send(res, 200, { ok: true }); }
       const left = remote.sessionLeft(req);
       if (!left) {
         if (req.method === "GET" && BEFORE_SIGN_IN.has(url.pathname)) return serveFile(res, path.join(PUBLIC, url.pathname));
@@ -232,7 +234,7 @@ const server = http.createServer(async (req, res) => {
         return serveFile(res, path.join(PUBLIC, "login.html"));
       }
       // signed in: stay signed in while you keep using it
-      if (left < remote.SESSION_MS / 2) res.setHeader("Set-Cookie", remote.sessionCookie());
+      if (left < remote.SESSION_MS / 2) res.setHeader("Set-Cookie", remote.sessionCookie(req));
     }
     const key = `${req.method} ${url.pathname}`;
     if (!local && THIS_COMPUTER_ONLY.has(key)) return send(res, 403, { error: "That only works on the Mac that w·i·p cms is running on." });

@@ -14,6 +14,9 @@
 //   #/edit/<file>    a post or page
 //   #/images         the image library
 //   #/trash          the Trash
+//   #/changes        files waiting to be published (read-only)
+//   #/search         search every section
+//   #/audit          unused pictures and pictures without alt text
 import { h, fill, icon, toast, confirmBox, env } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
@@ -30,6 +33,9 @@ import { installQuotes } from "./quotes.js";
 import { onLaunch, advancedTools, imageEdge } from "./settings.js";
 import { tableView } from "./table.js";
 import { trashView } from "./trash.js";
+import { changesView } from "./changes.js";
+import { searchView } from "./search.js";
+import { auditView } from "./audit.js";
 import { t, t2, tl, fmtDate, dayParts, lang, dateStyle } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
@@ -132,6 +138,7 @@ function drawSidebar() {
         : h("button", { class: "site-btn", title: t("Open another site"), onclick: () => chooseSite(true) }, h("span", {}, config.site.name), icon("chevrons")),
       tbtn("sidebar", t("Hide sidebar"), () => toggleSidebar(), { cls: "side-hide" })),
     h("nav", { class: "side-scroll" },
+      item("#/search", "search", t("Search"), null, route.page === "search"),
       collections.length ? h("div", { class: "side-group" }, t("Collections")) : null,
       collections.map((s) => item("#/s/" + s.name, s.name === "projects" ? "grid" : s.store === "list" ? "list" : "text", tl(s.label), lists[s.name]?.length, route.section === s.name)),
       Object.entries(groups).map(([g, items]) => [
@@ -140,11 +147,12 @@ function drawSidebar() {
       ]),
       h("div", { class: "side-group" }, t("Site")),
       item("#/images", "images", t("Media"), null, route.page === "images"),
+      item("#/audit", "check", tl("Check pictures"), null, route.page === "audit"),
       siteItems.map((s) => pageItem(s, "gear")),
       item("#/trash", "trash", tl("Trash"), trashCount || null, route.page === "trash")),
     h("div", { class: "side-foot" },
       changesCount == null ? null : h("span", { class: "dot" + (changesCount ? " on" : "") }),
-      h("span", { class: "side-foot-text" }, changesCount == null ? "" : changesCount ? t2(changesCount, "{n} change to publish", "{n} changes to publish") : t("Everything is published")),
+      h("a", { class: "side-foot-text side-foot-link", href: "#/changes", title: t("See which files changed") }, changesCount == null ? "" : changesCount ? t2(changesCount, "{n} change to publish", "{n} changes to publish") : t("Everything is published")),
       tbtn("plus", t("Add a collection or page"), () => openAddSection(sectionAdded), { cls: "side-add" })));
 }
 
@@ -765,7 +773,7 @@ function drawToolbar() {
   else if (!showSidebar) left.push(tbtn("sidebar", t("Show sidebar"), () => toggleSidebar()));
   statusEl = h("div", { class: "doc-status" }, editor ? t(editor.status()) : "");
   const title = h("div", { class: "toolbar-title" },
-    h("div", { class: "toolbar-name" }, route.page === "images" ? t("Media") : route.page === "trash" ? tl("Trash") : editor ? editor.title : ""), editor ? statusEl : null);
+    h("div", { class: "toolbar-name" }, route.page === "images" ? t("Media") : route.page === "trash" ? tl("Trash") : route.page === "changes" ? tl("Changes") : route.page === "search" ? t("Search") : route.page === "audit" ? tl("Check pictures") : editor ? editor.title : ""), editor ? statusEl : null);
 
   const right = [];
   const v = currentView();
@@ -814,7 +822,7 @@ function layout() {
   app.classList.toggle("has-file", !!editor);
   sizeTable();
   // phone: one column at a time
-  const pane = route.page === "edit" || route.page === "images" || route.page === "trash" ? "main" : route.page === "s" ? "list" : "nav";
+  const pane = route.page === "edit" || PAGES.has(route.page) ? "main" : route.page === "s" ? "list" : "nav";
   // which way the screen slides on a phone: deeper comes in from the right, back from the left
   if (app.dataset.pane !== pane) { const depth = { nav: 0, list: 1, main: 2 }; app.dataset.dir = depth[pane] < depth[app.dataset.pane] ? "back" : "forward"; }
   app.dataset.pane = pane;
@@ -941,6 +949,9 @@ function afterSave() {
 
 // ---------- opening things ----------
 
+// the pages that aren't a post or a section's list
+const PAGES = new Set(["images", "trash", "changes", "search", "audit"]);
+
 function parseRoute() {
   const [, page = "", ...rest] = (location.hash || "").slice(1).split("/");
   const value = decodeURIComponent(rest.join("/"));
@@ -949,7 +960,7 @@ function parseRoute() {
     return { page, file: value, section: section ? section.name : null };
   }
   if (page === "s") return { page, section: value, file: null };
-  if (page === "images" || page === "trash") return { page, section: null, file: null };
+  if (PAGES.has(page)) return { page, section: null, file: null };
   return { page: "", section: null, file: null };
 }
 
@@ -985,6 +996,15 @@ async function go() {
   } else if (route.page === "trash") {
     fill(docpane, trashView({ onRestored: afterRestore }).el);
     fill(inspectorEl);
+  } else if (route.page === "changes") {
+    fill(docpane, changesView().el);
+    fill(inspectorEl);
+  } else if (route.page === "search") {
+    fill(docpane, searchView({ onOpen: (r) => { location.hash = editHref(r.file); } }).el);
+    fill(inspectorEl);
+  } else if (route.page === "audit") {
+    fill(docpane, auditView({ onOpen: (r) => { location.hash = editHref(r.file); }, onTrashed: refreshChanges }).el);
+    fill(inspectorEl);
   } else if (editor) {
     fill(docpane, h("div", { class: "doc-scroll" }, editor.doc));
     fill(inspectorEl, h("div", { class: "sheet-head" }, h("span", { class: "sheet-grab" }), h("span", {}, t("Details")), h("button", { class: "link-btn", onclick: () => toggleInspector() }, t("Done"))), editor.inspector);
@@ -995,7 +1015,7 @@ async function go() {
       s && s.kind === "collection" ? h("button", { class: "btn", onclick: () => newEntry(s) }, icon("compose"), t("New")) : null));
     fill(inspectorEl);
   }
-  app.classList.toggle("images-open", route.page === "images" || route.page === "trash");
+  app.classList.toggle("images-open", PAGES.has(route.page));
   drawSidebar();
   drawList();
   layout();

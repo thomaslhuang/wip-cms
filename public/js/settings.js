@@ -88,10 +88,16 @@ export function openSettings({ beforeReload, onDates, site, remote = false, open
         s.hasPassword ? row(tl("Signed-in devices"), h("button", { class: "btn small", onclick: async () => {
           try { await api.signOutEverywhere(); toast(t("Signed out everywhere.")); } catch (e) { toast(e.message, "error"); }
         } }, t("Sign out all devices"))) : null,
+        s.enabled && s.tailscale ? row(tl("Secure address (https)"), toggle(s.https, async (on) => {
+          toast(t("Asking Tailscale…"));
+          try { await api.setRemoteHttps(on); } catch (e) { toast(e.message, "error"); }
+          drawRemote(box);
+        })) : null,
         ...(s.enabled ? s.addresses.map((a) => row(a.label, h("span", { class: "set-remote-url" }, h("b", {}, a.url)),
           h("button", { class: "btn small", onclick: () => copy(a.url) }, t("Copy")))) : [])),
       s.enabled && s.addresses.length ? h("div", { class: "set-remote-qr" }, h("div", { class: "phone-qr", html: s.qr }),
         h("p", { class: "muted small" }, t("Open the first address on your phone (scan this with its camera). Tailscale has to be running on the phone too."))) : null,
+      s.enabled && s.tailscale && !s.https ? hint(t("Secure address (https) gives your phone a normal https:// address through Tailscale, so Safari stops saying \"not secure\" and copying works. Tailscale has to have HTTPS certificates turned on for your account first (tailscale.com/admin/dns).")) : null,
       s.enabled && !s.tailscale ? h("p", { class: "set-warn" }, t("Tailscale doesn't seem to be running on this Mac. Without it, these addresses only work on your home Wi-Fi. Install it from tailscale.com/download and sign in, then do the same on your phone.")) : null,
       hint(t("Use w·i·p cms from your phone, from anywhere. Install Tailscale (free) on this Mac and on your phone, signed in to the same account; it makes a private, encrypted connection between them. Then open the address above on your phone and sign in with this password. Use a long one ({n}+ characters).", { n: s.minPassword })),
       h("p", { class: "set-hint" }, t("Anyone who signs in can edit this site's files, so don't share the password or your Tailscale account, and don't turn on Tailscale's Funnel. If you lose your phone, change the password or sign out all devices here. This Mac has to stay awake and w·i·p cms open (closing the window is fine). What you write is saved on this Mac; publish in GitHub Desktop as usual.")));

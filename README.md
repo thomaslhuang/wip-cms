@@ -10,6 +10,7 @@ Key features:
 - Batch editing of posts for ease of data management
 - Document-like text editor
 - Direct file management (no Google Drive intermediary or need to manually go into local files on computer)
+- Search across every section, a list of the files waiting to be published, and a check for unused pictures and pictures without alt text
 
 ## Starting it
 
@@ -67,7 +68,7 @@ Options:
 
 | | |
 |---|---|
-| **Sidebar** | **Collections**: things you keep adding to (blog posts, projects). Then single **pages**, under the group they're in in `.pages.yml` (e.g. Pages: Home, About). Then **Site**: the Images library, and one-of-a-kind items that aren't in a group (the site's title and description, say). At the bottom: how many changes are waiting to be published. Click the site name at the top to open another site; in that list, the pencil gives a site a **nickname** (also in Settings → Site). |
+| **Sidebar** | **Collections**: things you keep adding to (blog posts, projects). Then single **pages**, under the group they're in in `.pages.yml` (e.g. Pages: Home, About). Then **Site**: the Images library, and one-of-a-kind items that aren't in a group (the site's title and description, say). At the bottom: how many files are waiting to be published (click it to see which). **Search** at the top looks through every section at once. Click the site name at the top to open another site; in that list, the pencil gives a site a **nickname** (also in Settings → Site). |
 | **List** | The posts in that section. The ⇅ button picks how they're **grouped** (by month, by year, by any choice field such as Category, or not at all) and **sorted** (newest first, oldest first, or by title). Each section remembers its own for each view (list, grid, titles only), and it only changes this list, never the order on your site. Out of the box, sections filed by month (like blog posts) group by year and month in titles only, with no date beside each post (the month heading says when); grouped by year, titles only shows each post's date as 10/22 (10月22日 in Japanese). Other dated sections (like projects) group by year, without dates. Click a group to fold it away. Search at the top; the pencil makes a new one. The three buttons beside the search show it as a **list** (picture, title, first words), a **grid** (square pictures, three across, edge to edge; point at one for its title) or **titles only**; each section remembers its own. Drag the list's right edge to make it wider. |
 | **Document** | The open post: its title, then its blocks as they'll read. Click a block to select it: its options (caption position, alt text…) appear, with a small bar to move it up or down or delete it. Point between two blocks for a **+** that inserts one there. |
 | **Inspector** | The post's details: featured image, date, switches, tags, and its permalink. |
@@ -163,6 +164,9 @@ photos and rearrange float at the bottom of the screen.
 
 - There's no Save button: it saves a moment after you stop typing (the toolbar shows
   Edited, Saving…, Saved). **⌘S** saves straight away.
+- If a file changes somewhere else while it's open here (a pull in GitHub Desktop, a text editor,
+  your phone), the next save is refused with a message instead of undoing that change. Reopen the
+  post to see the latest, then make your change again.
 - **Revert to when opened** (in ⋯) puts the post back the way it was when you opened it.
 - Saving writes into the site folder. Publish the way you normally do: commit and push
   in GitHub Desktop.
@@ -176,6 +180,21 @@ photos and rearrange float at the bottom of the screen.
   bottom of the list: **Select all** (press again for none), the trash can (moves them all
   to `.cms-trash` together) and ✓ to stop selecting (or Esc).
 - **Open on your site** (in ⋯) opens the post's page on the live preview in a new tab.
+
+**Changes** (click "N changes to publish" at the bottom of the sidebar): every file that differs
+from the last commit, marked New, Changed, Deleted or Renamed, with a button to show it in the Finder.
+It only shows; publishing stays in GitHub Desktop. (The count is per file, so a new post with
+four pictures is five changes.)
+
+**Search** (top of the sidebar): type a few words and every post, project, list item and page
+that has all of them (in its title or text, any order) is listed, titles first. Click one to open it.
+
+**Check pictures** (sidebar, under Media): **Pictures nothing uses** are files in the media library
+that no post, data file or template mentions by address or by file name; tick some and **Move to
+Trash** (they can be put back). **Pictures without alt text** lists posts and pages with a picture
+that has none: Markdown `![](photo.webp)` or an `<img>` with no `alt`, a block or list item whose
+`alt` is empty, or (only in sections whose fields in `.pages.yml` include an `alt` field) one with no
+`alt` at all. A decorative picture can honestly have none, so it's a list to look through.
 
 **Media** (in the sidebar, under Site): every picture, video and file in the site's media
 folder, shown as **icons**, a **list** (name, kind, size, date modified) or **columns** (a
@@ -232,6 +251,12 @@ away from your desk. It's off until you turn it on.
    **Let my other devices connect**.
 3. On the phone, open the address shown there (or scan the QR code), sign in with the password,
    and use it like on the Mac. Safari's Share → Add to Home Screen gives it an icon.
+4. Optional: turn on **Secure address (https)** in the same place. It runs `tailscale serve` so the
+   phone gets a normal `https://<your-mac>.<tailnet>.ts.net` address: Safari stops saying "not
+   secure" and copying works. Tailscale needs HTTPS certificates turned on for your account first
+   (tailscale.com/admin/dns); if it isn't, the toggle shows what Tailscale said. It stays inside your
+   Tailscale network (this is **not** Funnel). Requests come through that proxy still need the password,
+   and the sign-in cookie is marked Secure.
 
 The Mac has to be awake and w·i·p cms running (closing its window is fine). What you write is
 saved in the site's folder on the Mac, so you publish the way you always do, in GitHub Desktop.
@@ -248,9 +273,9 @@ put them back.
   device out at once. Do that if you lose a phone.
 - Anyone who signs in can edit the site's files. Don't share the password or the Tailscale
   account, and don't turn on Tailscale's **Funnel** (it publishes things to the whole internet).
-- The connection runs over plain `http` inside Tailscale's encrypted network, so Safari calls the
-  page "not secure" and a few small conveniences, such as copying to the clipboard, may not work
-  there.
+- Without the secure address, the connection runs over plain `http` inside Tailscale's encrypted
+  network, so Safari calls the page "not secure" and a few small conveniences, such as copying to the
+  clipboard, may not work there. Turn on **Secure address (https)** to fix that.
 - Even with this off, the preview is only reachable from this Mac. (Eleventy's own server used
   to answer anyone on the same network; w·i·p cms now starts it so it only answers this
   computer, and its go-between asks other devices to sign in.) Requests from other web pages
@@ -357,6 +382,7 @@ site folder). For other sites, everything except the preview still works.
 
 ```
 w·i·p cms.app        the Mac app: double-click to start (Contents/MacOS/wip-cms is the script)
+test/                automated tests: `npm test` (see below)
 examples/            .pages.yml files for other sites (dosa)
 mac/make-icon.py     draws the app's icon (AppIcon.icns, and the browser tab icons)
 server.js            the switchboard: each web address hands off to a module below
@@ -372,7 +398,10 @@ lib/
   preview.js         the live preview (shadow copy + Eleventy, and the go-between in front of it)
   trash.js           the Trash page: what's in .cms-trash, and putting things back
   phone.js           phone uploads: the secret link, the QR code, who counts as "this computer"
-  remote.js          Other devices: the password, signing in, locking out guessers, the addresses
+  remote.js          Other devices: the password, signing in, locking out guessers, the addresses, https
+  changes.js         the Changes page: what git says is waiting to be published (read-only)
+  search.js          searching every section at once
+  audit.js           Check pictures: unused pictures, pictures without alt text
   bind-loopback.js   makes the preview's Eleventy answer only this computer
   setup.js           setting up a new site: writes its .pages.yml
   sections.js        adding a collection or page to a site that's set up (the sidebar's +)
@@ -390,6 +419,9 @@ public/
     crop.js          the Crop and rotate window
     touch.js         phone gestures and sheets: edge-swipe back, swipe a row to Trash, press and hold, pull to refresh, bottom sheets, haptics
     trash.js         the Trash page
+    changes.js       the Changes page
+    search.js        the Search page
+    audit.js         the Check pictures page
     setup.js         the "Set up a site" window
     rich.js          the writing box: Markdown shown formatted, and turned back into Markdown
     code.js          color-coded Source view
@@ -411,3 +443,16 @@ Some common changes:
 - **Which block options only show when a block is selected:** `isSecondary` at the top
   of `public/js/blocks.js`.
 - **Upload size or format:** `LONGEST_EDGE` in `public/js/media.js`.
+
+## Tests
+
+```sh
+npm test
+```
+
+Runs in a few seconds, on throwaway sites it builds in your temp folder (it never touches your real
+sites or your `~/.wip-cms*.json` files). They check the parts that rewrite your files: front matter
+round trips, saving one list item without touching the rest, refusing a save over a file that
+changed elsewhere, the Trash and putting things back, search, the picture checks, the changes list,
+and the sign-in rules for Other devices. Run it after changing anything in `lib/`. The tests are in
+`test/*.test.js`; `test/helpers.js` builds the sample site.
