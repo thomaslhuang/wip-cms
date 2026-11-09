@@ -5,9 +5,13 @@
 // the site's lib/blocks.js), and when you type, the box's HTML is turned back into Markdown
 // (toMarkdown below). Text you don't touch keeps its Markdown as it was.
 //
-// Typing *word* or **word** formats it as you go. ⌘B / ⌘I work too. Pasting pastes plain text.
+// Typing *word* or **word** formats it as you go. ⌘B / ⌘I work too. Pasting pastes plain text, except:
+//   - a picture on the clipboard (a screenshot, a copied file) goes to onPasteFiles, if there is one
+//   - a web address pasted over selected text makes that text a link
+// The link button opens a box that can search your own posts and pages (js/linkpicker.js).
 import { h } from "./util.js";
 import { t as tr } from "./i18n.js";
+import { pickLink } from "./linkpicker.js";
 
 const md = () => (window.markdownit ? window.markdownit({ html: true }) : null);
 
@@ -113,7 +117,7 @@ export function toHtml(text, isInline = false) {
 //   value      the Markdown
 //   inline     captions: one paragraph, no headings or lists
 //   onChange   called with the new Markdown as you type
-export function richBox({ value = "", inline: isInline = false, placeholder = "", onChange }) {
+export function richBox({ value = "", inline: isInline = false, placeholder = "", onChange, onPasteFiles = null }) {
   const keepNbsp = / /.test(value);
   const el = h("div", { class: "rich-box" + (isInline ? " inline" : ""), contenteditable: "true", role: "textbox", "aria-multiline": String(!isInline), "data-placeholder": placeholder, spellcheck: "true" });
   const setEmpty = () => el.classList.toggle("is-empty", !el.textContent.trim() && !el.querySelector("img"));
@@ -126,7 +130,15 @@ export function richBox({ value = "", inline: isInline = false, placeholder = ""
   // paste as plain text, so formatting from other apps doesn't come along
   el.addEventListener("paste", (e) => {
     e.preventDefault();
+    const pictures = [...(e.clipboardData.files || [])].filter((f) => /^image\//.test(f.type));
+    if (pictures.length && onPasteFiles) return void onPasteFiles(pictures);
     const text = e.clipboardData.getData("text/plain");
+    const sel = window.getSelection();
+    // an address pasted over selected words: those words become the link
+    if (/^(https?:\/\/|mailto:)\S+$/i.test(text.trim()) && sel.rangeCount && !sel.isCollapsed && el.contains(sel.anchorNode) && el.contains(sel.focusNode)) {
+      document.execCommand("createLink", false, text.trim());
+      return changed();
+    }
     document.execCommand("insertText", false, isInline ? text.replace(/\s*\n\s*/g, " ") : text);
   });
   el.addEventListener("keydown", (e) => {
@@ -168,18 +180,41 @@ export function richBox({ value = "", inline: isInline = false, placeholder = ""
     sel.addRange(caret);
   }
 
+  // the link button: ask where to (the box can search your pages), then link the selected words, or,
+  // with nothing selected, put in a link named after the page (or the address itself)
+  async function linkCommand() {
+    const sel = window.getSelection();
+    const inside = sel.rangeCount && el.contains(sel.anchorNode);
+    const range = inside ? sel.getRangeAt(0).cloneRange() : null;
+    const existing = range && (range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement)?.closest("a");
+    const picked = await pickLink({
+      rect: range ? range.getBoundingClientRect() : el.getBoundingClientRect(),
+      current: existing?.getAttribute("href") || "", hasSelection: !!range && !range.collapsed, canRemove: !!existing && el.contains(existing),
+    });
+    el.focus();
+    if (range) { sel.removeAllRanges(); sel.addRange(range); }
+    if (!picked) return;
+    if (picked.remove) {
+      if (existing) { const r = document.createRange(); r.selectNodeContents(existing); sel.removeAllRanges(); sel.addRange(r); }
+      document.execCommand("unlink");
+    } else if (range && !range.collapsed) document.execCommand("createLink", false, picked.url);
+    else if (existing && el.contains(existing)) existing.setAttribute("href", picked.url);
+    else {
+      const esc = (x) => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+      document.execCommand("insertHTML", false, `<a href="${esc(picked.url)}">${esc(picked.title || picked.url)}</a>`);
+    }
+    changed();
+  }
+
   return {
     el,
     set,
     get: () => toMarkdown(el, { inline: isInline, keepNbsp }),
     command(cmd) {
       el.focus();
+      if (cmd === "link") return void linkCommand();
       if (cmd === "bold" || cmd === "italic") document.execCommand(cmd);
       else if (cmd === "break") document.execCommand("insertLineBreak");
-      else if (cmd === "link") {
-        const url = window.prompt(tr("Link to (web address):"), "https://");
-        if (url && url !== "https://") document.execCommand("createLink", false, url);
-      }
       changed();
     },
   };

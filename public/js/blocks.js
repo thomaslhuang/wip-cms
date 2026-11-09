@@ -8,7 +8,9 @@
 //     and a blue line shows where it will land
 //   - "Rearrange" (toolbar) shrinks every block to one line you can drag
 //   - files dropped onto the post become blocks (app.js asks via root.api.addFiles)
-//   - deleting only asks first when the block has something in it
+//   - deleting only asks first when the block has something in it, and can be undone (a note with Undo
+//     appears, and ⌘Z undoes the last insert, delete or move while you're not typing in a box; ⇧⌘Z redoes it)
+//   - a picture pasted into a text block (a screenshot, a copied file) becomes an image block after it
 //   - there's one "image" choice: pick or upload one picture or several; each extra one
 //     becomes its own image block after it. (A "multi-upload" block in .pages.yml, kept for
 //     Pages CMS, isn't offered here: image does the same.)
@@ -16,7 +18,7 @@
 //   - carousels show as a strip you scroll sideways, collages in the site's staggered layout
 //
 // The toolbar (app.js) drives it through root.api: insert(), addPhotos(), toggleRearrange().
-import { h, fill, icon, firstWords, confirmBox } from "./util.js";
+import { h, fill, icon, firstWords, confirmBox, toast, announce } from "./util.js";
 import { renderFields } from "./fields.js";
 import { openPicker, uploadAny } from "./media.js";
 import { ghost, autoScroll } from "./drag.js";
@@ -37,6 +39,32 @@ export function renderBlocks(field, list, ctx) {
   let choosing = null;                 // index where the "insert a block" menu is showing
   const listeners = new Set();
   const changedState = () => listeners.forEach((fn) => fn());
+
+  // ----- undo: the blocks' order and which are there (what you typed inside them is kept) -----
+  // A snapshot is the list as it was, as the same block objects, so undoing a delete brings the block
+  // back with everything typed in it since, and undoing a move doesn't undo your typing.
+  const undoStack = [], redoStack = [];
+  const snapshot = () => { undoStack.push(list.slice()); if (undoStack.length > 60) undoStack.shift(); redoStack.length = 0; changedState(); };
+  function applyList(blocks, message) {
+    list.splice(0, list.length, ...blocks);
+    if (selected && !list.includes(selected)) selected = null;
+    ctx.changed();
+    draw();
+    changedState();
+    announce(message);
+  }
+  function undo() {
+    if (!undoStack.length) return false;
+    redoStack.push(list.slice());
+    applyList(undoStack.pop(), tr("Undone"));
+    return true;
+  }
+  function redo() {
+    if (!redoStack.length) return false;
+    undoStack.push(list.slice());
+    applyList(redoStack.pop(), tr("Redone"));
+    return true;
+  }
 
   const root = h("div", { class: "blocks" });
   const listEl = h("div", { class: "block-list" });
@@ -72,6 +100,7 @@ export function renderBlocks(field, list, ctx) {
       if (urls && urls.length) {
         const imageDef = defs.find((d) => d.name === "image");
         const made = urls.map((url) => ({ ...(imageDef ? newBlock(imageDef) : { [key]: "image" }), image: url }));
+        snapshot();
         list.splice(at, 0, ...made);
         selected = made[made.length - 1];
         ctx.changed();
@@ -79,6 +108,7 @@ export function renderBlocks(field, list, ctx) {
       return draw();
     }
     const b = newBlock(def);
+    snapshot();
     list.splice(at, 0, b);
     selected = b;
     ctx.changed();
@@ -118,17 +148,21 @@ export function renderBlocks(field, list, ctx) {
   async function remove(b) {
     if (hasContent(b) && !(await confirmBox(tr("Delete this {type} block?", { type: labelOf(b).toLowerCase() }), tr("Delete")))) return;
     const i = list.indexOf(b);
+    snapshot();
     list.splice(i, 1);
     if (selected === b) selected = null;
     ctx.changed();
     draw();
+    toast(tr("Block deleted"), "", { action: { label: tr("Undo"), run: () => undo() } });
   }
   function move(b, by) {
     const i = list.indexOf(b), j = i + by;
     if (j < 0 || j >= list.length) return;
+    snapshot();
     [list[i], list[j]] = [list[j], list[i]];
     ctx.changed();
     draw();
+    announce(tr("Moved to position {n} of {total}", { n: j + 1, total: list.length }));
     requestAnimationFrame(() => [...listEl.querySelectorAll(".block")].find((c) => c.blockRef === b)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }
 
@@ -139,7 +173,9 @@ export function renderBlocks(field, list, ctx) {
   const layoutKey = () => list.map((b, i) => (pairsWith(i) ? "p" : "-")).join("");
   let drawnLayout = "";
   // a change that pairs or unpairs images redraws, so they move next to each other straight away
-  const blockCtx = { ...ctx, changed: () => { ctx.changed(); if (layoutKey() !== drawnLayout) draw(); } };
+  const blockCtx = { ...ctx, changed: () => { ctx.changed(); if (layoutKey() !== drawnLayout) draw(); },
+    // a picture pasted into a text block becomes an image block right after it
+    pasteFiles: (files, b) => addFiles(files, list.indexOf(b) + 1) };
 
   // ----- one block -----
   const previewOf = (b) => firstWords(b.text || b.caption || b.alt || "", 8) || (Array.isArray(b.images) ? t2(b.images.length, "{n} photo", "{n} photos") : tr("empty"));
@@ -161,6 +197,7 @@ export function renderBlocks(field, list, ctx) {
       const fieldCtx = b[key] === "image" ? { ...blockCtx, splitImages: (urls) => {
         const at = list.indexOf(b) + 1;
         const made = urls.map((url) => ({ ...newBlock(def), image: url }));
+        snapshot();
         list.splice(at, 0, ...made);
         selected = made[made.length - 1];
         draw();
@@ -271,7 +308,7 @@ export function renderBlocks(field, list, ctx) {
       root.classList.remove("block-dragging");
       // the new order is the order on the page
       const order = [...listEl.querySelectorAll(".block")].map((c) => c.blockRef).filter(Boolean);
-      if (order.length === list.length && order.some((x, k) => x !== list[k])) { list.splice(0, list.length, ...order); ctx.changed(); }
+      if (order.length === list.length && order.some((x, k) => x !== list[k])) { snapshot(); list.splice(0, list.length, ...order); ctx.changed(); }
       selected = b;
       draw();
     };
@@ -293,6 +330,7 @@ export function renderBlocks(field, list, ctx) {
       else if (textDef) made.push({ ...newBlock(textDef), text: `[${f.name.replace(/[[\]]/g, "")}](${f.url})` });
     }
     if (!made.length) return;
+    snapshot();
     list.splice(at, 0, ...made);
     selected = made[made.length - 1];
     ctx.changed();
@@ -316,7 +354,7 @@ export function renderBlocks(field, list, ctx) {
       window.removeEventListener("pointercancel", end);
       el.classList.remove("dragging");
       const order = [...listEl.children].map((c) => c.blockRef).filter(Boolean);
-      if (order.some((b, i) => b !== list[i])) { list.splice(0, list.length, ...order); ctx.changed(); }
+      if (order.some((b, i) => b !== list[i])) { snapshot(); list.splice(0, list.length, ...order); ctx.changed(); }
       draw();
     };
     window.addEventListener("pointermove", move);
@@ -360,6 +398,7 @@ export function renderBlocks(field, list, ctx) {
     toggleRearrange,
     showDropAt, hideDrop, addFiles,
     isRearranging: () => rearranging,
+    undo, redo, canUndo: () => undoStack.length > 0, canRedo: () => redoStack.length > 0,
     onState: (fn) => listeners.add(fn),
   };
   root.append(listEl);

@@ -239,6 +239,26 @@ and it's added to `.pages.yml` with a place for its content, ready to write in.
 - What w·i·p cms can't do is make the site show it: that needs a template on the site, which
   is different for every site. After adding, it says what the site needs.
 
+## Shortcuts, links, history
+
+- **⌘K** opens quick open: type to jump to any post or page, or search the text of the whole site.
+- **⌘\** cycles Write / Split / Preview. **⌥⌘N** starts a new item in the section you're in.
+  (⌘N and ⌘⇧P belong to the browser, so these two use other keys.)
+- **⌘Z / ⇧⌘Z** undo and redo block changes (moving, deleting, adding) when you're not typing in a
+  block; typing itself keeps the browser's own undo. Deleting a block also shows an **Undo** button.
+- **Paste** an image into a text block to add it as a picture block. Paste a web address over
+  selected text to make it a link.
+- **Links:** the link button opens a small picker that searches your own posts and pages, or
+  takes any address.
+- **Word count and reading time** show under the blocks.
+- **Drafts only:** click the drafts count in a section to show only drafts.
+- **Version history** (⋯ menu): earlier saved versions from git, with what changed. **Put this
+  version back** first keeps the current text in `.cms-trash/replaced-versions/`.
+- **Can't reach your Mac:** if the connection drops, a banner appears, what you type stays in the
+  page, and it saves when the connection is back.
+- **Accessibility:** works with the keyboard and screen readers (skip link, labeled fields,
+  dialogs that trap and return focus, reduced-motion respected); pinch zoom is allowed.
+
 ## Using it from your phone (or anywhere)
 
 ⋯ → **Settings… → Other devices** lets a phone open the whole editor, so you can write a post
@@ -396,6 +416,7 @@ lib/
   media.js           the image library: listing folders, saving uploads
   tags.js            keeps the tag suggestions in .pages.yml up to date
   preview.js         the live preview (shadow copy + Eleventy, and the go-between in front of it)
+  history.js         version history from git: list, diff, put a version back
   trash.js           the Trash page: what's in .cms-trash, and putting things back
   phone.js           phone uploads: the secret link, the QR code, who counts as "this computer"
   remote.js          Other devices: the password, signing in, locking out guessers, the addresses, https
@@ -454,5 +475,5 @@ Runs in a few seconds, on throwaway sites it builds in your temp folder (it neve
 sites or your `~/.wip-cms*.json` files). They check the parts that rewrite your files: front matter
 round trips, saving one list item without touching the rest, refusing a save over a file that
 changed elsewhere, the Trash and putting things back, search, the picture checks, the changes list,
-and the sign-in rules for Other devices. Run it after changing anything in `lib/`. The tests are in
+version history and restoring, and the sign-in rules for Other devices. Run it after changing anything in `lib/`. The tests are in
 `test/*.test.js`; `test/helpers.js` builds the sample site.

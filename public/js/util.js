@@ -137,12 +137,94 @@ export function firstWords(text, n = 6) {
   return words.slice(0, n).join(" ") + (words.length > n ? "…" : "");
 }
 
-// short notice in the corner
-export function toast(message, kind = "") {
-  const t = h("div", { class: "toast " + kind }, message);
+// ---------- telling screen readers ----------
+// One quiet live region (and one that interrupts, for errors) that anything can speak through.
+let liveQuiet = null, liveLoud = null;
+export function announce(text, loud = false) {
+  if (!liveQuiet) {
+    liveQuiet = h("div", { class: "sr-only", "aria-live": "polite", "aria-atomic": "true" });
+    liveLoud = h("div", { class: "sr-only", role: "alert" });
+    document.body.append(liveQuiet, liveLoud);
+  }
+  const el = loud ? liveLoud : liveQuiet;
+  el.textContent = "";
+  setTimeout(() => { el.textContent = String(text || ""); }, 40);
+}
+
+// short notice in the corner. { action: { label, run } } adds a button (like Undo) and keeps it up longer.
+export function toast(message, kind = "", { action = null, ms = null } = {}) {
+  const gone = () => { t.classList.remove("show"); setTimeout(() => t.remove(), 300); };
+  const t = h("div", { class: "toast " + kind + (action ? " has-action" : "") }, message,
+    action ? h("button", { class: "toast-action", onclick: () => { clearTimeout(timer); gone(); action.run(); } }, action.label) : null);
   document.body.append(t);
   setTimeout(() => t.classList.add("show"), 10);
-  setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.remove(), 300); }, 2600);
+  const timer = setTimeout(gone, ms || (action ? 7000 : 2600));
+  announce(message, kind === "error");
+  return { dismiss: () => { clearTimeout(timer); gone(); } };
+}
+
+// ---------- dialogs ----------
+// Every pop-up window (.overlay with a .dialog in it) gets what a screen reader and the keyboard
+// need, wherever it was made: a dialog role and name, focus moved into it (to the first field, or the
+// first button, which is the safe one), Tab kept inside, Esc closing it through its own Cancel / Close /
+// Done button, and focus handed back to what had it before when it closes.
+export function watchDialogs() {
+  const done = new WeakSet();
+  let uid = 0;
+  const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  const enhance = (overlay) => {
+    const dialog = overlay.querySelector(".dialog") || overlay.firstElementChild;
+    if (!dialog) return;
+    if (!dialog.getAttribute("role")) dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    if (!dialog.getAttribute("aria-label") && !dialog.getAttribute("aria-labelledby")) {
+      const title = dialog.querySelector(".dialog-title, h1, h2, h3, p");
+      if (title) { title.id = title.id || "dlg-title-" + (++uid); dialog.setAttribute("aria-labelledby", title.id); }
+    }
+    const before = document.activeElement;
+    const focusables = () => [...dialog.querySelectorAll(FOCUSABLE)].filter((el) => el.getClientRects().length);
+    requestAnimationFrame(() => {
+      if (dialog.contains(document.activeElement)) return;
+      const f = focusables();
+      const first = f.find((el) => el.matches("input:not([type=checkbox]):not([type=radio]), textarea, select")) || f[0];
+      if (first) first.focus(); else { dialog.tabIndex = -1; dialog.focus(); }
+    });
+    overlay.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") {
+        const f = focusables();
+        if (!f.length) return e.preventDefault();
+        const first = f[0], last = f[f.length - 1], at = document.activeElement;
+        if (e.shiftKey && (at === first || !dialog.contains(at))) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && (at === last || !dialog.contains(at))) { e.preventDefault(); first.focus(); }
+      } else if (e.key === "Escape" && !e.defaultPrevented) {
+        const closer = [...dialog.querySelectorAll("button")].find((b) => /^(cancel|close|done|not now|キャンセル|閉じる|完了)$/i.test((b.textContent || "").trim()) || /^(cancel|close)$/i.test(b.getAttribute("aria-label") || ""));
+        if (closer) { e.preventDefault(); closer.click(); }
+      }
+    });
+    const watch = new MutationObserver(() => {
+      if (overlay.isConnected) return;
+      watch.disconnect();
+      if (before && before.isConnected && !document.querySelector(".overlay")) before.focus?.();
+    });
+    watch.observe(document.body, { childList: true });
+  };
+  new MutationObserver((records) => {
+    for (const r of records) for (const n of r.addedNodes) if (n.nodeType === 1 && n.classList.contains("overlay") && !done.has(n)) { done.add(n); enhance(n); }
+  }).observe(document.body, { childList: true });
+}
+
+// ---------- counting words ----------
+// The text of some Markdown, without its picture addresses and link addresses
+export const plainText = (md) => String(md || "").replace(/!\[[^\]]*\]\([^)]*\)/g, " ").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/<[^>]+>/g, " ").replace(/[*_`>#\\]+/g, "");
+const CJK = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/g;
+// { words, chars, minutes }: words for spaced languages, characters for Japanese and Chinese
+export function readingStats(text) {
+  const plain = plainText(text);
+  const chars = (plain.match(CJK) || []).length;
+  const words = plain.replace(CJK, " ").split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+  const cjk = chars > words;
+  const count = cjk ? chars : words;
+  return { count, cjk, minutes: Math.max(1, Math.round(cjk ? chars / 500 : words / 230)) };
 }
 
 // confirm box in the page's style; resolves true/false

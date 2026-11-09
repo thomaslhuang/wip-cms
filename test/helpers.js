@@ -23,6 +23,9 @@ content:
         type: block
         list: true
         blocks:
+          - name: text
+            fields:
+              - { name: text, type: rich-text }
           - name: image
             fields:
               - { name: src, type: image }

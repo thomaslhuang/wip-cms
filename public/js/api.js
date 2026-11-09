@@ -1,11 +1,27 @@
 // Talking to the CMS server (server.js). Every function returns the server's answer.
+import { t } from "./i18n.js";
+
+// Whether the Mac answered last time. When it stops answering (asleep, off, the phone's connection
+// dropped), listeners hear about it (js/connection.js shows the note), and again when it's back.
+let online = true;
+const listeners = new Set();
+const setOnline = (ok) => { if (online !== ok) { online = ok; listeners.forEach((fn) => fn(ok)); } };
+export const onConnection = (fn) => { listeners.add(fn); };
+export const isOnline = () => online;
 
 async function call(method, url, body, isRaw = false) {
-  const res = await fetch(url, {
-    method,
-    headers: body && !isRaw ? { "Content-Type": "application/json" } : {},
-    body: body ? (isRaw ? body : JSON.stringify(body)) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: body && !isRaw ? { "Content-Type": "application/json" } : {},
+      body: body ? (isRaw ? body : JSON.stringify(body)) : undefined,
+    });
+  } catch {
+    setOnline(false);
+    throw Object.assign(new Error(t("Can't reach your Mac right now.")), { offline: true });
+  }
+  setOnline(true);
   const data = await res.json().catch(() => ({}));
   // signed out (a new password, or "Sign out all devices"): the page asks again
   if (res.status === 401) { location.reload(); throw new Error(data.error || "Sign in first."); }
@@ -31,6 +47,9 @@ export const api = {
   revealChange: (path) => call("POST", "/api/changes/reveal", { path }),
   search: (q) => call("GET", "/api/search?" + qs({ q })),
   audit: () => call("GET", "/api/audit"),
+  history: (file) => call("GET", "/api/history?" + qs({ file })),
+  historyDiff: (file, commit) => call("GET", "/api/history/diff?" + qs({ file, commit })),
+  restoreVersion: (file, commit, version) => call("POST", "/api/history/restore", { file, commit, version }),
   setRemoteHttps: (on) => call("POST", "/api/remote/https", { on }),
   findByUrl: (url) => call("GET", "/api/find?" + qs({ url })),
   trash: () => call("GET", "/api/trash"),

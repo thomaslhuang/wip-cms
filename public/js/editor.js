@@ -7,7 +7,7 @@
 //
 // Saving is automatic, a moment after you stop typing (and straight away with ⌘S).
 // "Revert to when opened" puts back what the post was when you opened it.
-import { h, fill, icon, toast, confirmBox, autosize } from "./util.js";
+import { h, fill, icon, toast, confirmBox, autosize, readingStats } from "./util.js";
 
 function localOffset() {
   const off = -new Date().getTimezoneOffset(), pad = (n) => String(n).padStart(2, "0");
@@ -89,7 +89,9 @@ export async function openEditor({ file, section, config }) {
         if (!pending) setStatus("Saved");
         if (data.tags) config.tags = [...new Set([...(config.tags || []), ...data.tags])];
       })
-      .catch((e) => { pending = true; failed = true; setStatus("Not saved"); toast(e.message, "error"); })
+      // (when the Mac can't be reached, js/connection.js says so once, and the save is tried again
+      // the moment it answers; no error for every keystroke)
+      .catch((e) => { pending = true; failed = true; setStatus("Not saved"); if (!e.offline) toast(e.message, "error"); })
       .finally(() => { saving = null; });
     return saving;
   }
@@ -236,6 +238,20 @@ export async function openEditor({ file, section, config }) {
         blocksEl.querySelector(".field-label")?.remove();
       }
       doc.append(blocksEl);
+      // under the writing: how long it is (words, or characters for Japanese), and a reading time
+      const stats = h("p", { class: "doc-stats muted small" });
+      const textOfDoc = () => {
+        const v = data[blockField.name];
+        if (typeof v === "string") return v;
+        return Array.isArray(v) ? v.map((b) => (b && typeof b.text === "string" ? b.text : "")).join("\n\n") : "";
+      };
+      const showStats = () => {
+        const { count, cjk, minutes } = readingStats(textOfDoc());
+        stats.textContent = count ? `${cjk ? t2(count, "{n} character", "{n} characters") : t2(count, "{n} word", "{n} words")} · ${t("{n} min read", { n: minutes })}` : "";
+      };
+      showStats();
+      changeListeners.add(showStats);
+      doc.append(stats);
     }
     // big picture content (a project's gallery) belongs with the writing, not in the inspector
     for (const f of galleryFields) {
@@ -325,6 +341,7 @@ export async function openEditor({ file, section, config }) {
     onStatus: (fn) => statusListeners.add(fn),
     onChange: (fn) => changeListeners.add(fn),
     flush: () => { pending = pending || failed; return save(); },
+    version: () => version,
     isChanged: () => JSON.stringify(payload()) !== original,
     async revert() {
       if (!(await confirmBox(t("Put this back the way it was when you opened it? Your changes since then will be lost."), t("Revert")))) return false;

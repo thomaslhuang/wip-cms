@@ -17,13 +17,16 @@
 //   #/changes        files waiting to be published (read-only)
 //   #/search         search every section
 //   #/audit          unused pictures and pictures without alt text
-import { h, fill, icon, toast, confirmBox, env } from "./util.js";
+//
+// Keys: ⌘K quick open · ⌘\ Write / Split / Preview · ⌥⌘N a new item in the open section ·
+//       ⌘S save now · ⌘Z / ⇧⌘Z undo / redo a block change (when not typing in a box) · Esc closes things
+// (⌘N and ⌘⇧P belong to the browser, which doesn't let a page have them.)
+import { h, fill, icon, toast, confirmBox, env, watchDialogs } from "./util.js";
 import { api } from "./api.js";
 import { openEditor } from "./editor.js";
 import { haptic, actionSheet, closeSheets, edgeSwipe, listGestures, sheetDrag, trackKeyboard, slidingSegments } from "./touch.js";
 
-// no pinch or double-tap zooming (iOS Safari ignores user-scalable=no, but honors this)
-document.addEventListener("gesturestart", (e) => e.preventDefault());
+// (pinch-zooming is left on, for people who need the text bigger; only double-tap zoom is off: see styles.css)
 import { libraryBrowser, setMediaRoot, setUploadEdge } from "./media.js";
 import { ghost, autoScroll } from "./drag.js";
 import { openSetup } from "./setup.js";
@@ -36,6 +39,9 @@ import { trashView } from "./trash.js";
 import { changesView } from "./changes.js";
 import { searchView } from "./search.js";
 import { auditView } from "./audit.js";
+import { openPalette, paletteIsOpen } from "./palette.js";
+import { openHistory } from "./history.js";
+import { watchConnection } from "./connection.js";
 import { t, t2, tl, fmtDate, dayParts, lang, dateStyle } from "./i18n.js";
 import { applyTheme, setMode as setTheme, mode as theme, openAppearance } from "./theme.js";
 
@@ -53,6 +59,8 @@ let editor = null;          // the open post/page (editor.js), if any
 let route = { page: "", section: null, file: null };
 const lists = {};           // section name -> its posts (from the server)
 let filter = "";
+let draftsOnly = false, draftsSection = null;   // the list showing only drafts, for one section
+const toggleDrafts = (s) => { draftsOnly = !(draftsOnly && draftsSection === s.name); draftsSection = s.name; drawList(); };
 
 // ---------- remembered settings ----------
 
@@ -89,6 +97,19 @@ function popMenu(anchor, items, at = null) {
       : h("button", { role: "menuitem", class: it.danger ? "danger" : "", onclick: () => { menu.remove(); it.run(); } },
           h("span", { class: "popmenu-check" }, it.checked ? icon("check") : null), it.label)));
   document.body.append(menu);
+  // keyboard: ↑ ↓ move through the items, Esc closes and gives focus back, Tab leaves
+  const previouslyFocused = document.activeElement;
+  const items_ = () => [...menu.querySelectorAll('button[role="menuitem"]')];
+  items_()[0]?.focus();
+  menu.addEventListener("keydown", (e) => {
+    const all = items_(), i = all.indexOf(document.activeElement);
+    if (e.key === "ArrowDown") { e.preventDefault(); all[(i + 1) % all.length]?.focus(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); all[(i - 1 + all.length) % all.length]?.focus(); }
+    else if (e.key === "Home") { e.preventDefault(); all[0]?.focus(); }
+    else if (e.key === "End") { e.preventDefault(); all[all.length - 1]?.focus(); }
+    else if (e.key === "Escape") { e.preventDefault(); menu.remove(); (at ? previouslyFocused : anchor)?.focus?.(); }
+    else if (e.key === "Tab") menu.remove();
+  });
   // a right-click menu near the window's edge: keep it inside
   if (at) {
     const m = menu.getBoundingClientRect();
@@ -194,6 +215,50 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && picking && !document.querySelector(".overlay, .popmenu")) { picking = null; drawList(); }
 });
 
+// ---------- keys, and quick open ----------
+
+const currentSection = () => config.sections.find((x) => x.name === route.section && x.kind === "collection");
+const typingIn = (el) => !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+function cycleView() {
+  const order = narrow() ? ["write", "preview"] : ["write", "split", "preview"];
+  setView(order[(order.indexOf(currentView()) + 1) % order.length]);
+}
+function showPalette() {
+  if (paletteIsOpen()) return;
+  const go = (hash) => () => { location.hash = hash; };
+  const nav = t("Go to");
+  const items = [];
+  for (const s of config.sections.filter((x) => x.kind === "collection")) items.push({ group: nav, label: tl(s.label), run: go("#/s/" + s.name) });
+  for (const s of config.sections.filter((x) => x.kind !== "collection")) items.push({ group: nav, label: tl(s.label), hint: s.group ? tl(s.group) : "", run: go("#/edit/" + s.path) });
+  items.push({ group: nav, label: t("Media"), run: go("#/images") }, { group: nav, label: tl("Check pictures"), run: go("#/audit") },
+    { group: nav, label: tl("Trash"), run: go("#/trash") }, { group: nav, label: tl("Changes"), hint: t("files waiting to be published"), run: go("#/changes") },
+    { group: nav, label: t("Search"), run: go("#/search") });
+  for (const s of config.sections.filter((x) => x.kind === "collection")) items.push({ group: t("New"), label: t("New in {label}", { label: tl(s.label) }), run: () => newEntry(s) });
+  if (editor) {
+    for (const [v, label] of [["write", t("Write")], ["split", t("Split")], ["preview", t("Preview")]]) {
+      if (v === "split" && narrow()) continue;
+      items.push({ group: t("View"), label, hint: v === currentView() ? t("current") : "", run: () => setView(v) });
+    }
+    items.push({ group: t("This one"), label: tl("Version history…"), run: () => openHistory({ file: route.file, title: editor.title, editor, onRestored: reopen }) });
+    if (editor.url && !narrow()) items.push({ group: t("This one"), label: tl("Open on your site"), run: () => window.open(`${previewBase()}${editor.url}`, "_blank", "noopener") });
+  }
+  items.push({ group: t("Other"), label: tl("Settings…"), run: showSettings }, { group: t("Other"), label: tl("Customize…"), run: () => openAppearance() });
+  openPalette({ items, onOpenResult: (r) => { location.hash = editHref(r.file); } });
+}
+document.addEventListener("keydown", (e) => {
+  if (e.defaultPrevented || e.isComposing) return;
+  const mod = (e.metaKey || e.ctrlKey) && !e.shiftKey;
+  const overlayOpen = !!document.querySelector(".overlay, .linkpop");
+  if (mod && !e.altKey && e.key.toLowerCase() === "k") { e.preventDefault(); if (!overlayOpen) showPalette(); return; }
+  if (overlayOpen) return;
+  if (mod && !e.altKey && e.key === "\\") { if (editor) { e.preventDefault(); cycleView(); } return; }
+  if ((e.metaKey || e.ctrlKey) && e.altKey && e.code === "KeyN") { const s = currentSection(); if (s) { e.preventDefault(); newEntry(s); } return; }
+  // ⌘Z / ⇧⌘Z undo and redo block changes (an insert, a delete, a move); in a writing box they stay the box's own
+  if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "z" && editor?.blocks && !typingIn(e.target)) {
+    if (e.shiftKey ? editor.blocks.redo() : editor.blocks.undo()) e.preventDefault();
+  }
+});
+
 // Move items of a section to the Trash (.cms-trash in the site), after asking. An open item
 // that's among them closes; an open item further down the same list follows its new place.
 async function trashItems(s, files) {
@@ -237,6 +302,15 @@ function wirePicking(container, s) {
     e.preventDefault();
     togglePick(s, a.dataset.file);
   });
+  // the keyboard's menu key (or ⇧F10) on a focused row opens the same menu as a right-click
+  container.addEventListener("keydown", (e) => {
+    if (!(e.key === "ContextMenu" || (e.shiftKey && e.key === "F10"))) return;
+    const a = e.target.closest("a[data-file]");
+    if (!a) return;
+    e.preventDefault();
+    const r = a.getBoundingClientRect();
+    a.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: r.left + 24, clientY: r.bottom - 4 }));
+  });
   container.addEventListener("contextmenu", (e) => {
     const a = e.target.closest("a[data-file]");
     if (!a) return;
@@ -256,8 +330,11 @@ function drawList() {
   app.classList.toggle("no-list", !s);
   if (!s) return fill(listEl);
   const all = lists[s.name] || [];
-  const shown = all.filter((e) => !filter || (e.title + " " + (e.excerpt || "")).toLowerCase().includes(filter));
   const drafts = all.filter((e) => e.draft).length;
+  // "2 drafts" in the count is a button: it shows only the drafts (until you press it again)
+  if (!drafts) draftsOnly = false;
+  const draftsNow = draftsOnly && draftsSection === s.name;
+  const shown = all.filter((e) => (!draftsNow || e.draft) && (!filter || (e.title + " " + (e.excerpt || "")).toLowerCase().includes(filter)));
   const mode = listMode(s.name);
   if (picking && !isPicking(s)) picking = null;   // another section: start fresh
   const selecting = isPicking(s) && mode !== "table";
@@ -304,22 +381,26 @@ function drawList() {
     oninput: () => { filter = search.value.toLowerCase(); drawList(); const el = listEl.querySelector(".search-input"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); } });
   const countText = selecting ? t("{n} selected", { n: picking.chosen.size })
     : t2(all.length, "{n} item", "{n} items") + (drafts ? t2(drafts, ", {n} draft", ", {n} drafts") : "");
+  // (made fresh for each place it's shown: a node can only be in one)
+  const countNode = () => selecting || !drafts ? countText : h("span", {}, t2(all.length, "{n} item", "{n} items"),
+    h("button", { class: "count-drafts" + (draftsNow ? " on" : ""), "aria-pressed": String(draftsNow), "aria-label": draftsNow ? t("Showing only drafts. Show everything.") : t("Show only the drafts"),
+      title: draftsNow ? t("Show everything") : t("Show only the drafts"), onclick: () => toggleDrafts(s) }, t2(drafts, ", {n} draft", ", {n} drafts")));
   fill(listEl,
     h("div", { class: "list-head" + (selecting ? " sel" : "") },
       h("a", { class: "tbtn back-btn", href: "#/", "aria-label": t("Sections") }, icon("back")),
       h("div", { class: "list-title" }, h("div", { class: "list-name" }, selecting ? countText : tl(s.label)),
-        h("div", { class: "list-count" }, countText)),
+        h("div", { class: "list-count" }, countNode())),
       tbtn("select", t("Select several (or ⌘-click)"), () => setPicking(s, !selecting), { on: selecting }),
       tbtn("plus", t("Add new item"), () => newEntry(s))),
     // (a phone shows the title large, above the list, and shrinks it into the bar as you scroll)
     h("div", { class: "list-body" },
-      h("div", { class: "large-title" }, h("h1", {}, tl(s.label)), h("div", { class: "large-sub" }, countText)),
+      h("div", { class: "large-title" }, h("h1", {}, tl(s.label)), h("div", { class: "large-sub" }, countNode())),
       // the view buttons first, so they stay put as the list gets wider or narrower; the search takes the rest
       h("div", { class: "list-tools" },
         viewSwitch(s, mode),
         viewButton(s, view),
         h("label", { class: "search" }, icon("search"), search)),
-      h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter ? t("Nothing matches.") : t("Nothing here yet.")))),
+      h("div", { class: "list-scroll" + (jdates ? " jdates" + (view.group === "year" ? " by-year" : "") : "") }, rows.length ? rows : h("p", { class: "muted list-empty" }, filter || draftsNow ? t("Nothing matches.") : t("Nothing here yet.")))),
     selecting ? selectBar(s, shown, !barShown) : null,
     h("div", { class: "list-resize", role: "separator", "aria-label": t("Resize list"), onpointerdown: resizeList }));
   listEl.querySelector(".list-scroll").classList.toggle("under-bar", selecting);
@@ -751,6 +832,9 @@ function moreItems() {
         "-",
       ] : []),
       { label: tl("Revert to when opened"), run: async () => { if (await editor.revert()) reopen(); } },
+      { label: tl("Version history…"), run: () => openHistory({ file: route.file, title: editor.title, editor, onRestored: reopen }) },
+      ...(editor.blocks?.canUndo() ? [{ label: t("Undo block change"), run: () => editor.blocks.undo() }] : []),
+      ...(editor.blocks?.canRedo() ? [{ label: t("Redo block change"), run: () => editor.blocks.redo() }] : []),
       ...(editor.url && !narrow() ? [{ label: tl("Open on your site"), run: () => window.open(`${previewBase()}${editor.url}`, "_blank", "noopener") }] : []),
       "-",
     ] : []),
@@ -1020,6 +1104,10 @@ async function go() {
   drawList();
   layout();
   document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · w·i·p cms`;
+  // (the page's heading, for screen readers: what's open)
+  const pageNames = { images: t("Media"), trash: tl("Trash"), changes: tl("Changes"), search: t("Search"), audit: tl("Check pictures") };
+  const section = config.sections.find((x) => x.name === route.section);
+  $("page-title").textContent = editor ? editor.title : pageNames[route.page] || (section ? tl(section.label) : config.site.name);
 }
 async function reopen() { editor?.destroy(); editor = null; await go(); }
 
@@ -1229,6 +1317,9 @@ async function updateServerIfNeeded() {
   slidingSegments();
   let wasNarrow = narrow();
   window.addEventListener("resize", () => { if (narrow() !== wasNarrow) { wasNarrow = narrow(); layout(); } });
+  watchDialogs();
+  watchConnection({ onBack: () => editor?.flush() });
+  $("skip").addEventListener("click", () => docpane.focus());
   await go();
   refreshChanges();
   setInterval(refreshChanges, 15000);

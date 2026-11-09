@@ -18,11 +18,22 @@ import { t as tr, t2, tl, fmtDate } from "./i18n.js";
 const labelOf = (f) => f.label === false ? null : tl(f.label || f.name);
 
 // a field's help (description: in .pages.yml, which Pages CMS shows too) goes under it
+let labelSeq = 0;
 function wrap(field, ...content) {
-  return h("div", { class: `field field-${field.type}${field.list ? " field-list" : ""}`, "data-name": field.name },
-    labelOf(field) ? h("label", { class: "field-label" }, labelOf(field), field.required ? h("span", { class: "required" }, " *") : null) : null,
+  const label = labelOf(field) ? h("label", { class: "field-label" }, labelOf(field), field.required ? h("span", { class: "required" }, " *") : null) : null;
+  const el = h("div", { class: `field field-${field.type}${field.list ? " field-list" : ""}`, "data-name": field.name },
+    label,
     ...content,
     field.description ? h("p", { class: "field-help" }, String(field.description)) : null);
+  // the label names the field's first control, for screen readers (and clicking the label focuses it)
+  if (label) {
+    const control = el.querySelector('input:not([type="hidden"]):not([type="file"]), select, textarea, [role="switch"], [role="textbox"]');
+    if (control && !control.getAttribute("aria-label") && !control.getAttribute("aria-labelledby")) {
+      label.id = "field-label-" + (++labelSeq);
+      control.setAttribute("aria-labelledby", label.id);
+    }
+  }
+  return el;
 }
 
 // ---------- the editors ----------
@@ -197,8 +208,8 @@ function stringList(field, obj, ctx) {
     fill(box, 
       ...list.map((value, i) => h("div", { class: "string-row" },
         h("span", { class: "obj-grip", title: tr("Drag to move"), "aria-label": tr("Drag to move") }, icon("grip")),
-        h("input", { type: "text", class: "input", value, oninput: (e) => { list[i] = e.target.value; ctx.changed(); } }),
-        h("button", { class: "icon-btn", title: tr("Remove"), onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash")))),
+        h("input", { type: "text", class: "input", value, "aria-label": `${labelOf(field) || field.name} ${i + 1}`, oninput: (e) => { list[i] = e.target.value; ctx.changed(); } }),
+        h("button", { class: "icon-btn", title: tr("Remove"), "aria-label": tr("Remove"), onclick: () => { list.splice(i, 1); ctx.changed(); draw(); } }, icon("trash")))),
       h("button", { class: "btn small sort-fixed", onclick: () => { list.push(""); ctx.changed(); draw(); box.querySelector(".string-row:last-of-type input")?.focus(); } }, icon("plus"), tr("Add")));
   };
   sortable(box, { handle: ".obj-grip", onMove: (from, to) => { const [it] = list.splice(from, 1); list.splice(to, 0, it); ctx.changed(); draw(); } });
@@ -255,7 +266,8 @@ function richText(field, obj, ctx) {
   const t = autosize(h("textarea", { class: "input textarea prose source", rows: 3, spellcheck: !isHtml, value: value(), oninput: () => set(t.value) }));
   const source = codeArea(t, isHtml ? "html" : "markdown");
   // Write: formatted
-  const box = isHtml ? htmlBox(value(), set) : richBox({ value: value(), placeholder: tr("Write something…"), onChange: set });
+  const box = isHtml ? htmlBox(value(), set) : richBox({ value: value(), placeholder: tr("Write something…"), onChange: set,
+    onPasteFiles: ctx.pasteFiles ? (files) => ctx.pasteFiles(files, obj) : null });
 
   const insert = (before, after = "", placeholder = "") => {
     const { selectionStart: s, selectionEnd: e, value: v } = t;

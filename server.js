@@ -29,6 +29,7 @@ const remote = require("./lib/remote");
 const changesLib = require("./lib/changes");
 const search = require("./lib/search");
 const audit = require("./lib/audit");
+const history = require("./lib/history");
 
 const PORT = Number(process.env.WIP_PORT) || 4321;
 // the code's git commit when it started (the Mac app restarts the editor when this changes)
@@ -126,6 +127,11 @@ const routes = {
   // searching every section at once; and checks on the pictures (unused, no alt text)
   "GET /api/search": (q) => search.run(q.q, entries),
   "GET /api/audit": () => audit.run(),
+
+  // earlier versions of a post (from git, read-only), what putting one back would change, and putting it back
+  "GET /api/history": (q) => history.list(q.file),
+  "GET /api/history/diff": (q) => history.diff(q.file, q.commit),
+  "POST /api/history/restore": (q, body) => { const r = history.restore(body.file, body.commit, body.version, entries); afterChange(r.file); return r; },
 
   // stop w·i·p cms (the ⋯ menu's Quit, and the Mac app when it needs to restart a newer version)
   "POST /api/quit": () => { setTimeout(() => { try { preview.stopPreview(); } catch { /* fine */ } process.exit(0); }, 150); return { ok: true }; },
