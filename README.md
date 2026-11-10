@@ -262,8 +262,7 @@ and it's added to `.pages.yml` with a place for its content, ready to write in.
   click it. An image block with no alt text says so; click the note to type one.
 - **Keyboard shortcuts:** press **?** for the list.
 - **Edges:** drag the edge of the sidebar or the details column to resize it (double-click puts it
-  back; with the keyboard, focus the edge and use ← →). In Split, the preview follows the writing as
-  you scroll (after updating, quit and reopen w·i·p cms once so the preview learns this).
+  back; with the keyboard, focus the edge and use ← →).
 - **Sorting:** in a collection's sort menu, **Recently edited** (posts kept as files). The status under
   the title shows when it was last saved if you hover it.
 - **On a phone:** swipe a row right to make it a draft (or take it out of drafts), with Undo; the

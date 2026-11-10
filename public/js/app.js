@@ -1005,17 +1005,6 @@ function watchForPreview(ed) {
     if (st === "Saved") afterSave();
   });
 }
-// In Split, the preview follows the writing: scrolling the document scrolls the preview to the same
-// share of its length (the preview is another address, so it's asked by message; see lib/preview.js).
-let scrollTick = 0;
-docpane.addEventListener("scroll", () => {
-  if (currentView() !== "split" || scrollTick) return;
-  scrollTick = requestAnimationFrame(() => {
-    scrollTick = 0;
-    const max = docpane.scrollHeight - docpane.clientHeight;
-    previewFrame.contentWindow?.postMessage({ wipScroll: max > 0 ? docpane.scrollTop / max : 0 }, "*");
-  });
-}, { passive: true });
 // Clicking through the preview opens the matching post or page in the editor. The preview tells
 // us which page it's on (lib/preview.js adds a line to each page for that); pages that no single
 // post makes (a listing page, say) leave the editor as it is.
