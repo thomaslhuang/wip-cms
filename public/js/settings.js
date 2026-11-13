@@ -131,7 +131,7 @@ export function openSettings({ beforeReload, onDates, site, remote = false, open
         row(tl("Use typographer's quotes"), toggle(smartQuotes(), (on) => write("wip-smart-quotes", on ? "on" : "off"))),
         row(tl("Mark slips as you write"), toggle(slipMarks(), (on) => write("wip-slip-marks", on ? "on" : "off")))),
       hint(t("\" and ' become “ ” and ‘ ’ as you type (apostrophes too), as in InDesign. Not in Source, HTML or web addresses.")),
-      hint(t("A double space or a leftover ** gets a red wavy underline in Write. Click it to fix it.")),
+      hint(t("A double space or a leftover ** gets a red dotted underline in Write. Click it to fix it.")),
       group("Starting up",
         row(tl("When w·i·p cms opens"), dropdown(tl("When w·i·p cms opens"), [["last", t("Open the last site")], ["list", t("Show the list of sites")]], onLaunch(), (v) => write("wip-on-launch", v)))),
       remote ? null : remoteBox(),

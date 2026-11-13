@@ -1,4 +1,4 @@
-// Slips marked in the writing box with a red wavy underline, as in Word: a double space, or a
+// Slips marked in the writing box with a red dotted underline, as in Word: a double space, or a
 // formatting mark (** __ ~~) that never turned into formatting. Click one to see the fix and apply it.
 //
 // Nothing is added to the text: the underline is drawn with the browser's Custom Highlight API, so
@@ -24,12 +24,10 @@ function scan(box) {
   for (let node; (node = walker.nextNode());) {
     const text = node.data;
     for (const m of text.matchAll(/[^\s][  ]{2,}(?=[^\s])/g)) {
-      // the browser shows a run of spaces as one, so the extra space has no width to underline:
-      // the mark covers the character before it too, and the fix replaces just the spaces
-      const range = document.createRange(), spaces = document.createRange();
-      range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
-      spaces.setStart(node, m.index + 1); spaces.setEnd(node, m.index + m[0].length);
-      out.push({ range, spaces, fix: " ", label: t("Remove the extra space"), what: t("Double space") });
+      // the writing box keeps every space as typed (styles.css), so the extra ones are marked as they are
+      const range = document.createRange();
+      range.setStart(node, m.index + 1); range.setEnd(node, m.index + m[0].length);
+      out.push({ range, fix: " ", label: t("Remove the extra space"), what: t("Double space") });
     }
     for (const m of text.matchAll(/\*\*|__|~~/g)) {
       const range = document.createRange();
@@ -48,7 +46,7 @@ function showFix(box, slip) {
   const r = slip.range.getBoundingClientRect();
   const apply = () => {
     closePop();
-    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(slip.spaces || slip.range);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(slip.range);
     box.focus();
     // typed in as text, so ⌘Z undoes it and the box saves it like any edit
     if (slip.fix) document.execCommand("insertText", false, slip.fix); else document.execCommand("delete");
