@@ -68,15 +68,16 @@ function showFix(box, slip) {
     // typed in as text, so ⌘Z undoes it and the box saves it like any edit
     if (slip.fix) document.execCommand("insertText", false, slip.fix); else document.execCommand("delete");
   };
-  pop = h("div", { class: "slip-pop", role: "dialog", "aria-label": slip.what, style: { left: Math.max(8, r.left) + "px", top: r.bottom + 6 + "px" } },
-    h("span", { class: "slip-what" }, slip.what),
-    h("button", { class: "btn small primary", onclick: apply }, slip.label));
+  // a small chip, like Google Docs' suggestion: it never takes the cursor out of the box, so you can
+  // keep typing (which closes it) or fix the slip by hand
+  pop = h("div", { class: "slip-pop", title: slip.what, style: { left: Math.max(8, r.left) + "px", top: r.bottom + 4 + "px" } },
+    h("button", { class: "slip-fix", onmousedown: (e) => e.preventDefault(), onclick: apply }, slip.label));
   document.body.append(pop);
-  pop.querySelector("button").focus();
 }
 
 document.addEventListener("mousedown", (e) => { if (pop && !pop.contains(e.target)) closePop(); }, true);
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePop(); }, true);
+document.addEventListener("keydown", (e) => { if (pop && !e.metaKey && !e.ctrlKey && e.key !== "Shift") closePop(); }, true);
+addEventListener("scroll", () => closePop(), true);
 
 export function watchSlips(box) {
   let timer = null;
