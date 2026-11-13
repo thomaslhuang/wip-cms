@@ -22,6 +22,7 @@ import { uiScale, setUiScale } from "./theme.js";
 // ---------- the settings other parts of w·i·p cms read ----------
 const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } };
 const write = (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /* private window */ } };
+export const slipMarks = () => read("wip-slip-marks", "on") === "on";
 export const smartQuotes = () => read("wip-smart-quotes", "off") === "on";
 // seconds after the last change before it saves by itself
 export const saveAfter = () => { const n = Number(read("wip-save-after", "1.2")); return isFinite(n) && n >= 0.2 ? Math.min(n, 600) : 1.2; };
@@ -127,8 +128,10 @@ export function openSettings({ beforeReload, onDates, site, remote = false, open
           h("span", { class: "set-unit" }, t("seconds without typing")))),
       hint(t("Switching language reloads w·i·p cms. Interface size makes the sidebar, list, toolbar and inspector bigger or smaller; the writing has its own size, in Customize → Typography. ⌘S always saves straight away.")),
       group("Writing",
-        row(tl("Use typographer's quotes"), toggle(smartQuotes(), (on) => write("wip-smart-quotes", on ? "on" : "off")))),
+        row(tl("Use typographer's quotes"), toggle(smartQuotes(), (on) => write("wip-smart-quotes", on ? "on" : "off"))),
+        row(tl("Mark slips as you write"), toggle(slipMarks(), (on) => write("wip-slip-marks", on ? "on" : "off")))),
       hint(t("\" and ' become “ ” and ‘ ’ as you type (apostrophes too), as in InDesign. Not in Source, HTML or web addresses.")),
+      hint(t("A double space or a leftover ** gets a red wavy underline in Write. Click it to fix it.")),
       group("Starting up",
         row(tl("When w·i·p cms opens"), dropdown(tl("When w·i·p cms opens"), [["last", t("Open the last site")], ["list", t("Show the list of sites")]], onLaunch(), (v) => write("wip-on-launch", v)))),
       remote ? null : remoteBox(),

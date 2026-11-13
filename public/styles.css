@@ -1527,3 +1527,8 @@ kbd { font: inherit; font-size: 12px; min-width: 22px; padding: 1px 6px; text-al
   .swipe-lead.to-live { background: var(--success); }
   .swipe-lead.armed { filter: brightness(1.12); }
 }
+
+/* slips marked in the writing box (js/slips.js) */
+::highlight(wip-slip) { text-decoration: underline wavy #e5484d; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+.slip-pop { position: fixed; z-index: 60; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; background: var(--bg-elevated, var(--bg)); border: 1px solid var(--border); border-radius: var(--r); box-shadow: 0 6px 24px rgba(0,0,0,.18); font-size: 13px; }
+.slip-what { color: var(--text-dim, var(--muted, inherit)); }

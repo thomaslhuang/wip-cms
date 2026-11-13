@@ -13,6 +13,7 @@
 import { h } from "./util.js";
 import { t as tr } from "./i18n.js";
 import { pickLink } from "./linkpicker.js";
+import { watchSlips } from "./slips.js";
 
 const md = () => (window.markdownit ? window.markdownit({ html: true }) : null);
 
@@ -127,6 +128,7 @@ export function richBox({ value = "", inline: isInline = false, placeholder = ""
 
   const changed = () => { setEmpty(); onChange?.(toMarkdown(el, { inline: isInline, keepNbsp })); };
   el.addEventListener("input", () => { autoFormat(); changed(); });
+  watchSlips(el);
   el.addEventListener("focus", () => { try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch { /* old browser */ } });
   // paste as plain text, so formatting from other apps doesn't come along
   el.addEventListener("paste", (e) => {

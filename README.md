@@ -200,6 +200,11 @@ never turned into formatting, and **Double spaces** lists text with two or more 
 (shown as ␣). Both look at a post's body and every text field, skip code, and leave a lone `*` (a
 footnote star) and Markdown's two-spaces line break alone. Click a row to open it.
 
+**Slips in Write:** a double space or a leftover `**`, `__` or `~~` gets a red wavy underline in the
+writing box (drawn with the browser's highlight feature, so the text and ⌘Z are untouched). Click it
+for the fix (remove the extra space, remove the mark). Settings → Writing → Mark slips as you write
+turns it off. Titles and other single-line fields aren't underlined; Check content still lists them.
+
 **Media** (in the sidebar, under Site): every picture, video and file in the site's media
 folder, shown as **icons**, a **list** (name, kind, size, date modified) or **columns** (a
 column per folder, and a preview of the file you click), like Finder. Click one to copy its address. **Select** (or ⌘-click) picks several; **Move to
