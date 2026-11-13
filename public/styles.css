@@ -1388,6 +1388,8 @@ h1, h2, h3, h4 { font-weight: 400; }   /* titles are never bold */
 .change-status.deleted { color: var(--danger, #c0392b); }
 .change-path { font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 12px; overflow-wrap: anywhere; }
 .search-row { width: 100%; text-align: left; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
+.audit-tabs { margin: 4px 0 10px; flex-wrap: wrap; }
+.audit-count { margin-left: 6px; opacity: .55; font-variant-numeric: tabular-nums; }
 .audit-row { cursor: pointer; }
 .audit-sample { font-family: var(--mono, ui-monospace, monospace); white-space: normal; overflow-wrap: anywhere; }
 .audit-row input[type="checkbox"] { flex: none; }

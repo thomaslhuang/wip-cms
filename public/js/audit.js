@@ -14,6 +14,7 @@ export function auditView({ onOpen, onTrashed = () => {} }) {
     body);
   let data = null;
   const chosen = new Set();
+  let tab = "marks";
 
   async function load() {
     try { data = await api.audit(); } catch (e) { return fill(body, h("p", { class: "muted picker-empty" }, e.message)); }
@@ -38,9 +39,17 @@ export function auditView({ onOpen, onTrashed = () => {} }) {
         h("span", { class: "trash-title" }, m.title),
         h("span", { class: "muted small trash-was" }, tl(m.sectionLabel) + " · " + (m.issues[0].field === "body" ? t("Text") : m.issues[0].field) + (m.issues.length > 1 ? " +" + (m.issues.length - 1) : "")),
         h("span", { class: "small trash-was audit-sample" }, m.issues[0].sample))));
-    fill(body,
-      h("div", { class: "trash-when" }, t("Pictures nothing uses")),
-      unused.length ? [
+    const marks = withKind("marks"), spaces = withKind("spaces");
+    const panels = {
+      marks: () => marks.length ? [
+        h("p", { class: "muted small picker-tip" }, t("Marks like ** that were typed but didn't turn into bold or italic.")),
+        writingRows("marks", marks),
+      ] : h("p", { class: "muted picker-tip" }, t("No stray marks found.")),
+      spaces: () => spaces.length ? [
+        h("p", { class: "muted small picker-tip" }, t("Two or more spaces in a row, shown here as ␣.")),
+        writingRows("spaces", spaces),
+      ] : h("p", { class: "muted picker-tip" }, t("No double spaces found.")),
+      unused: () => unused.length ? [
         h("p", { class: "muted small picker-tip" }, t("No post, page, data file or template mentions these. Check one before trashing it if your site finds pictures some other way.")),
         unused.map((u) => h("label", { class: "trash-row audit-row" },
           h("input", { type: "checkbox", checked: chosen.has(u.url), onchange: (e) => { e.target.checked ? chosen.add(u.url) : chosen.delete(u.url); draw(); } }),
@@ -50,24 +59,19 @@ export function auditView({ onOpen, onTrashed = () => {} }) {
           h("button", { class: "btn small", disabled: !chosen.size, onclick: trashChosen }, icon("trash"), chosen.size ? t2(chosen.size, "Move {n} to Trash", "Move {n} to Trash") : tl("Move to Trash")),
           h("button", { class: "btn small", onclick: () => { unused.forEach((u) => chosen.add(u.url)); draw(); } }, t("Select all"))),
       ] : h("p", { class: "muted picker-tip" }, t("Every picture is used.")),
-      h("div", { class: "trash-when" }, t("Pictures without alt text")),
-      missingAlt.length ? [
+      alt: () => missingAlt.length ? [
         h("p", { class: "muted small picker-tip" }, t("Alt text describes a picture for people using screen readers. A purely decorative picture can go without.")),
         missingAlt.map((m) => h("button", { class: "trash-row search-row", onclick: () => onOpen(m) },
           h("span", { class: "trash-text" },
             h("span", { class: "trash-title" }, m.title),
             h("span", { class: "muted small trash-was" }, tl(m.sectionLabel) + " · " + t2(m.pictures.length, "{n} picture", "{n} pictures") + " · " + m.pictures.slice(0, 2).map((p) => p.split("/").pop()).join(", "))))),
       ] : h("p", { class: "muted picker-tip" }, t("No pictures are missing alt text.")),
-      h("div", { class: "trash-when" }, t("Stray formatting marks")),
-      withKind("marks").length ? [
-        h("p", { class: "muted small picker-tip" }, t("Marks like ** that were typed but didn't turn into bold or italic.")),
-        writingRows("marks", withKind("marks")),
-      ] : h("p", { class: "muted picker-tip" }, t("No stray marks found.")),
-      h("div", { class: "trash-when" }, t("Double spaces")),
-      withKind("spaces").length ? [
-        h("p", { class: "muted small picker-tip" }, t("Two or more spaces in a row, shown here as ␣.")),
-        writingRows("spaces", withKind("spaces")),
-      ] : h("p", { class: "muted picker-tip" }, t("No double spaces found.")));
+    };
+    const tabs = [["marks", t("Stray formatting"), marks.length], ["spaces", t("Double spaces"), spaces.length], ["unused", t("Unused images"), unused.length], ["alt", t("No alt text"), missingAlt.length]];
+    fill(body,
+      h("div", { class: "segmented audit-tabs", role: "tablist" }, tabs.map(([k, label, n]) =>
+        h("button", { role: "tab", class: tab === k ? "on" : "", "aria-selected": String(tab === k), onclick: () => { tab = k; draw(); } }, label, n ? h("span", { class: "audit-count" }, String(n)) : null))),
+      panels[tab]());
   }
   load();
   return { el, refresh: load };
