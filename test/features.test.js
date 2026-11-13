@@ -119,3 +119,22 @@ test("a section with no alt field isn't flooded with warnings", () => {
   makeSite({ "src/_data/about.json": '{"heading":"x","hero":{"src":"/images/h.webp"}}' });
   assert.deepStrictEqual(audit.missingAlt().filter((m) => m.file === "src/_data/about.json"), []);
 });
+
+test("writing checks: stray ** marks and double spaces, leaving code, line breaks and footnote stars alone", () => {
+  makeSite({
+    "src/blog/2026/10/second/index.md": [
+      "---", "title: Second  post", "caption: '**not closed'", "---",
+      "A **bold** word, and a **rogue one.", "", "Two  spaces here.", "", "A line break  ", "next line, then a footnote*", "", "    code  block", "", "```", "a  b", "```", "",
+    ].join("\n"),
+  });
+  const found = audit.writing().find((w) => w.title === "Second  post");
+  assert.ok(found);
+  const kinds = found.issues.map((i) => i.kind + ":" + i.field).sort();
+  assert.deepStrictEqual(kinds, ["marks:body", "marks:caption", "spaces:body", "spaces:title"]);
+  assert.match(found.issues.find((i) => i.kind === "spaces" && i.field === "body").sample, /Two␣␣spaces/);
+});
+
+test("writing checks: clean text has nothing to report", () => {
+  const { textIssues } = require("../lib/textcheck");
+  assert.deepStrictEqual(textIssues({ title: "Fine", url: "/a/b  c" }, "All **good** here.  \nNext line.\n"), []);
+});

@@ -96,13 +96,21 @@ export async function openEditor({ file, section, config }) {
       .finally(() => { saving = null; });
     return saving;
   }
+  // Screen updates wait until the typing event is over: Chrome ends a typed burst's undo step the
+  // moment the page changes some text during it (a word count, "Edited"), and ⌘Z then undoes one
+  // character at a time.
+  let afterTyping = null;
   const changed = () => {
     pending = true;
-    if (!failed) setStatus("Edited");
     clearTimeout(timer);
     timer = setTimeout(save, saveAfter() * 1000);
-    changeListeners.forEach((fn) => fn());
-    drawMeta();
+    if (afterTyping) return;
+    afterTyping = setTimeout(() => {
+      afterTyping = null;
+      if (!failed) setStatus("Edited");
+      changeListeners.forEach((fn) => fn());
+      drawMeta();
+    }, 0);
   };
 
   // the post's own image folder: uploads go there, and the picker opens there

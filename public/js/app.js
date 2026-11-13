@@ -171,7 +171,7 @@ function drawSidebar() {
       ]),
       h("div", { class: "side-group" }, t("Site")),
       item("#/images", "images", t("Media"), null, route.page === "images"),
-      item("#/audit", "check", tl("Check pictures"), null, route.page === "audit"),
+      item("#/audit", "check", tl("Check content"), null, route.page === "audit"),
       siteItems.map((s) => pageItem(s, "gear")),
       item("#/trash", "trash", tl("Trash"), trashCount || null, route.page === "trash")),
     h("div", { class: "side-foot" },
@@ -233,7 +233,7 @@ function showPalette() {
   const items = [];
   for (const s of config.sections.filter((x) => x.kind === "collection")) items.push({ group: nav, label: tl(s.label), run: go("#/s/" + s.name) });
   for (const s of config.sections.filter((x) => x.kind !== "collection")) items.push({ group: nav, label: tl(s.label), hint: s.group ? tl(s.group) : "", run: go("#/edit/" + s.path) });
-  items.push({ group: nav, label: t("Media"), run: go("#/images") }, { group: nav, label: tl("Check pictures"), run: go("#/audit") },
+  items.push({ group: nav, label: t("Media"), run: go("#/images") }, { group: nav, label: tl("Check content"), run: go("#/audit") },
     { group: nav, label: tl("Trash"), run: go("#/trash") }, { group: nav, label: tl("Changes"), hint: t("files waiting to be published"), run: go("#/changes") },
     { group: nav, label: t("Search"), run: go("#/search") });
   for (const s of config.sections.filter((x) => x.kind === "collection")) items.push({ group: t("New"), label: t("New in {label}", { label: tl(s.label) }), run: () => newEntry(s) });
@@ -875,9 +875,12 @@ function drawToolbar() {
   const left = [];
   if (narrow()) left.push(h("a", { class: "tbtn", href: route.section ? "#/s/" + route.section : "#/", "aria-label": t("Back") }, icon("back")));
   else if (!showSidebar) left.push(tbtn("sidebar", t("Show sidebar"), () => toggleSidebar()));
+  // when the list is out of the way (Split and Preview, or a narrower window), a way back to it
+  const sec = !narrow() && route.file && config.sections.find((x) => x.name === route.section && x.kind === "collection");
+  if (sec) left.push(h("a", { class: "tbtn list-back", href: "#/s/" + sec.name, title: t("Back to {name}", { name: tl(sec.label) }), "aria-label": t("Back to {name}", { name: tl(sec.label) }) }, icon("back")));
   statusEl = h("div", { class: "doc-status", role: "status" }, editor ? t(editor.status()) : "");
   const title = h("div", { class: "toolbar-title" },
-    h("div", { class: "toolbar-name" }, route.page === "images" ? t("Media") : route.page === "trash" ? tl("Trash") : route.page === "changes" ? tl("Changes") : route.page === "search" ? t("Search") : route.page === "audit" ? tl("Check pictures") : editor ? editor.title : ""), editor ? statusEl : null);
+    h("div", { class: "toolbar-name" }, route.page === "images" ? t("Media") : route.page === "trash" ? tl("Trash") : route.page === "changes" ? tl("Changes") : route.page === "search" ? t("Search") : route.page === "audit" ? tl("Check content") : editor ? editor.title : ""), editor ? statusEl : null);
 
   const right = [];
   const v = currentView();
@@ -1022,6 +1025,16 @@ window.addEventListener("message", async (e) => {
   location.hash = editHref(found.file);
 });
 
+// Clicking a picture in the writing side shows it in the preview (Split view): the preview scrolls
+// to the picture and outlines it for a moment. (The preview page matches it by file name.)
+docpane.addEventListener("click", (e) => {
+  const img = e.target instanceof Element ? e.target.closest("img") : null;
+  if (!img || !editor || currentView() !== "split" || !previewFrame.contentWindow) return;
+  const src = img.getAttribute("src") || "";
+  const name = decodeURIComponent((src.split(/[?#]/)[0].split("/").pop()) || "");
+  if (name) previewFrame.contentWindow.postMessage({ wipPreview: "show", name }, "*");
+});
+
 // Keep an eye on the preview: it may still be starting, restart after an update, or move to
 // another port. Whenever it becomes ready (again), the preview pane reloads, so it never sits
 // on a "can't connect" page.
@@ -1128,7 +1141,7 @@ async function go() {
   layout();
   document.title = `${editor ? editor.title + " · " : ""}${config.site.name} · w·i·p cms`;
   // (the page's heading, for screen readers: what's open)
-  const pageNames = { images: t("Media"), trash: tl("Trash"), changes: tl("Changes"), search: t("Search"), audit: tl("Check pictures") };
+  const pageNames = { images: t("Media"), trash: tl("Trash"), changes: tl("Changes"), search: t("Search"), audit: tl("Check content") };
   const section = config.sections.find((x) => x.name === route.section);
   $("page-title").textContent = editor ? editor.title : pageNames[route.page] || (section ? tl(section.label) : config.site.name);
 }

@@ -184,7 +184,7 @@ function permalinkField(field, obj, ctx) {
   const note = h("p", { class: "field-help warn", hidden: true });
   const clean = (v) => String(v || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim().replace(/[^A-Za-z0-9._~-]+/g, "-").replace(/^-+|-+$/g, "");
   const input = h("input", { type: "text", class: "input", value: was, spellcheck: false,
-    oninput: () => { obj[field.name] = input.value; show(); ctx.changed(); },
+    oninput: () => { obj[field.name] = input.value; setTimeout(show, 0); ctx.changed(); },
     onblur: () => { const v = clean(input.value); if (v !== input.value) { input.value = v; obj[field.name] = v; ctx.changed(); } show(); } });
   const show = () => {
     const now = clean(input.value);

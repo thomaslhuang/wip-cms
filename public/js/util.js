@@ -2,7 +2,7 @@
 import { t as tr } from "./i18n.js";
 
 // h("div", { class: "x", onclick: fn }, "text", childEl, [more, children])
-// The title at the top of a full page (Media, Search, Check pictures, Changes, Trash). On a computer the
+// The title at the top of a full page (Media, Search, Check content, Changes, Trash). On a computer the
 // toolbar already says it, so this only shows on a phone, as the same large title the lists have.
 export const pageTitle = (label) => h("div", { class: "large-title page-large" }, h("h1", {}, label));
 

@@ -1,4 +1,5 @@
-// Check pictures (Media page): pictures nothing uses, and pictures without alt text.
+// Check content: pictures nothing uses, pictures without alt text, and slips in the writing
+// (leftover ** marks, double spaces).
 // Unused pictures can be moved to the Trash (they're kept there, as with any Trash).
 import { h, fill, icon, toast, confirmBox, env, pageTitle } from "./util.js";
 import { api } from "./api.js";
@@ -9,7 +10,7 @@ const size = (n) => n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + " KB" 
 export function auditView({ onOpen, onTrashed = () => {} }) {
   const body = h("div", { class: "trash-body" }, h("p", { class: "muted picker-empty" }, t("Checking…")));
   const el = h("div", { class: "library trash-page" },
-    pageTitle(tl("Check pictures")),
+    pageTitle(tl("Check content")),
     body);
   let data = null;
   const chosen = new Set();
@@ -30,7 +31,13 @@ export function auditView({ onOpen, onTrashed = () => {} }) {
   }
 
   function draw() {
-    const { unused, missingAlt } = data;
+    const { unused, missingAlt, writing = [] } = data;
+    const withKind = (kind) => writing.map((w) => ({ ...w, issues: w.issues.filter((i) => i.kind === kind) })).filter((w) => w.issues.length);
+    const writingRows = (kind, rows) => rows.map((m) => h("button", { class: "trash-row search-row", onclick: () => onOpen(m) },
+      h("span", { class: "trash-text" },
+        h("span", { class: "trash-title" }, m.title),
+        h("span", { class: "muted small trash-was" }, tl(m.sectionLabel) + " · " + (m.issues[0].field === "body" ? t("Text") : m.issues[0].field) + (m.issues.length > 1 ? " +" + (m.issues.length - 1) : "")),
+        h("span", { class: "small trash-was audit-sample" }, m.issues[0].sample))));
     fill(body,
       h("div", { class: "trash-when" }, t("Pictures nothing uses")),
       unused.length ? [
@@ -50,7 +57,17 @@ export function auditView({ onOpen, onTrashed = () => {} }) {
           h("span", { class: "trash-text" },
             h("span", { class: "trash-title" }, m.title),
             h("span", { class: "muted small trash-was" }, tl(m.sectionLabel) + " · " + t2(m.pictures.length, "{n} picture", "{n} pictures") + " · " + m.pictures.slice(0, 2).map((p) => p.split("/").pop()).join(", "))))),
-      ] : h("p", { class: "muted picker-tip" }, t("No pictures are missing alt text.")));
+      ] : h("p", { class: "muted picker-tip" }, t("No pictures are missing alt text.")),
+      h("div", { class: "trash-when" }, t("Stray formatting marks")),
+      withKind("marks").length ? [
+        h("p", { class: "muted small picker-tip" }, t("Marks like ** that were typed but didn't turn into bold or italic.")),
+        writingRows("marks", withKind("marks")),
+      ] : h("p", { class: "muted picker-tip" }, t("No stray marks found.")),
+      h("div", { class: "trash-when" }, t("Double spaces")),
+      withKind("spaces").length ? [
+        h("p", { class: "muted small picker-tip" }, t("Two or more spaces in a row, shown here as ␣.")),
+        writingRows("spaces", withKind("spaces")),
+      ] : h("p", { class: "muted picker-tip" }, t("No double spaces found.")));
   }
   load();
   return { el, refresh: load };

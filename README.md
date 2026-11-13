@@ -189,12 +189,16 @@ four pictures is five changes.)
 **Search** (top of the sidebar): type a few words and every post, project, list item and page
 that has all of them (in its title or text, any order) is listed, titles first. Click one to open it.
 
-**Check pictures** (sidebar, under Media): **Pictures nothing uses** are files in the media library
+**Check content** (sidebar, under Media): **Pictures nothing uses** are files in the media library
 that no post, data file or template mentions by address or by file name; tick some and **Move to
 Trash** (they can be put back). **Pictures without alt text** lists posts and pages with a picture
 that has none: Markdown `![](photo.webp)` or an `<img>` with no `alt`, a block or list item whose
 `alt` is empty, or (only in sections whose fields in `.pages.yml` include an `alt` field) one with no
 `alt` at all. A decorative picture can honestly have none, so it's a list to look through.
+**Stray formatting marks** lists text where a typed `**`, `__` or `~~` (or two or more single `*`)
+never turned into formatting, and **Double spaces** lists text with two or more spaces in a row
+(shown as ␣). Both look at a post's body and every text field, skip code, and leave a lone `*` (a
+footnote star) and Markdown's two-spaces line break alone. Click a row to open it.
 
 **Media** (in the sidebar, under Site): every picture, video and file in the site's media
 folder, shown as **icons**, a **list** (name, kind, size, date modified) or **columns** (a
@@ -433,7 +437,8 @@ lib/
   remote.js          Other devices: the password, signing in, locking out guessers, the addresses, https
   changes.js         the Changes page: what git says is waiting to be published (read-only)
   search.js          searching every section at once
-  audit.js           Check pictures: unused pictures, pictures without alt text
+  audit.js           Check content: unused pictures, pictures without alt text, stray marks, double spaces
+  textcheck.js       the stray-mark and double-space checks
   bind-loopback.js   makes the preview's Eleventy answer only this computer
   setup.js           setting up a new site: writes its .pages.yml
   sections.js        adding a collection or page to a site that's set up (the sidebar's +)
@@ -453,7 +458,7 @@ public/
     trash.js         the Trash page
     changes.js       the Changes page
     search.js        the Search page
-    audit.js         the Check pictures page
+    audit.js         the Check content page
     setup.js         the "Set up a site" window
     rich.js          the writing box: Markdown shown formatted, and turned back into Markdown
     code.js          color-coded Source view

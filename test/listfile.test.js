@@ -70,3 +70,14 @@ test("a trashed post comes back with its pictures", () => {
   assert.ok(fs.existsSync(path.join(root, "src/blog/2026/10/cafe-opening/index.md")));
   assert.ok(fs.existsSync(path.join(root, "src/images/blog/2026/10/cafe-opening/front.webp")));
 });
+
+test("a list shown on one page (stockists) has that page as every item's address", () => {
+  const root = makeSite();
+  write(root, "src/_data/stockists.json", JSON.stringify([{ name: "Shop" }]));
+  write(root, "src/stockist/index.njk", '---\nlayout: base.njk\npermalink: "/stockist/"\n---\n{% for store in stockists %}<p>{{ store.name }}</p>{% endfor %}\n');
+  write(root, "src/about.njk", '---\npermalink: "/about/"\n---\nNo lists here.\n');
+  const { urlMaker } = require("../lib/permalinks");
+  const url = urlMaker({ path: "src/_data/stockists.json" });
+  assert.strictEqual(url({ name: "Shop" }), "/stockist/");
+  assert.strictEqual(urlMaker({ path: "src/_data/nothing-uses-this.json" })({ name: "x" }), null);
+});
