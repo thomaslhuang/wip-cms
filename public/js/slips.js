@@ -1,21 +1,38 @@
 // Slips marked in the writing box with a red dotted underline, as in Word: a double space, or a
 // formatting mark (** __ ~~) that never turned into formatting. Click one to see the fix and apply it.
 //
-// Nothing is added to the text: the underline is drawn with the browser's Custom Highlight API, so
+// Nothing is added to the text: the underline is drawn on a layer above the page, so
 // the box's content, ⌘Z and the saved Markdown are untouched. (Settings → Mark slips as you write.)
 import { h } from "./util.js";
 import { t } from "./i18n.js";
 import { slipMarks } from "./settings.js";
 
-const supported = typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight === "function";
-const boxes = new Map();   // box -> [{ range, fix, label }]
+const boxes = new Map();   // box -> [{ range, fix, label, what }]
 
+// The underline is drawn on a layer above the page, not on the text, so the browser's own
+// spelling underlines are left alone (and nothing is added to the box's content).
+const layer = h("div", { class: "slip-layer", "aria-hidden": "true" });
+document.body.append(layer);
+let queued = false;
 function paint() {
-  if (!supported) return;
-  const all = [];
-  for (const slips of boxes.values()) for (const s of slips) all.push(s.range);
-  if (all.length) CSS.highlights.set("wip-slip", new Highlight(...all)); else CSS.highlights.delete("wip-slip");
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(() => {
+    queued = false;
+    const marks = [];
+    for (const [box, slips] of boxes) {
+      if (!box.isConnected) { boxes.delete(box); continue; }
+      const view = box.closest(".doc-body, .doc, #docpane")?.getBoundingClientRect() || { top: 0, bottom: innerHeight };
+      for (const s of slips) for (const q of s.range.getClientRects()) {
+        if (q.width < 1 || q.bottom < view.top || q.top > view.bottom || q.bottom < 0 || q.top > innerHeight) continue;
+        marks.push(h("i", { style: { left: q.left + "px", top: q.bottom - 2 + "px", width: q.width + "px" } }));
+      }
+    }
+    layer.replaceChildren(...marks);
+  });
 }
+addEventListener("scroll", paint, true);
+addEventListener("resize", paint);
 
 function scan(box) {
   const out = [];
@@ -62,12 +79,12 @@ document.addEventListener("mousedown", (e) => { if (pop && !pop.contains(e.targe
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePop(); }, true);
 
 export function watchSlips(box) {
-  if (!supported) return;
   let timer = null;
   const refresh = () => { boxes.set(box, scan(box)); paint(); };
   const later = () => { clearTimeout(timer); timer = setTimeout(() => { if (!box.isConnected) { boxes.delete(box); paint(); return; } refresh(); }, 500); };
   box.addEventListener("input", later);
   box.addEventListener("blur", later);
+  new ResizeObserver(paint).observe(box);
   // a click on an underlined slip offers the fix
   box.addEventListener("click", (e) => {
     const slips = boxes.get(box) || [];
