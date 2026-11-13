@@ -58,6 +58,7 @@ document.body.append(sheetDim);
 const docpane = $("docpane"), previewpane = $("previewpane"), inspectorEl = $("inspector"), stage = $("stage"), phonebar = $("phonebar");
 
 let config;
+let pendingFind = null;     // text to take the cursor to once the opened item is on screen (Check content)
 let editor = null;          // the open post/page (editor.js), if any
 let route = { page: "", section: null, file: null };
 const lists = {};           // section name -> its posts (from the server)
@@ -1035,6 +1036,34 @@ docpane.addEventListener("click", (e) => {
   if (name) previewFrame.contentWindow.postMessage({ wipPreview: "show", name }, "*");
 });
 
+// Put the cursor on some text in the open item and scroll to it (a row on the Check content page).
+let foundAt = false;
+function goToText(needle) {
+  if (foundAt) return true;
+  const flat = (v) => v.replace(/\u00a0/g, " ");
+  const tries = [needle, ...needle.split(/ {2,}/).filter((p) => p.length > 3).slice(0, 1)];
+  for (const n of tries) {
+    for (const el of docpane.querySelectorAll("input[type=text], textarea")) {
+      const i = flat(el.value).indexOf(n);
+      if (i < 0) continue;
+      el.focus(); el.setSelectionRange(i, i + n.length); el.scrollIntoView({ block: "center" });
+      return (foundAt = true);
+    }
+    for (const box of docpane.querySelectorAll(".rich-box")) {
+      const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      for (let node; (node = walker.nextNode());) {
+        const i = flat(node.data).indexOf(n);
+        if (i < 0) continue;
+        const r = document.createRange(); r.setStart(node, i); r.setEnd(node, i + n.length);
+        box.focus(); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        node.parentElement.scrollIntoView({ block: "center" });
+        return (foundAt = true);
+      }
+    }
+  }
+  return false;
+}
+
 // Keep an eye on the preview: it may still be starting, restart after an update, or move to
 // another port. Whenever it becomes ready (again), the preview pane reloads, so it never sits
 // on a "can't connect" page.
@@ -1107,6 +1136,7 @@ async function go() {
       watchForPreview(editor);
       editor.blocks?.onState(() => drawToolbar());
       if (narrow()) showInspector = false;
+      if (pendingFind) { const text = pendingFind; pendingFind = null; foundAt = false; [150, 500, 1200].some((ms, i, all) => (setTimeout(() => { if (!goToText(text) && i === all.length - 1) toast(t("Couldn't find that spot; it may already be fixed."), ""); }, ms), false)); }
     } catch (e) { toast(e.message, "error"); editor = null; }
   }
 
@@ -1123,7 +1153,7 @@ async function go() {
     fill(docpane, searchView({ onOpen: (r) => { location.hash = editHref(r.file); } }).el);
     fill(inspectorEl);
   } else if (route.page === "audit") {
-    fill(docpane, auditView({ onOpen: (r) => { location.hash = editHref(r.file); }, onTrashed: refreshChanges }).el);
+    fill(docpane, auditView({ onOpen: (r, needle) => { pendingFind = needle || null; location.hash = editHref(r.file); }, onTrashed: refreshChanges }).el);
     fill(inspectorEl);
   } else if (editor) {
     fill(docpane, h("div", { class: "doc-scroll" }, editor.doc));

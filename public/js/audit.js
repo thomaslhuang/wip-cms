@@ -33,7 +33,7 @@ export function auditView({ onOpen, onTrashed = () => {} }) {
   function draw() {
     const { unused, missingAlt, writing = [] } = data;
     const withKind = (kind) => writing.map((w) => ({ ...w, issues: w.issues.filter((i) => i.kind === kind) })).filter((w) => w.issues.length);
-    const writingRows = (kind, rows) => rows.map((m) => h("button", { class: "trash-row search-row", onclick: () => onOpen(m) },
+    const writingRows = (kind, rows) => rows.map((m) => h("button", { class: "trash-row search-row", onclick: () => onOpen(m, m.issues[0].needle) },
       h("span", { class: "trash-text" },
         h("span", { class: "trash-title" }, m.title),
         h("span", { class: "muted small trash-was" }, tl(m.sectionLabel) + " · " + (m.issues[0].field === "body" ? t("Text") : m.issues[0].field) + (m.issues.length > 1 ? " +" + (m.issues.length - 1) : "")),
