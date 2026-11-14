@@ -138,3 +138,24 @@ test("writing checks: clean text has nothing to report", () => {
   const { textIssues } = require("../lib/textcheck");
   assert.deepStrictEqual(textIssues({ title: "Fine", url: "/a/b  c" }, "All **good** here.  \nNext line.\n"), []);
 });
+
+test("fixing writing slips: collapses double spaces, moves a misplaced space, drops stray marks, and can be put back", () => {
+  makeSite({
+    "src/blog/2026/10/second/index.md": ["---", "title: Second  post", "---", "A **bold** word, **Kim **The one, and **rogue.", "", "Two  spaces here.  Next.", ""].join("\n"),
+  });
+  const entries = require("../lib/entries");
+  const file = "src/blog/2026/10/second/index.md";
+  const before = entries.readEntry(file);
+  assert.strictEqual(audit.fixWriting("spaces", [], entries).length, 1);
+  assert.strictEqual(audit.fixWriting("marks", [], entries).length, 1);
+  const after = entries.readEntry(file);
+  assert.strictEqual(after.data.title, "Second post");
+  assert.strictEqual(after.body.split("\n")[0], "A **bold** word, **Kim** The one, and rogue.");
+  assert.match(after.body, /Two spaces here\. Next\./);
+  assert.deepStrictEqual(audit.writing().filter((w) => w.file === file), []);
+  // nothing left to fix: nothing is written
+  assert.strictEqual(audit.fixWriting("spaces", [], entries).length, 0);
+  // putting back what the first fix changed restores the original
+  audit.putBack([{ file, data: before.data, body: before.body }], entries);
+  assert.strictEqual(entries.readEntry(file).data.title, "Second  post");
+});

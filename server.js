@@ -65,6 +65,7 @@ function afterChange(file) {
 
 // ---------- the API: what the browser asks for ----------
 
+let lastFix = [];   // what the last "Fix" in Check content changed, so it can be undone
 const routes = {
   // which site is open, and recent ones (for the "Open site" screen)
   "GET /api/site": (q, body, ctx) => ({ site: site.info(), recent: ctx.remote ? [] : site.recentWithNames(), remote: !!ctx.remote }),
@@ -127,6 +128,9 @@ const routes = {
   // searching every section at once; and checks on the pictures (unused, no alt text)
   "GET /api/search": (q) => search.run(q.q, entries),
   "GET /api/audit": () => audit.run(),
+  // put right every double space / stray mark (or just in some items), and take that back
+  "POST /api/audit/fix": (q, body) => { lastFix = audit.fixWriting(body.kind, body.files, entries); lastFix.forEach((f) => afterChange(f.file)); return { fixed: lastFix.length, files: lastFix.map((f) => f.file) }; },
+  "POST /api/audit/undo": () => { const items = lastFix; lastFix = []; audit.putBack(items, entries); items.forEach((f) => afterChange(f.file)); return { restored: items.length }; },
 
   // earlier versions of a post (from git, read-only), what putting one back would change, and putting it back
   "GET /api/history": (q) => history.list(q.file),

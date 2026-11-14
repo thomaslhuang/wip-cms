@@ -198,7 +198,10 @@ that has none: Markdown `![](photo.webp)` or an `<img>` with no `alt`, a block o
 **Stray formatting marks** lists text where a typed `**`, `__` or `~~` (or two or more single `*`)
 never turned into formatting, and **Double spaces** lists text with two or more spaces in a row
 (shown as ␣). Both look at a post's body and every text field, skip code, and leave a lone `*` (a
-footnote star) and Markdown's two-spaces line break alone. Click a row to open it.
+footnote star) and Markdown's two-spaces line break alone. Click a row to open it at the spot, or press **Fix** to put it right without opening it
+(**Fix all** on a tab does every item; a toast has Undo). Fix collapses double spaces to one and
+removes a stray mark; a pair with a misplaced space (`**Kim **The`) keeps its bold (`**Kim** The`).
+It changes the files only, like any edit, so publishing is still up to you.
 
 **Slips in Write:** a double space or a leftover `**`, `__` or `~~` gets a red dotted underline in the
 writing box (drawn with the browser's highlight feature, so the text and ⌘Z are untouched). Click it
@@ -444,6 +447,7 @@ lib/
   search.js          searching every section at once
   audit.js           Check content: unused pictures, pictures without alt text, stray marks, double spaces
   textcheck.js       the stray-mark and double-space checks
+  textfix.js         the fixes for them (Check content → Fix)
   bind-loopback.js   makes the preview's Eleventy answer only this computer
   setup.js           setting up a new site: writes its .pages.yml
   sections.js        adding a collection or page to a site that's set up (the sidebar's +)

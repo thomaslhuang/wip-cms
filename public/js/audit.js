@@ -22,6 +22,16 @@ export function auditView({ onOpen, onTrashed = () => {} }) {
     draw();
   }
 
+  // put right a kind of slip, in the named items or in all of them, with an Undo
+  async function fixWriting(kind, files) {
+    try {
+      const r = await api.fixWriting(kind, files);
+      toast(r.fixed ? t2(r.fixed, "Fixed {n} item", "Fixed {n} items") : t("Nothing to fix here."), "", r.fixed ? { action: { label: t("Undo"), run: async () => { try { await api.undoFixWriting(); toast(t("Put back")); } catch (e) { toast(e.message, "error"); } load(); } } } : {});
+      onTrashed();
+    } catch (e) { toast(e.message, "error"); }
+    load();
+  }
+
   async function trashChosen() {
     const urls = [...chosen];
     if (!urls.length) return;
@@ -34,19 +44,26 @@ export function auditView({ onOpen, onTrashed = () => {} }) {
   function draw() {
     const { unused, missingAlt, writing = [] } = data;
     const withKind = (kind) => writing.map((w) => ({ ...w, issues: w.issues.filter((i) => i.kind === kind) })).filter((w) => w.issues.length);
-    const writingRows = (kind, rows) => rows.map((m) => h("button", { class: "trash-row search-row", onclick: () => onOpen(m, m.issues[0].needle) },
-      h("span", { class: "trash-text" },
-        h("span", { class: "trash-title" }, m.title),
-        h("span", { class: "muted small trash-was" }, tl(m.sectionLabel) + " · " + (m.issues[0].field === "body" ? t("Text") : m.issues[0].field) + (m.issues.length > 1 ? " +" + (m.issues.length - 1) : "")),
-        h("span", { class: "small trash-was audit-sample" }, m.issues[0].sample))));
+    const fixLabel = (kind) => kind === "marks" ? t("Fix") : t("Fix");
+    const writingRows = (kind, rows) => rows.map((m) => h("div", { class: "trash-row audit-fixrow" },
+      h("button", { class: "search-row audit-open", onclick: () => onOpen(m, m.issues[0].needle) },
+        h("span", { class: "trash-text" },
+          h("span", { class: "trash-title" }, m.title),
+          h("span", { class: "muted small trash-was" }, tl(m.sectionLabel) + " · " + (m.issues[0].field === "body" ? t("Text") : m.issues[0].field) + (m.issues.length > 1 ? " +" + (m.issues.length - 1) : "")),
+          h("span", { class: "small trash-was audit-sample" }, m.issues[0].sample))),
+      env.remote ? null : h("button", { class: "btn small", onclick: () => fixWriting(kind, [m.file]) }, fixLabel(kind))));
+    const fixAll = (kind, rows) => env.remote || rows.length < 2 ? null : h("div", { class: "audit-actions" },
+      h("button", { class: "btn small", onclick: () => fixWriting(kind, null) }, t2(rows.length, "Fix {n} item", "Fix all {n} items")));
     const marks = withKind("marks"), spaces = withKind("spaces");
     const panels = {
       marks: () => marks.length ? [
         h("p", { class: "muted small picker-tip" }, t("Marks like ** that were typed but didn't turn into bold or italic.")),
+        fixAll("marks", marks),
         writingRows("marks", marks),
       ] : h("p", { class: "muted picker-tip" }, t("No stray marks found.")),
       spaces: () => spaces.length ? [
         h("p", { class: "muted small picker-tip" }, t("Two or more spaces in a row, shown here as ␣.")),
+        fixAll("spaces", spaces),
         writingRows("spaces", spaces),
       ] : h("p", { class: "muted picker-tip" }, t("No double spaces found.")),
       unused: () => unused.length ? [
